@@ -1,0 +1,6 @@
+node_modules/
+uploads/
+.env
+material-dashboard-react-main/
+src/assets/
+public/assets/

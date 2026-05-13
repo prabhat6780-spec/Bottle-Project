@@ -1,0 +1,72 @@
+import { NavLink } from 'react-router-dom';
+import { useContext } from 'react';
+import { AbilityContext, Can } from '../context/AbilityContext';
+import logo from '../assets/hero.png';
+
+const navItems = [
+  {
+    section: 'Main',
+    links: [
+      { to: '/', icon: 'bi-grid-1x2-fill', label: 'Dashboard' },
+    ],
+  },
+  {
+    section: 'Management',
+    links: [
+      { to: '/users', icon: 'bi-people-fill', label: 'Users', action: 'sidebar', subject: 'user' },
+      { to: '/brands', icon: 'bi-award-fill', label: 'Brands', action: 'sidebar', subject: 'brand' },
+      { to: '/bottle-specs', icon: 'bi-droplet-fill', label: 'Bottle Specs', action: 'sidebar', subject: 'bottlespec' },
+      { to: '/variants', icon: 'bi-layers-fill', label: 'Variants', action: 'sidebar', subject: 'variant' },
+      { to: '/productions', icon: 'bi-box-seam-fill', label: 'Production Logs', action: 'sidebar', subject: 'production' },
+    ],
+  },
+  {
+    section: 'System',
+    links: [
+      { to: '/permissions', icon: 'bi-key-fill', label: 'Permissions', action: 'sidebar', subject: 'permission' },
+      { to: '/roles', icon: 'bi-shield-lock-fill', label: 'Roles', action: 'sidebar', subject: 'role' },
+    ],
+  },
+];
+
+export default function Sidebar({ collapsed }) {
+  const ability = useContext(AbilityContext);
+
+  return (
+    <aside className={`sidebar ${collapsed ? 'collapsed' : ''}`}>
+      {/* Brand */}
+      <div className="sidebar-brand" style={{ justifyContent: 'center' }}>
+        <img src={logo} alt="Logo" style={{ height: '60px', maxWidth: '100%', objectFit: 'contain' }} />
+      </div>
+
+      {/* Nav */}
+      <nav className="sidebar-nav">
+        {navItems.map((section) => {
+          const visibleLinks = section.links.filter(link =>
+            ability.can(link.action || 'read', link.subject || 'all')
+          );
+
+          if (visibleLinks.length === 0) return null;
+
+          return (
+            <div key={section.section} className="mb-2">
+              <div className="nav-section-title">{section.section}</div>
+              {visibleLinks.map((link) => (
+                <NavLink
+                  key={link.to}
+                  to={link.to}
+                  end={link.to === '/'}
+                  className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}
+                >
+                  <i className={`bi ${link.icon} nav-icon`} />
+                  <span className="nav-label">{link.label}</span>
+                  {link.badge && <span className="nav-badge">{link.badge}</span>}
+                </NavLink>
+              ))}
+            </div>
+          );
+        })}
+      </nav>
+    </aside>
+  );
+}

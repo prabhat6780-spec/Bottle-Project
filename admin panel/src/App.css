@@ -1,0 +1,7 @@
+/* Reset App.css defaults from Vite template */
+#root {
+  max-width: unset;
+  margin: 0;
+  padding: 0;
+  text-align: unset;
+}
