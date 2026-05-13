@@ -21,6 +21,56 @@ export default function EditVariant() {
     bottleSpecId: ''
   });
 
+  const [errors, setErrors] = useState({
+    productName: '',
+    variantName: '',
+    variantType: '',
+    variantSize: '',
+    bottleSpecId: ''
+  });
+
+  const validateField = (name, value) => {
+    let msg = '';
+    const fieldNames = {
+      productName: 'Product Name',
+      variantName: 'Variant Name',
+      variantType: 'Variant Type',
+      variantSize: 'Variant Size',
+      bottleSpecId: 'Bottle Specification'
+    };
+
+    if (!value) {
+      msg = `${fieldNames[name] || name} is mandatory`;
+    } else if (name !== 'bottleSpecId' && /\s/.test(value)) {
+      msg = 'Whitespace is not allowed';
+    }
+    setErrors(prev => ({ ...prev, [name]: msg }));
+    return msg;
+  };
+
+  const handleBlur = (e) => {
+    const { name, value } = e.target;
+    const msg = validateField(name, value);
+    if (msg) {
+      Swal.fire({
+        icon: 'warning',
+        title: 'Validation Warning',
+        text: msg,
+        toast: true,
+        position: 'top-end',
+        showConfirmButton: false,
+        timer: 3000
+      });
+    }
+  };
+
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+    const cleanValue = (name === 'bottleSpecId' || name === 'status') ? value : value.replace(/\s/g, '');
+    setFormData(prev => ({ ...prev, [name]: cleanValue }));
+    if (errors[name]) setErrors(prev => ({ ...prev, [name]: '' }));
+  };
+
   useEffect(() => {
     dispatch(fetchBottleSpecs());
   }, [dispatch]);
@@ -41,6 +91,20 @@ export default function EditVariant() {
 
   const handleSubmit = (e) => {
     e.preventDefault();
+
+    // Validate all mandatory fields
+    const specError = validateField('bottleSpecId', formData.bottleSpecId);
+    const prodError = validateField('productName', formData.productName);
+    const varNameError = validateField('variantName', formData.variantName);
+    const varTypeError = validateField('variantType', formData.variantType);
+    const varSizeError = validateField('variantSize', formData.variantSize);
+
+    if (specError) return Swal.fire('Validation Error', specError, 'error');
+    if (prodError) return Swal.fire('Validation Error', prodError, 'error');
+    if (varNameError) return Swal.fire('Validation Error', varNameError, 'error');
+    if (varTypeError) return Swal.fire('Validation Error', varTypeError, 'error');
+    if (varSizeError) return Swal.fire('Validation Error', varSizeError, 'error');
+
     dispatch(updateVariant({ id, formData })).then((res) => {
       if (!res.error) {
         Swal.fire('Updated!', 'Variant updated successfully!', 'success');
@@ -72,12 +136,16 @@ export default function EditVariant() {
               <form onSubmit={handleSubmit}>
                 <div className="row g-4">
                   <div className="col-md-12">
-                    <label className="form-label fw-600 small text-uppercase text-muted">Bottle Specification</label>
+                    <label className="form-label fw-600 small text-uppercase text-muted">
+                      Bottle Specification <span className="text-danger">*</span>
+                    </label>
                     <select 
-                      className="form-select custom-input-field" 
+                      className={`form-select custom-input-field ${errors.bottleSpecId ? 'is-invalid' : ''}`}
+                      name="bottleSpecId"
                       required
                       value={formData.bottleSpecId} 
-                      onChange={(e) => setFormData({ ...formData, bottleSpecId: e.target.value })}
+                      onChange={handleChange}
+                      onBlur={handleBlur}
                       style={{ borderRadius: 12 }}
                     >
                       <option value="">-- Choose Spec --</option>
@@ -85,6 +153,7 @@ export default function EditVariant() {
                         <option key={s._id} value={s._id}>{s.bottleName} ({s.brandId?.name || 'N/A'})</option>
                       ))}
                     </select>
+                    {errors.bottleSpecId && <div className="invalid-feedback">{errors.bottleSpecId}</div>}
                   </div>
 
                   {selectedSpec && (
@@ -97,51 +166,71 @@ export default function EditVariant() {
                   )}
 
                   <div className="col-md-6">
-                    <label className="form-label fw-600 small text-uppercase text-muted">Product Name</label>
+                    <label className="form-label fw-600 small text-uppercase text-muted">
+                      Product Name <span className="text-danger">*</span>
+                    </label>
                     <input
                       type="text"
-                      className="form-control custom-input-field"
+                      name="productName"
+                      className={`form-control custom-input-field ${errors.productName ? 'is-invalid' : ''}`}
                       required
                       value={formData.productName}
-                      onChange={(e) => setFormData({ ...formData, productName: e.target.value })}
+                      onChange={handleChange}
+                      onBlur={handleBlur}
                       style={{ borderRadius: 12 }}
                     />
+                    {errors.productName && <div className="invalid-feedback">{errors.productName}</div>}
                   </div>
 
                   <div className="col-md-6">
-                    <label className="form-label fw-600 small text-uppercase text-muted">Variant Name</label>
+                    <label className="form-label fw-600 small text-uppercase text-muted">
+                      Variant Name <span className="text-danger">*</span>
+                    </label>
                     <input
                       type="text"
-                      className="form-control custom-input-field"
+                      name="variantName"
+                      className={`form-control custom-input-field ${errors.variantName ? 'is-invalid' : ''}`}
                       required
                       value={formData.variantName}
-                      onChange={(e) => setFormData({ ...formData, variantName: e.target.value })}
+                      onChange={handleChange}
+                      onBlur={handleBlur}
                       style={{ borderRadius: 12 }}
                     />
+                    {errors.variantName && <div className="invalid-feedback">{errors.variantName}</div>}
                   </div>
 
                   <div className="col-md-6">
-                    <label className="form-label fw-600 small text-uppercase text-muted">Variant Type</label>
+                    <label className="form-label fw-600 small text-uppercase text-muted">
+                      Variant Type <span className="text-danger">*</span>
+                    </label>
                     <input
                       type="text"
-                      className="form-control custom-input-field"
+                      name="variantType"
+                      className={`form-control custom-input-field ${errors.variantType ? 'is-invalid' : ''}`}
                       required
                       value={formData.variantType}
-                      onChange={(e) => setFormData({ ...formData, variantType: e.target.value })}
+                      onChange={handleChange}
+                      onBlur={handleBlur}
                       style={{ borderRadius: 12 }}
                     />
+                    {errors.variantType && <div className="invalid-feedback">{errors.variantType}</div>}
                   </div>
 
                   <div className="col-md-6">
-                    <label className="form-label fw-600 small text-uppercase text-muted">Variant Size</label>
+                    <label className="form-label fw-600 small text-uppercase text-muted">
+                      Variant Size <span className="text-danger">*</span>
+                    </label>
                     <input
                       type="text"
-                      className="form-control custom-input-field"
+                      name="variantSize"
+                      className={`form-control custom-input-field ${errors.variantSize ? 'is-invalid' : ''}`}
                       required
                       value={formData.variantSize}
-                      onChange={(e) => setFormData({ ...formData, variantSize: e.target.value })}
+                      onChange={handleChange}
+                      onBlur={handleBlur}
                       style={{ borderRadius: 12 }}
                     />
+                    {errors.variantSize && <div className="invalid-feedback">{errors.variantSize}</div>}
                   </div>
 
                   <div className="col-md-12">

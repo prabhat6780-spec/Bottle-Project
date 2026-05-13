@@ -20,12 +20,76 @@ export default function AddBottleSpec() {
     status: 'active'
   });
 
+  const [errors, setErrors] = useState({
+    brandId: '',
+    bottleName: '',
+    code: '',
+    printingType: '',
+    printingSubType: ''
+  });
+
+  const validateField = (name, value) => {
+    let msg = '';
+    const fieldNames = {
+      brandId: 'Brand',
+      bottleName: 'Bottle Name',
+      code: 'Bottle Code',
+      printingType: 'Printing Type',
+      printingSubType: 'Subprinting'
+    };
+
+    if (!value) {
+      msg = `${fieldNames[name] || name} is mandatory`;
+    } else if (name !== 'brandId' && /\s/.test(value)) {
+      msg = 'Whitespace is not allowed';
+    }
+    setErrors(prev => ({ ...prev, [name]: msg }));
+    return msg;
+  };
+
+  const handleBlur = (e) => {
+    const { name, value } = e.target;
+    const msg = validateField(name, value);
+    if (msg) {
+      Swal.fire({
+        icon: 'warning',
+        title: 'Validation Warning',
+        text: msg,
+        toast: true,
+        position: 'top-end',
+        showConfirmButton: false,
+        timer: 3000
+      });
+    }
+  };
+
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+    const cleanValue = (name === 'brandId' || name === 'status') ? value : value.replace(/\s/g, '');
+    setFormData(prev => ({ ...prev, [name]: cleanValue }));
+    if (errors[name]) setErrors(prev => ({ ...prev, [name]: '' }));
+  };
+
   useEffect(() => {
     dispatch(fetchBrands());
   }, [dispatch]);
 
   const handleSubmit = (e) => {
     e.preventDefault();
+    
+    // Validate all mandatory fields
+    const brandError = validateField('brandId', formData.brandId);
+    const nameError = validateField('bottleName', formData.bottleName);
+    const codeError = validateField('code', formData.code);
+    const typeError = validateField('printingType', formData.printingType);
+    const subError = validateField('printingSubType', formData.printingSubType);
+
+    if (brandError) return Swal.fire('Validation Error', brandError, 'error');
+    if (nameError) return Swal.fire('Validation Error', nameError, 'error');
+    if (codeError) return Swal.fire('Validation Error', codeError, 'error');
+    if (typeError) return Swal.fire('Validation Error', typeError, 'error');
+    if (subError) return Swal.fire('Validation Error', subError, 'error');
+
     dispatch(createBottleSpec(formData)).then((res) => {
       if (!res.error) {
         Swal.fire('Success!', `Specification "${formData.bottleName}" added!`, 'success');
@@ -55,12 +119,16 @@ export default function AddBottleSpec() {
               <form onSubmit={handleSubmit}>
                 <div className="row g-4">
                   <div className="col-md-12">
-                    <label className="form-label fw-600 small text-uppercase text-muted">Select Brand</label>
+                    <label className="form-label fw-600 small text-uppercase text-muted">
+                      Select Brand <span className="text-danger">*</span>
+                    </label>
                     <select 
-                      className="form-select custom-input-field" 
+                      className={`form-select custom-input-field ${errors.brandId ? 'is-invalid' : ''}`}
+                      name="brandId"
                       required
                       value={formData.brandId} 
-                      onChange={(e) => setFormData({ ...formData, brandId: e.target.value })}
+                      onChange={handleChange}
+                      onBlur={handleBlur}
                       style={{ borderRadius: 12 }}
                     >
                       <option value="">-- Choose Brand --</option>
@@ -68,53 +136,75 @@ export default function AddBottleSpec() {
                         <option key={b._id} value={b._id}>{b.name}</option>
                       ))}
                     </select>
+                    {errors.brandId && <div className="invalid-feedback">{errors.brandId}</div>}
                   </div>
 
                   <div className="col-md-6">
-                    <label className="form-label fw-600 small text-uppercase text-muted">Bottle Name</label>
+                    <label className="form-label fw-600 small text-uppercase text-muted">
+                      Bottle Name <span className="text-danger">*</span>
+                    </label>
                     <input
                       type="text"
-                      className="form-control custom-input-field"
+                      name="bottleName"
+                      className={`form-control custom-input-field ${errors.bottleName ? 'is-invalid' : ''}`}
                       required
                       value={formData.bottleName}
-                      onChange={(e) => setFormData({ ...formData, bottleName: e.target.value })}
+                      onChange={handleChange}
+                      onBlur={handleBlur}
                       style={{ borderRadius: 12 }}
                     />
+                    {errors.bottleName && <div className="invalid-feedback">{errors.bottleName}</div>}
                   </div>
 
                   <div className="col-md-6">
-                    <label className="form-label fw-600 small text-uppercase text-muted">Bottle Code</label>
+                    <label className="form-label fw-600 small text-uppercase text-muted">
+                      Bottle Code <span className="text-danger">*</span>
+                    </label>
                     <input
                       type="text"
-                      className="form-control custom-input-field"
+                      name="code"
+                      className={`form-control custom-input-field ${errors.code ? 'is-invalid' : ''}`}
                       required
                       value={formData.code}
-                      onChange={(e) => setFormData({ ...formData, code: e.target.value })}
+                      onChange={handleChange}
+                      onBlur={handleBlur}
                       style={{ borderRadius: 12 }}
                     />
+                    {errors.code && <div className="invalid-feedback">{errors.code}</div>}
                   </div>
 
                   <div className="col-md-6">
-                    <label className="form-label fw-600 small text-uppercase text-muted">Printing Type</label>
+                    <label className="form-label fw-600 small text-uppercase text-muted">
+                      Printing Type <span className="text-danger">*</span>
+                    </label>
                     <input
                       type="text"
-                      className="form-control custom-input-field"
+                      name="printingType"
+                      className={`form-control custom-input-field ${errors.printingType ? 'is-invalid' : ''}`}
                       required
                       value={formData.printingType}
-                      onChange={(e) => setFormData({ ...formData, printingType: e.target.value })}
+                      onChange={handleChange}
+                      onBlur={handleBlur}
                       style={{ borderRadius: 12 }}
                     />
+                    {errors.printingType && <div className="invalid-feedback">{errors.printingType}</div>}
                   </div>
 
                   <div className="col-md-6">
-                    <label className="form-label fw-600 small text-uppercase text-muted">Subprinting</label>
+                    <label className="form-label fw-600 small text-uppercase text-muted">
+                      Subprinting <span className="text-danger">*</span>
+                    </label>
                     <input
                       type="text"
-                      className="form-control custom-input-field"
+                      name="printingSubType"
+                      className={`form-control custom-input-field ${errors.printingSubType ? 'is-invalid' : ''}`}
+                      required
                       value={formData.printingSubType}
-                      onChange={(e) => setFormData({ ...formData, printingSubType: e.target.value })}
+                      onChange={handleChange}
+                      onBlur={handleBlur}
                       style={{ borderRadius: 12 }}
                     />
+                    {errors.printingSubType && <div className="invalid-feedback">{errors.printingSubType}</div>}
                   </div>
 
                   <div className="col-md-12">

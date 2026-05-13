@@ -19,6 +19,65 @@ export default function AddUser() {
     status: 'active'
   });
 
+  const [errors, setErrors] = useState({
+    name: '',
+    email: '',
+    password: ''
+  });
+
+  const validateField = (name, value) => {
+    let error = '';
+    if (!value) {
+      error = `${name === 'name' ? 'Full Name' : name.charAt(0).toUpperCase() + name.slice(1)} is mandatory`;
+    } else {
+      if (/\s/.test(value)) {
+        error = 'Whitespace is not allowed';
+      } else if (name === 'name') {
+        if (!/^[a-zA-Z]+$/.test(value)) {
+          error = 'Full Name should only contain characters';
+        }
+      } else if (name === 'email') {
+        if (!value.includes('@') || !value.endsWith('.com')) {
+          error = 'Email must contain @ and end with .com';
+        }
+      } else if (name === 'password') {
+        if (!/[!@#$%^&*(),.?":{}|<>]/.test(value)) {
+          error = 'Password must contain at least one special character';
+        }
+      }
+    }
+    setErrors(prev => ({ ...prev, [name]: error }));
+    return error;
+  };
+
+  const handleBlur = (e) => {
+    const { name, value } = e.target;
+    const error = validateField(name, value);
+    if (error) {
+      Swal.fire({
+        icon: 'warning',
+        title: 'Validation Warning',
+        text: error,
+        toast: true,
+        position: 'top-end',
+        showConfirmButton: false,
+        timer: 3000
+      });
+    }
+  };
+
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+    // Remove all whitespace as requested
+    const cleanValue = value.replace(/\s/g, '');
+    setFormData(prev => ({ ...prev, [name]: cleanValue }));
+    
+    // Clear error while typing if it becomes valid
+    if (errors[name]) {
+      setErrors(prev => ({ ...prev, [name]: '' }));
+    }
+  };
+
   useEffect(() => {
     dispatch(fetchRoles());
   }, [dispatch]);
@@ -31,6 +90,16 @@ export default function AddUser() {
 
   const handleSubmit = (e) => {
     e.preventDefault();
+    
+    // Validate all fields before submission
+    const nameError = validateField('name', formData.name);
+    const emailError = validateField('email', formData.email);
+    const passwordError = validateField('password', formData.password);
+
+    if (nameError) return Swal.fire('Validation Error', nameError, 'error');
+    if (emailError) return Swal.fire('Validation Error', emailError, 'error');
+    if (passwordError) return Swal.fire('Validation Error', passwordError, 'error');
+
     if (!formData.role) return Swal.fire('Error', 'Please select a role', 'error');
 
     dispatch(addUser(formData)).then((res) => {
@@ -65,53 +134,68 @@ export default function AddUser() {
               <form onSubmit={handleSubmit}>
                 <div className="row g-4">
                   <div className="col-md-12">
-                    <label className="form-label fw-600 small text-uppercase text-muted">Full Name</label>
+                    <label className="form-label fw-600 small text-uppercase text-muted">
+                      Full Name <span className="text-danger">*</span>
+                    </label>
                     <div className="input-group">
                       <span className="input-group-text bg-light border-end-0" style={{ borderRadius: '12px 0 0 12px' }}>
                         <i className="bi bi-person text-muted" />
                       </span>
                       <input
                         type="text"
-                        className="form-control custom-input-field"
+                        name="name"
+                        className={`form-control custom-input-field ${errors.name ? 'is-invalid' : ''}`}
                         required
                         value={formData.name}
-                        onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                        onChange={handleChange}
+                        onBlur={handleBlur}
                         style={{ borderLeft: 'none', borderRadius: '0 12px 12px 0' }}
                       />
+                      {errors.name && <div className="invalid-feedback">{errors.name}</div>}
                     </div>
                   </div>
 
                   <div className="col-md-12">
-                    <label className="form-label fw-600 small text-uppercase text-muted">Email Address</label>
+                    <label className="form-label fw-600 small text-uppercase text-muted">
+                      Email Address <span className="text-danger">*</span>
+                    </label>
                     <div className="input-group">
                       <span className="input-group-text bg-light border-end-0" style={{ borderRadius: '12px 0 0 12px' }}>
                         <i className="bi bi-envelope text-muted" />
                       </span>
                       <input
                         type="email"
-                        className="form-control custom-input-field"
+                        name="email"
+                        className={`form-control custom-input-field ${errors.email ? 'is-invalid' : ''}`}
                         required
                         value={formData.email}
-                        onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                        onChange={handleChange}
+                        onBlur={handleBlur}
                         style={{ borderLeft: 'none', borderRadius: '0 12px 12px 0' }}
                       />
+                      {errors.email && <div className="invalid-feedback">{errors.email}</div>}
                     </div>
                   </div>
 
                   <div className="col-md-12">
-                    <label className="form-label fw-600 small text-uppercase text-muted">Password</label>
+                    <label className="form-label fw-600 small text-uppercase text-muted">
+                      Password <span className="text-danger">*</span>
+                    </label>
                     <div className="input-group">
                       <span className="input-group-text bg-light border-end-0" style={{ borderRadius: '12px 0 0 12px' }}>
                         <i className="bi bi-shield-lock text-muted" />
                       </span>
                       <input
                         type="password"
-                        className="form-control custom-input-field"
+                        name="password"
+                        className={`form-control custom-input-field ${errors.password ? 'is-invalid' : ''}`}
                         required
                         value={formData.password}
-                        onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                        onChange={handleChange}
+                        onBlur={handleBlur}
                         style={{ borderLeft: 'none', borderRadius: '0 12px 12px 0' }}
                       />
+                      {errors.password && <div className="invalid-feedback">{errors.password}</div>}
                     </div>
                   </div>
 

@@ -28,6 +28,70 @@ export default function AddProduction() {
     bottlePerBox: '',
   });
 
+  const [errors, setErrors] = useState({
+    brandId: '',
+    bottleSpecId: '',
+    variantId: '',
+    date: '',
+    totalPrinted: '',
+    bottlePerBox: ''
+  });
+
+  const validateField = (name, value) => {
+    let msg = '';
+    const fieldNames = {
+      brandId: 'Brand',
+      bottleSpecId: 'Bottle Spec',
+      variantId: 'Variant',
+      date: 'Production Date',
+      totalPrinted: 'Total Printed',
+      bottlePerBox: 'Per Box'
+    };
+
+    if (!value) {
+      msg = `${fieldNames[name] || name} is mandatory`;
+    } else if (['totalPrinted', 'bottlePerBox'].includes(name) && /\s/.test(value.toString())) {
+      msg = 'Whitespace is not allowed';
+    }
+    setErrors(prev => ({ ...prev, [name]: msg }));
+    return msg;
+  };
+
+  const handleBlur = (e) => {
+    const { name, value } = e.target;
+    const msg = validateField(name, value);
+    if (msg) {
+      Swal.fire({
+        icon: 'warning',
+        title: 'Validation Warning',
+        text: msg,
+        toast: true,
+        position: 'top-end',
+        showConfirmButton: false,
+        timer: 3000
+      });
+    }
+  };
+
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+    let cleanValue = value;
+    
+    if (['totalPrinted', 'bottlePerBox'].includes(name)) {
+      cleanValue = value.replace(/\s/g, '');
+    }
+
+    if (name === 'brandId') {
+      setFormData({ ...formData, brandId: cleanValue, bottleSpecId: '', variantId: '' });
+    } else if (name === 'bottleSpecId') {
+      setFormData({ ...formData, bottleSpecId: cleanValue, variantId: '' });
+    } else {
+      setFormData({ ...formData, [name]: cleanValue });
+    }
+
+    if (errors[name]) setErrors(prev => ({ ...prev, [name]: '' }));
+  };
+
   const [calc, setCalc] = useState({ boxes: 0, rem: 0 });
 
   const [mode, setMode] = useState('camera'); // 'manual' or 'camera'
@@ -128,6 +192,22 @@ export default function AddProduction() {
 
   const handleSubmit = (e) => {
     e.preventDefault();
+
+    // Validate all mandatory fields
+    const brandError = validateField('brandId', formData.brandId);
+    const specError = validateField('bottleSpecId', formData.bottleSpecId);
+    const varError = validateField('variantId', formData.variantId);
+    const dateError = validateField('date', formData.date);
+    const printedError = validateField('totalPrinted', formData.totalPrinted);
+    const boxError = validateField('bottlePerBox', formData.bottlePerBox);
+
+    if (brandError) return Swal.fire('Validation Error', brandError, 'error');
+    if (specError) return Swal.fire('Validation Error', specError, 'error');
+    if (varError) return Swal.fire('Validation Error', varError, 'error');
+    if (dateError) return Swal.fire('Validation Error', dateError, 'error');
+    if (printedError) return Swal.fire('Validation Error', printedError, 'error');
+    if (boxError) return Swal.fire('Validation Error', boxError, 'error');
+
     dispatch(createProduction(formData)).then((res) => {
       if (!res.error) {
         Swal.fire('Success!', `Production log saved!`, 'success');
@@ -286,12 +366,16 @@ export default function AddProduction() {
                 <form onSubmit={handleSubmit}>
                   <div className="row g-4">
                     <div className="col-md-6">
-                      <label className="form-label fw-600 small text-uppercase text-muted">1. Brand</label>
+                      <label className="form-label fw-600 small text-uppercase text-muted">
+                        1. Brand <span className="text-danger">*</span>
+                      </label>
                       <select 
-                        className="form-select custom-input-field" 
+                        className={`form-select custom-input-field ${errors.brandId ? 'is-invalid' : ''}`}
+                        name="brandId"
                         required
                         value={formData.brandId} 
-                        onChange={(e) => setFormData({ ...formData, brandId: e.target.value, bottleSpecId: '', variantId: '' })}
+                        onChange={handleChange}
+                        onBlur={handleBlur}
                         style={{ borderRadius: 12 }}
                       >
                         <option value="">-- Choose Brand --</option>
@@ -299,16 +383,21 @@ export default function AddProduction() {
                           <option key={b._id} value={b._id}>{b.name}</option>
                         ))}
                       </select>
+                      {errors.brandId && <div className="invalid-feedback">{errors.brandId}</div>}
                     </div>
 
                     <div className="col-md-6">
-                      <label className="form-label fw-600 small text-uppercase text-muted">2. Bottle Spec</label>
+                      <label className="form-label fw-600 small text-uppercase text-muted">
+                        2. Bottle Spec <span className="text-danger">*</span>
+                      </label>
                       <select 
-                        className="form-select custom-input-field" 
+                        className={`form-select custom-input-field ${errors.bottleSpecId ? 'is-invalid' : ''}`}
+                        name="bottleSpecId"
                         required
                         disabled={!formData.brandId}
                         value={formData.bottleSpecId} 
-                        onChange={(e) => setFormData({ ...formData, bottleSpecId: e.target.value, variantId: '' })}
+                        onChange={handleChange}
+                        onBlur={handleBlur}
                         style={{ borderRadius: 12 }}
                       >
                         <option value="">-- Choose Specification --</option>
@@ -318,16 +407,21 @@ export default function AddProduction() {
                           </option>
                         ))}
                       </select>
+                      {errors.bottleSpecId && <div className="invalid-feedback">{errors.bottleSpecId}</div>}
                     </div>
 
                     <div className="col-md-12">
-                      <label className="form-label fw-600 small text-uppercase text-muted">3. Variant</label>
+                      <label className="form-label fw-600 small text-uppercase text-muted">
+                        3. Variant <span className="text-danger">*</span>
+                      </label>
                       <select 
-                        className="form-select custom-input-field" 
+                        className={`form-select custom-input-field ${errors.variantId ? 'is-invalid' : ''}`}
+                        name="variantId"
                         required
                         disabled={!formData.bottleSpecId}
                         value={formData.variantId} 
-                        onChange={(e) => setFormData({ ...formData, variantId: e.target.value })}
+                        onChange={handleChange}
+                        onBlur={handleBlur}
                         style={{ borderRadius: 12 }}
                       >
                         <option value="">-- Choose Variant --</option>
@@ -337,44 +431,60 @@ export default function AddProduction() {
                           </option>
                         ))}
                       </select>
+                      {errors.variantId && <div className="invalid-feedback">{errors.variantId}</div>}
                     </div>
 
                     <div className="col-12"><hr className="my-4 opacity-50" /></div>
 
                     <div className="col-md-4">
-                      <label className="form-label fw-600 small text-uppercase text-muted">Production Date</label>
+                      <label className="form-label fw-600 small text-uppercase text-muted">
+                        Production Date <span className="text-danger">*</span>
+                      </label>
                       <input
                         type="date"
-                        className="form-control custom-input-field"
+                        name="date"
+                        className={`form-control custom-input-field ${errors.date ? 'is-invalid' : ''}`}
                         required
                         value={formData.date}
-                        onChange={(e) => setFormData({ ...formData, date: e.target.value })}
+                        onChange={handleChange}
+                        onBlur={handleBlur}
                         style={{ borderRadius: 12 }}
                       />
+                      {errors.date && <div className="invalid-feedback">{errors.date}</div>}
                     </div>
 
                     <div className="col-md-4">
-                      <label className="form-label fw-600 small text-uppercase text-muted">Total Printed</label>
+                      <label className="form-label fw-600 small text-uppercase text-muted">
+                        Total Printed <span className="text-danger">*</span>
+                      </label>
                       <input
                         type="number"
-                        className="form-control custom-input-field"
+                        name="totalPrinted"
+                        className={`form-control custom-input-field ${errors.totalPrinted ? 'is-invalid' : ''}`}
                         required
                         value={formData.totalPrinted}
-                        onChange={(e) => setFormData({ ...formData, totalPrinted: e.target.value })}
+                        onChange={handleChange}
+                        onBlur={handleBlur}
                         style={{ borderRadius: 12 }}
                       />
+                      {errors.totalPrinted && <div className="invalid-feedback">{errors.totalPrinted}</div>}
                     </div>
 
                     <div className="col-md-4">
-                      <label className="form-label fw-600 small text-uppercase text-muted">Per Box</label>
+                      <label className="form-label fw-600 small text-uppercase text-muted">
+                        Per Box <span className="text-danger">*</span>
+                      </label>
                       <input
                         type="number"
-                        className="form-control custom-input-field"
+                        name="bottlePerBox"
+                        className={`form-control custom-input-field ${errors.bottlePerBox ? 'is-invalid' : ''}`}
                         required
                         value={formData.bottlePerBox}
-                        onChange={(e) => setFormData({ ...formData, bottlePerBox: e.target.value })}
+                        onChange={handleChange}
+                        onBlur={handleBlur}
                         style={{ borderRadius: 12 }}
                       />
+                      {errors.bottlePerBox && <div className="invalid-feedback">{errors.bottlePerBox}</div>}
                     </div>
                   </div>
 

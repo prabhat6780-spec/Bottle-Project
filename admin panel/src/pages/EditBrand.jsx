@@ -11,6 +11,41 @@ export default function EditBrand() {
   const { brands, loading } = useSelector((state) => state.brands);
   const [name, setName] = useState('');
   const [status, setStatus] = useState('active');
+  const [error, setError] = useState('');
+
+  const validateField = (value) => {
+    let msg = '';
+    if (!value) {
+      msg = 'Brand Name is mandatory';
+    } else if (/\s/.test(value)) {
+      msg = 'Whitespace is not allowed';
+    } else if (!/^[a-zA-Z]+$/.test(value)) {
+      msg = 'Brand Name should only contain characters';
+    }
+    setError(msg);
+    return msg;
+  };
+
+  const handleBlur = () => {
+    const msg = validateField(name);
+    if (msg) {
+      Swal.fire({
+        icon: 'warning',
+        title: 'Validation Warning',
+        text: msg,
+        toast: true,
+        position: 'top-end',
+        showConfirmButton: false,
+        timer: 3000
+      });
+    }
+  };
+
+  const handleChange = (e) => {
+    const value = e.target.value.replace(/\s/g, '');
+    setName(value);
+    if (error) setError('');
+  };
 
   useEffect(() => {
     const brand = brands.find(b => b._id === id);
@@ -22,6 +57,11 @@ export default function EditBrand() {
 
   const handleSubmit = (e) => {
     e.preventDefault();
+    const msg = validateField(name);
+    if (msg) {
+      return Swal.fire('Validation Error', msg, 'error');
+    }
+
     dispatch(updateBrand({ id, formData: { name, status } })).then((res) => {
       if (!res.error) {
         Swal.fire('Updated!', 'Brand updated successfully!', 'success');
@@ -50,15 +90,19 @@ export default function EditBrand() {
             <div className="dash-card-body p-4">
               <form onSubmit={handleSubmit}>
                 <div className="mb-4">
-                  <label className="form-label fw-600 small text-uppercase text-muted">Brand Name</label>
+                  <label className="form-label fw-600 small text-uppercase text-muted">
+                    Brand Name <span className="text-danger">*</span>
+                  </label>
                   <input
                     type="text"
-                    className="form-control custom-input-field"
+                    className={`form-control custom-input-field ${error ? 'is-invalid' : ''}`}
                     required
                     value={name}
-                    onChange={(e) => setName(e.target.value)}
+                    onChange={handleChange}
+                    onBlur={handleBlur}
                     style={{ borderRadius: 12 }}
                   />
+                  {error && <div className="invalid-feedback">{error}</div>}
                 </div>
 
                 <div className="mb-4">

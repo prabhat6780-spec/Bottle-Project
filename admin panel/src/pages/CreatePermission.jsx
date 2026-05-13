@@ -11,6 +11,41 @@ export default function CreatePermission() {
   const { permissions, loading } = useSelector((state) => state.permissions);
   
   const [permissionName, setPermissionName] = useState('');
+  const [error, setError] = useState('');
+
+  const validateField = (value) => {
+    let msg = '';
+    if (!value) {
+      msg = 'Permission Name is mandatory';
+    } else if (/\s/.test(value)) {
+      msg = 'Whitespace is not allowed';
+    } else if (!/^[a-z]+-[a-z]+$/.test(value)) {
+      msg = 'Invalid format. Use action-subject (e.g., edit-brand)';
+    }
+    setError(msg);
+    return msg;
+  };
+
+  const handleBlur = () => {
+    const msg = validateField(permissionName);
+    if (msg) {
+      Swal.fire({
+        icon: 'warning',
+        title: 'Validation Warning',
+        text: msg,
+        toast: true,
+        position: 'top-end',
+        showConfirmButton: false,
+        timer: 3000
+      });
+    }
+  };
+
+  const handleChange = (e) => {
+    const value = e.target.value.replace(/\s/g, '').toLowerCase();
+    setPermissionName(value);
+    if (error) setError('');
+  };
 
   useEffect(() => {
     if (id) {
@@ -25,7 +60,8 @@ export default function CreatePermission() {
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    if (!permissionName.trim()) return Swal.fire('Error', 'Please enter a permission name', 'error');
+    const msg = validateField(permissionName);
+    if (msg) return Swal.fire('Validation Error', msg, 'error');
 
     if (id) {
       dispatch(updatePermission({ id, name: permissionName })).then(res => {
@@ -70,18 +106,22 @@ export default function CreatePermission() {
               <form onSubmit={handleSubmit}>
                 <div className="row g-4">
                   <div className="col-md-12">
-                    <label className="form-label fw-600 small text-uppercase text-muted mb-2">Permission Name</label>
+                    <label className="form-label fw-600 small text-uppercase text-muted mb-2">
+                      Permission Name <span className="text-danger">*</span>
+                    </label>
                     <input 
                       type="text" 
-                      className="form-control custom-input-field p-3" 
-                      placeholder="e.g. create-user"
+                      className={`form-control custom-input-field p-3 ${error ? 'is-invalid' : ''}`}
+                      placeholder="e.g. edit-brand"
                       value={permissionName}
-                      onChange={(e) => setPermissionName(e.target.value)}
+                      onChange={handleChange}
+                      onBlur={handleBlur}
                       style={{ borderRadius: 12 }}
                       required
                     />
+                    {error && <div className="invalid-feedback">{error}</div>}
                     <div className="form-text small text-muted mt-2">
-                      Use format: <code>action-subject</code> (e.g., <code>edit-brand</code>)
+                      Use format: <code>action-subject</code> (e.g., <code>edit-brand</code>, <code>delete-user</code>)
                     </div>
                   </div>
                 </div>
