@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { Can } from '../context/AbilityContext';
 import { useDispatch, useSelector } from 'react-redux';
@@ -9,6 +9,8 @@ export default function Brands() {
   const dispatch = useDispatch();
   const { brands, loading } = useSelector((state) => state.brands);
   const [search, setSearch] = useState('');
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(10);
 
   useEffect(() => {
     dispatch(fetchBrands());
@@ -32,7 +34,19 @@ export default function Brands() {
     });
   };
 
-  const filteredBrands = brands.filter(b => b.name?.toLowerCase().includes(search.toLowerCase()));
+  const filteredBrands = useMemo(() => {
+    return brands.filter(b => b.name?.toLowerCase().includes(search.toLowerCase()));
+  }, [brands, search]);
+
+  const totalPages = Math.ceil(filteredBrands.length / itemsPerPage);
+  const paginatedItems = useMemo(() => {
+    const start = (currentPage - 1) * itemsPerPage;
+    return filteredBrands.slice(start, start + itemsPerPage);
+  }, [filteredBrands, currentPage, itemsPerPage]);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [search, itemsPerPage]);
 
   return (
     <div className="page-content">
@@ -52,7 +66,12 @@ export default function Brands() {
         <div className="dash-card-header d-flex align-items-center justify-content-between p-3 border-bottom bg-white">
           <div className="d-flex align-items-center gap-2 text-muted small fw-500">
             <span>Show</span>
-            <select className="form-select form-select-sm shadow-none border-light-subtle bg-light" style={{ width: 70, borderRadius: 8, cursor: 'pointer' }}>
+            <select 
+              className="form-select form-select-sm shadow-none border-light-subtle bg-light" 
+              style={{ width: 70, borderRadius: 8, cursor: 'pointer' }}
+              value={itemsPerPage}
+              onChange={(e) => setItemsPerPage(Number(e.target.value))}
+            >
               <option value="10">10</option>
               <option value="25">25</option>
               <option value="50">50</option>
@@ -84,10 +103,10 @@ export default function Brands() {
               </tr>
             </thead>
             <tbody>
-              {filteredBrands.map((b, index) => (
+               {paginatedItems.map((b, index) => (
                 <tr key={b._id} className="align-middle border-bottom transition-all hover-bg-light">
                   <td className="py-3 ps-5 text-start">
-                    <span className="text-muted fw-bold" style={{ fontSize: 13 }}>{String(index + 1).padStart(2, '0')}</span>
+                    <span className="text-muted fw-bold" style={{ fontSize: 13 }}>{String((currentPage - 1) * itemsPerPage + index + 1).padStart(2, '0')}</span>
                   </td>
                   <td className="py-3 text-center fw-600">{b.name}</td>
                   <td className="py-3 text-center">
@@ -114,7 +133,7 @@ export default function Brands() {
                   </td>
                 </tr>
               ))}
-              {filteredBrands.length === 0 && !loading && (
+              {paginatedItems.length === 0 && !loading && (
                 <tr><td colSpan={5} className="text-center py-5 text-muted">No brands found</td></tr>
               )}
             </tbody>
@@ -123,18 +142,38 @@ export default function Brands() {
 
         <div className="dash-card-footer d-flex align-items-center justify-content-between p-3 border-top bg-white">
           <div className="text-muted small fw-500">
-            Showing <b>1</b> to <b>{filteredBrands.length}</b> of <b>{filteredBrands.length}</b> entries
+            Showing <b>{filteredBrands.length > 0 ? (currentPage - 1) * itemsPerPage + 1 : 0}</b> to <b>{Math.min(currentPage * itemsPerPage, filteredBrands.length)}</b> of <b>{filteredBrands.length}</b> entries
           </div>
           <nav aria-label="Page navigation">
             <ul className="pagination pagination-sm mb-0 gap-2">
-              <li className="page-item disabled">
-                <button className="page-link border-0 bg-light text-muted px-3" style={{ borderRadius: 8 }}>Previous</button>
+              <li className={`page-item ${currentPage === 1 ? 'disabled' : ''}`}>
+                <button 
+                  className="page-link border-0 bg-light text-muted px-3" 
+                  style={{ borderRadius: 8 }}
+                  onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                >
+                  Previous
+                </button>
               </li>
-              <li className="page-item active">
-                <button className="page-link border-0 px-3" style={{ borderRadius: 8, backgroundColor: 'var(--accent)' }}>1</button>
-              </li>
-              <li className="page-item disabled">
-                <button className="page-link border-0 bg-light text-muted px-3" style={{ borderRadius: 8 }}>Next</button>
+              {[...Array(totalPages)].map((_, i) => (
+                <li key={i} className={`page-item ${currentPage === i + 1 ? 'active' : ''}`}>
+                  <button 
+                    className="page-link border-0 px-3" 
+                    style={{ borderRadius: 8, backgroundColor: currentPage === i + 1 ? 'var(--accent)' : 'transparent' }}
+                    onClick={() => setCurrentPage(i + 1)}
+                  >
+                    {i + 1}
+                  </button>
+                </li>
+              ))}
+              <li className={`page-item ${currentPage === totalPages || totalPages === 0 ? 'disabled' : ''}`}>
+                <button 
+                  className="page-link border-0 bg-light text-muted px-3" 
+                  style={{ borderRadius: 8 }}
+                  onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+                >
+                  Next
+                </button>
               </li>
             </ul>
           </nav>

@@ -9,6 +9,8 @@ export default function Variants() {
   const dispatch = useDispatch();
   const { variants, loading } = useSelector((state) => state.variants);
   const [search, setSearch] = useState('');
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(10);
 
   useEffect(() => {
     dispatch(fetchVariants());
@@ -32,14 +34,26 @@ export default function Variants() {
     });
   };
 
-  const filteredVariants = variants.filter(v => {
-    const brandName = v.bottleSpecId?.brandId?.name || '';
-    return (
-      v.variantName?.toLowerCase().includes(search.toLowerCase()) ||
-      v.productName?.toLowerCase().includes(search.toLowerCase()) ||
-      brandName.toLowerCase().includes(search.toLowerCase())
-    );
-  });
+  const filteredVariants = useMemo(() => {
+    return variants.filter(v => {
+      const brandName = v.bottleSpecId?.brandId?.name || '';
+      return (
+        v.variantName?.toLowerCase().includes(search.toLowerCase()) ||
+        v.productName?.toLowerCase().includes(search.toLowerCase()) ||
+        brandName.toLowerCase().includes(search.toLowerCase())
+      );
+    });
+  }, [variants, search]);
+
+  const totalPages = Math.ceil(filteredVariants.length / itemsPerPage);
+  const paginatedItems = useMemo(() => {
+    const start = (currentPage - 1) * itemsPerPage;
+    return filteredVariants.slice(start, start + itemsPerPage);
+  }, [filteredVariants, currentPage, itemsPerPage]);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [search, itemsPerPage]);
 
   return (
     <div className="page-content">
@@ -59,7 +73,12 @@ export default function Variants() {
         <div className="dash-card-header d-flex align-items-center justify-content-between p-3 border-bottom bg-white">
           <div className="d-flex align-items-center gap-2 text-muted small fw-500">
             <span>Show</span>
-            <select className="form-select form-select-sm shadow-none border-light-subtle bg-light" style={{ width: 70, borderRadius: 8, cursor: 'pointer' }}>
+            <select 
+              className="form-select form-select-sm shadow-none border-light-subtle bg-light" 
+              style={{ width: 70, borderRadius: 8, cursor: 'pointer' }}
+              value={itemsPerPage}
+              onChange={(e) => setItemsPerPage(Number(e.target.value))}
+            >
               <option value="10">10</option>
               <option value="25">25</option>
               <option value="50">50</option>
@@ -93,10 +112,10 @@ export default function Variants() {
               </tr>
             </thead>
             <tbody>
-              {filteredVariants.map((v, index) => (
+              {paginatedItems.map((v, index) => (
                 <tr key={v._id} className="align-middle border-bottom transition-all hover-bg-light">
                   <td className="py-3 ps-5 text-start">
-                    <span className="text-muted fw-bold" style={{ fontSize: 13 }}>{String(index + 1).padStart(2, '0')}</span>
+                    <span className="text-muted fw-bold" style={{ fontSize: 13 }}>{String((currentPage - 1) * itemsPerPage + index + 1).padStart(2, '0')}</span>
                   </td>
                   <td className="py-3 text-center">
                     <div className="fw-600 text-dark">{v.productName}</div>
@@ -108,7 +127,12 @@ export default function Variants() {
                       <span className="badge bg-soft-primary text-primary px-2 py-1" style={{ fontSize: 11 }}>{v.variantSize}</span>
                     </div>
                   </td>
-                  <td className="py-3 text-center">{v.bottleSpecId?.bottleName || 'N/A'}</td>
+                  <td className="py-3 text-center">
+                    <div className="fw-600">{v.bottleSpecId?.bottleName || 'N/A'}</div>
+                    <div className="small text-muted" style={{ fontSize: 11 }}>
+                      {v.bottleSpecId?.printingTypeId?.name || 'N/A'} — {v.bottleSpecId?.printingColorId?.name || 'No Color'}
+                    </div>
+                  </td>
                   <td className="py-3 text-center text-accent fw-500">
                     {v.bottleSpecId?.brandId?.name || 'N/A'}
                   </td>
@@ -130,7 +154,7 @@ export default function Variants() {
                   </td>
                 </tr>
               ))}
-              {filteredVariants.length === 0 && !loading && (
+              {paginatedItems.length === 0 && !loading && (
                 <tr>
                   <td colSpan={7} className="text-center py-5 text-muted">No variants found</td>
                 </tr>
@@ -141,18 +165,38 @@ export default function Variants() {
 
         <div className="dash-card-footer d-flex align-items-center justify-content-between p-3 border-top bg-white">
           <div className="text-muted small fw-500">
-            Showing <b>1</b> to <b>{filteredVariants.length}</b> of <b>{filteredVariants.length}</b> entries
+            Showing <b>{filteredVariants.length > 0 ? (currentPage - 1) * itemsPerPage + 1 : 0}</b> to <b>{Math.min(currentPage * itemsPerPage, filteredVariants.length)}</b> of <b>{filteredVariants.length}</b> entries
           </div>
           <nav aria-label="Page navigation">
             <ul className="pagination pagination-sm mb-0 gap-2">
-              <li className="page-item disabled">
-                <button className="page-link border-0 bg-light text-muted px-3" style={{ borderRadius: 8 }}>Previous</button>
+              <li className={`page-item ${currentPage === 1 ? 'disabled' : ''}`}>
+                <button 
+                  className="page-link border-0 bg-light text-muted px-3" 
+                  style={{ borderRadius: 8 }}
+                  onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                >
+                  Previous
+                </button>
               </li>
-              <li className="page-item active">
-                <button className="page-link border-0 px-3" style={{ borderRadius: 8, backgroundColor: 'var(--accent)' }}>1</button>
-              </li>
-              <li className="page-item disabled">
-                <button className="page-link border-0 bg-light text-muted px-3" style={{ borderRadius: 8 }}>Next</button>
+              {[...Array(totalPages)].map((_, i) => (
+                <li key={i} className={`page-item ${currentPage === i + 1 ? 'active' : ''}`}>
+                  <button 
+                    className="page-link border-0 px-3" 
+                    style={{ borderRadius: 8, backgroundColor: currentPage === i + 1 ? 'var(--accent)' : 'transparent' }}
+                    onClick={() => setCurrentPage(i + 1)}
+                  >
+                    {i + 1}
+                  </button>
+                </li>
+              ))}
+              <li className={`page-item ${currentPage === totalPages || totalPages === 0 ? 'disabled' : ''}`}>
+                <button 
+                  className="page-link border-0 bg-light text-muted px-3" 
+                  style={{ borderRadius: 8 }}
+                  onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+                >
+                  Next
+                </button>
               </li>
             </ul>
           </nav>

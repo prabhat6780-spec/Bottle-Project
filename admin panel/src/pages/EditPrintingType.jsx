@@ -1,31 +1,44 @@
 import { useState, useEffect } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate, useParams, Link } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
-import { createBrand, fetchBrands } from '../redux/slices/brandSlice';
+import { fetchPrintingTypes, updatePrintingType } from '../redux/slices/printingTypeSlice';
 import Swal from 'sweetalert2';
 
-export default function AddBrand() {
+export default function EditPrintingType() {
+  const { id } = useParams();
   const navigate = useNavigate();
   const dispatch = useDispatch();
-  const { brands = [], loading } = useSelector((state) => state.brands);
+  const { items, loading } = useSelector((state) => state.printingType);
+  
   const [name, setName] = useState('');
   const [status, setStatus] = useState('active');
   const [error, setError] = useState('');
 
   useEffect(() => {
-    dispatch(fetchBrands());
-  }, [dispatch]);
+    if (items.length === 0) {
+      dispatch(fetchPrintingTypes());
+    } else {
+      const item = items.find(i => i._id === id);
+      if (item) {
+        setName(item.name);
+        setStatus(item.status ? 'active' : 'inactive');
+      }
+    }
+  }, [id, items, dispatch]);
 
   const validateField = (value) => {
     let msg = '';
     if (!value || value.trim() === '') {
-      msg = 'Brand Name is mandatory';
+      msg = 'Printing Type Name is mandatory';
     } else if (!/^[a-zA-Z\s]+$/.test(value)) {
-      msg = 'Brand Name should only contain characters';
+      msg = 'Printing Type Name should only contain characters';
     } else {
-      const isDuplicate = brands.some(b => b.name.toLowerCase().trim() === value.toLowerCase().trim());
+      const isDuplicate = items.some(t => 
+        t._id !== id && 
+        t.name.toLowerCase().trim() === value.toLowerCase().trim()
+      );
       if (isDuplicate) {
-        msg = `Brand "${value}" already exists`;
+        msg = `Printing Type "${value}" already exists`;
       }
     }
     setError(msg);
@@ -55,16 +68,14 @@ export default function AddBrand() {
   const handleSubmit = (e) => {
     e.preventDefault();
     const msg = validateField(name);
-    if (msg) {
-      return Swal.fire('Validation Error', msg, 'error');
-    }
+    if (msg) return Swal.fire('Validation Error', msg, 'error');
 
-    dispatch(createBrand({ name, status })).then((res) => {
+    dispatch(updatePrintingType({ id, data: { name, status } })).then((res) => {
       if (!res.error) {
-        Swal.fire('Success!', `Brand "${name}" added successfully!`, 'success');
-        navigate('/brands');
+        Swal.fire('Updated!', 'Printing Type details updated.', 'success');
+        navigate('/printing-types');
       } else {
-        Swal.fire('Error!', res.payload || 'Failed to add brand.', 'error');
+        Swal.fire('Error!', res.payload || 'Failed to update.', 'error');
       }
     });
   };
@@ -72,12 +83,12 @@ export default function AddBrand() {
   return (
     <div className="page-content">
       <div className="page-header d-flex align-items-center gap-3">
-        <Link to="/brands" className="btn-ghost" style={{ width: 40, height: 40, borderRadius: 10, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <Link to="/printing-types" className="btn-ghost" style={{ width: 40, height: 40, borderRadius: 10, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
           <i className="bi bi-arrow-left" style={{ fontSize: 20 }} />
         </Link>
         <div>
-          <h1 className="page-title">Add New Brand</h1>
-          <p className="page-subtitle">Define a new brand category</p>
+          <h1 className="page-title">Edit Printing Type</h1>
+          <p className="page-subtitle">Modify printing method details</p>
         </div>
       </div>
 
@@ -88,12 +99,11 @@ export default function AddBrand() {
               <form onSubmit={handleSubmit}>
                 <div className="mb-4">
                   <label className="form-label fw-600 small text-uppercase text-muted">
-                    Brand Name <span className="text-danger">*</span>
+                    Printing Type Name <span className="text-danger">*</span>
                   </label>
                   <input
                     type="text"
                     className={`form-control custom-input-field ${error ? 'is-invalid' : ''}`}
-                    placeholder="Enter brand name"
                     required
                     value={name}
                     onChange={handleChange}
@@ -104,7 +114,7 @@ export default function AddBrand() {
                 </div>
 
                 <div className="mb-4">
-                  <label className="form-label fw-600 small text-uppercase text-muted">Initial Status</label>
+                  <label className="form-label fw-600 small text-uppercase text-muted">Status</label>
                   <select
                     className="form-select custom-input-field"
                     value={status}
@@ -118,13 +128,9 @@ export default function AddBrand() {
 
                 <div className="d-flex gap-2 mt-4">
                   <button type="submit" className="btn-accent px-5 py-3 flex-grow-1" disabled={loading}>
-                    {loading ? (
-                      <><span className="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>Saving...</>
-                    ) : (
-                      <><i className="bi bi-check2-circle me-2" /> Save Brand</>
-                    )}
+                    {loading ? 'Saving...' : 'Update Printing Type'}
                   </button>
-                  <button type="button" onClick={() => navigate('/brands')} className="btn-ghost px-5 py-3">
+                  <button type="button" onClick={() => navigate('/printing-types')} className="btn-ghost px-5 py-3">
                     Cancel
                   </button>
                 </div>

@@ -8,7 +8,11 @@ exports.createSpec = async (req, res) => {
       body.status = body.status === 'active';
     }
     const spec = await BottleSpec.create(body);
-    res.json(spec);
+    const populated = await BottleSpec.findById(spec._id)
+      .populate("brandId")
+      .populate("printingTypeId")
+      .populate("printingColorId");
+    res.json(populated);
   } catch (err) {
     res.status(500).json(err.message);
   }
@@ -17,7 +21,10 @@ exports.createSpec = async (req, res) => {
 // GET
 exports.getSpecs = async (req, res) => {
   try {
-    const specs = await BottleSpec.find().populate("brandId");
+    const specs = await BottleSpec.find()
+      .populate("brandId")
+      .populate("printingTypeId")
+      .populate("printingColorId");
     res.json(specs);
   } catch (err) {
     res.status(500).json(err.message);
@@ -35,7 +42,7 @@ exports.updateSpec = async (req, res) => {
       req.params.id,
       body,
       { returnDocument: "after" }
-    );
+    ).populate("brandId").populate("printingTypeId").populate("printingColorId");
     res.json(spec);
   } catch (err) {
     res.status(500).json(err.message);

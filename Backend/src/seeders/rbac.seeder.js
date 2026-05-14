@@ -11,6 +11,8 @@ const seedRBAC = async () => {
       "create-production", "edit-production", "delete-production", "sidebar-production", "read-production",
       "create-role", "edit-role", "delete-role", "sidebar-role", "read-role",
       "create-permission", "edit-permission", "delete-permission", "sidebar-permission", "read-permission",
+      "create-printing-type", "edit-printing-type", "delete-printing-type", "sidebar-printing-type", "read-printing-type",
+      "create-printing-color", "edit-printing-color", "delete-printing-color", "sidebar-printing-color", "read-printing-color",
       "use-vision", "manage-all"
     ];
 
@@ -93,6 +95,17 @@ const seedRBAC = async () => {
           await user.save();
           console.log(`Migrated user ${user.email} to role ${matchingRole.name}`);
         }
+      }
+    }
+    
+    // 4. Seed Default Printing Types
+    const PrintingType = require("../models/PrintingType");
+    const defaultTypes = ["Foil", "Organic"];
+    for (const name of defaultTypes) {
+      const exists = await PrintingType.findOne({ name });
+      if (!exists) {
+        await PrintingType.create({ name, status: true });
+        console.log(`Created default printing type: ${name}`);
       }
     }
 

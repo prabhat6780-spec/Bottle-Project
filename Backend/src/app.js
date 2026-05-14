@@ -26,4 +26,6 @@ app.use("/api/production", require("./routes/production.routes"));
 app.use("/api/roles", require("./routes/role.routes"));
 app.use("/api/permissions", require("./routes/permission.routes"));
 app.use("/api/vision", require("./routes/vision.routes"));
+app.use("/api/printing-type", require("./routes/printingType.routes"));
+app.use("/api/printing-color", require("./routes/printingColor.routes"));
 module.exports = app;

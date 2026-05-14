@@ -36,7 +36,15 @@ const addProduction = async (req, res) => {
       remainingBottles,
     });
 
-    res.status(201).json({ success: true, data: production });
+    const populated = await Production.findById(production._id)
+      .populate("variantId")
+      .populate("brandId")
+      .populate({
+        path: "bottleSpecId",
+        populate: ["printingTypeId", "printingColorId"]
+      });
+
+    res.status(201).json({ success: true, data: populated });
 
   } catch (err) {
     res.status(500).json({ message: err.message });
@@ -58,7 +66,10 @@ const getAllProduction = async (req, res) => {
     const data = await Production.find(filter)
       .populate("variantId")
       .populate("brandId")
-      .populate("bottleSpecId");
+      .populate({
+        path: "bottleSpecId",
+        populate: ["brandId", "printingTypeId", "printingColorId"]
+      });
 
     res.json({ success: true, data });
 
@@ -75,7 +86,10 @@ const getProductionById = async (req, res) => {
     const data = await Production.findById(req.params.id)
       .populate("variantId")
       .populate("brandId")
-      .populate("bottleSpecId");
+      .populate({
+        path: "bottleSpecId",
+        populate: ["brandId", "printingTypeId", "printingColorId"]
+      });
 
     if (!data) {
       return res.status(404).json({ message: "Production not found" });
@@ -113,7 +127,12 @@ const updateProduction = async (req, res) => {
         remainingBottles,
       },
       { returnDocument: 'after' }
-    );
+    ).populate("variantId")
+     .populate("brandId")
+     .populate({
+       path: "bottleSpecId",
+       populate: ["brandId", "printingTypeId", "printingColorId"]
+     });
 
     if (!updated) {
       return res.status(404).json({ message: "Production not found" });

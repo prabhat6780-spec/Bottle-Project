@@ -9,6 +9,8 @@ import productionReducer from "./slices/productionSlice";
 import visionReducer from "./slices/visionSlice";
 import roleReducer from "./slices/roleSlice";
 import permissionReducer from "./slices/permissionSlice";
+import printingTypeReducer from "./slices/printingTypeSlice";
+import printingColorReducer from "./slices/printingColorSlice";
 
 export const store = configureStore({
 
@@ -23,6 +25,8 @@ export const store = configureStore({
     vision: visionReducer,
     roles: roleReducer,
     permissions: permissionReducer,
+    printingType: printingTypeReducer,
+    printingColor: printingColorReducer,
 
   },
 

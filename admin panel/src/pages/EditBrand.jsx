@@ -15,12 +15,18 @@ export default function EditBrand() {
 
   const validateField = (value) => {
     let msg = '';
-    if (!value) {
+    if (!value || value.trim() === '') {
       msg = 'Brand Name is mandatory';
-    } else if (/\s/.test(value)) {
-      msg = 'Whitespace is not allowed';
-    } else if (!/^[a-zA-Z]+$/.test(value)) {
+    } else if (!/^[a-zA-Z\s]+$/.test(value)) {
       msg = 'Brand Name should only contain characters';
+    } else {
+      const isDuplicate = brands.some(b => 
+        b._id !== id && 
+        b.name.toLowerCase().trim() === value.toLowerCase().trim()
+      );
+      if (isDuplicate) {
+        msg = `Brand "${value}" already exists`;
+      }
     }
     setError(msg);
     return msg;
@@ -42,8 +48,7 @@ export default function EditBrand() {
   };
 
   const handleChange = (e) => {
-    const value = e.target.value.replace(/\s/g, '');
-    setName(value);
+    setName(e.target.value);
     if (error) setError('');
   };
 

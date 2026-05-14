@@ -27,13 +27,13 @@ export default function AddUser() {
 
   const validateField = (name, value) => {
     let error = '';
-    if (!value) {
+    if (!value || value.trim() === '') {
       error = `${name === 'name' ? 'Full Name' : name.charAt(0).toUpperCase() + name.slice(1)} is mandatory`;
     } else {
-      if (/\s/.test(value)) {
+      if (name !== 'name' && /\s/.test(value)) {
         error = 'Whitespace is not allowed';
       } else if (name === 'name') {
-        if (!/^[a-zA-Z]+$/.test(value)) {
+        if (!/^[a-zA-Z\s]+$/.test(value)) {
           error = 'Full Name should only contain characters';
         }
       } else if (name === 'email') {
@@ -68,8 +68,7 @@ export default function AddUser() {
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-    // Remove all whitespace as requested
-    const cleanValue = value.replace(/\s/g, '');
+    const cleanValue = name === 'name' ? value : value.replace(/\s/g, '');
     setFormData(prev => ({ ...prev, [name]: cleanValue }));
     
     // Clear error while typing if it becomes valid

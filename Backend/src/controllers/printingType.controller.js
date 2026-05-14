@@ -1,76 +1,74 @@
-const Brand = require("../models/Brand");
+const PrintingType = require("../models/PrintingType");
 
 // ✅ CREATE
-exports.createBrand = async (req, res) => {
+exports.createPrintingType = async (req, res) => {
   try {
     const rawStatus = req.body.status;
-    // Convert status string to boolean; default true if not provided
     const status = typeof rawStatus === 'string'
       ? rawStatus === 'active'
       : rawStatus ?? true;
 
     const { name } = req.body;
-    const existing = await Brand.findOne({ name: { $regex: new RegExp("^" + name.trim() + "$", "i") } });
+    const existing = await PrintingType.findOne({ name: { $regex: new RegExp("^" + name.trim() + "$", "i") } });
     if (existing) {
-      return res.status(400).json(`Brand "${name}" already exists.`);
+      return res.status(400).json(`Printing Type "${name}" already exists.`);
     }
 
-    const brand = await Brand.create({
+    const printingType = await PrintingType.create({
       name: name.trim(),
       status
     });
-    res.json(brand);
+    res.json(printingType);
   } catch (err) {
-    console.log("CREATE BRAND ERROR:", err);
+    console.log("CREATE PRINTING TYPE ERROR:", err);
     res.status(500).json(err.message);
   }
 };
 
 // ✅ GET
-exports.getBrands = async (req, res) => {
+exports.getPrintingTypes = async (req, res) => {
   try {
-    const brands = await Brand.find();
-    res.json(brands);
+    const printingTypes = await PrintingType.find();
+    res.json(printingTypes);
   } catch (err) {
     res.status(500).json(err.message);
   }
 };
 
 // ✅ UPDATE
-exports.updateBrand = async (req, res) => {
+exports.updatePrintingType = async (req, res) => {
   try {
     const body = { ...req.body };
-    // Convert status string to boolean
     if (typeof body.status === 'string') {
       body.status = body.status === 'active';
     }
     if (body.name) {
-      const existing = await Brand.findOne({ 
+      const existing = await PrintingType.findOne({ 
         name: { $regex: new RegExp("^" + body.name.trim() + "$", "i") },
         _id: { $ne: req.params.id }
       });
       if (existing) {
-        return res.status(400).json(`Brand "${body.name}" already exists.`);
+        return res.status(400).json(`Printing Type "${body.name}" already exists.`);
       }
       body.name = body.name.trim();
     }
 
-    const brand = await Brand.findByIdAndUpdate(
+    const printingType = await PrintingType.findByIdAndUpdate(
       req.params.id,
       body,
       { returnDocument: 'after' }
     );
-    res.json(brand);
+    res.json(printingType);
   } catch (err) {
     res.status(500).json(err.message);
   }
 };
 
 // ✅ DELETE
-exports.deleteBrand = async (req, res) => {
+exports.deletePrintingType = async (req, res) => {
   try {
-    await Brand.findByIdAndDelete(req.params.id);
-    res.json({ msg: "Brand Deleted" });
+    await PrintingType.findByIdAndDelete(req.params.id);
+    res.json({ msg: "Printing Type Deleted" });
   } catch (err) {
     res.status(500).json(err.message);
   }

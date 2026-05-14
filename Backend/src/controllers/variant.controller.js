@@ -9,7 +9,11 @@ exports.createVariant = async (req, res) => {
       body.status = body.status === 'active';
     }
     const variant = await Variant.create(body);
-    res.json(variant);
+    const populated = await Variant.findById(variant._id).populate({
+      path: "bottleSpecId",
+      populate: ["brandId", "printingTypeId", "printingColorId"]
+    });
+    res.json(populated);
   } catch (err) {
     res.status(500).json(err.message);
   }
@@ -22,7 +26,7 @@ exports.getVariants = async (req, res) => {
     const variants = await Variant.find()
       .populate({
         path: "bottleSpecId",
-        populate: { path: "brandId" } // 🔥 To still know the brand via spec
+        populate: ["brandId", "printingTypeId", "printingColorId"]
       });
 
     res.json(variants);
@@ -49,7 +53,10 @@ exports.updateVariant = async (req, res) => {
       req.params.id,
       body,
       { returnDocument: 'after' }
-    );
+    ).populate({
+      path: "bottleSpecId",
+      populate: ["brandId", "printingTypeId", "printingColorId"]
+    });
 
     res.json(variant);
 

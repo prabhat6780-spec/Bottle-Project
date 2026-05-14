@@ -220,7 +220,7 @@ export default function EditProduction() {
                       <option value="">-- Choose Specification --</option>
                       {availableSpecs.map(s => (
                         <option key={s._id} value={s._id}>
-                          {s.bottleName} — {s.code} ({s.printingType} / {s.printingSubType || 'No Subprinting'})
+                          {s.bottleName} — {s.code} ({s.printingTypeId?.name || 'N/A'} / {s.printingColorId?.name || 'No Color'})
                         </option>
                       ))}
                     </select>

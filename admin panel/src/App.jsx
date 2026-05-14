@@ -29,6 +29,12 @@ import EditProduction from './pages/EditProduction';
 import Settings from './pages/Settings';
 import ChangePassword from './pages/ChangePassword';
 import Placeholder from './pages/Placeholder';
+import PrintingTypes from './pages/PrintingTypes';
+import AddPrintingType from './pages/AddPrintingType';
+import EditPrintingType from './pages/EditPrintingType';
+import PrintingColors from './pages/PrintingColors';
+import AddPrintingColor from './pages/AddPrintingColor';
+import EditPrintingColor from './pages/EditPrintingColor';
 import Login from './pages/Login';
 import RoleList from './pages/RoleList';
 import CreateRole from './pages/CreateRole';
@@ -83,6 +89,12 @@ export default function App() {
               <Route path="/productions" element={<Productions />} />
               <Route path="/productions/add" element={<AddProduction />} />
               <Route path="/productions/edit/:id" element={<EditProduction />} />
+              <Route path="/printing-types" element={<PrintingTypes />} />
+              <Route path="/printing-types/add" element={<AddPrintingType />} />
+              <Route path="/printing-types/edit/:id" element={<EditPrintingType />} />
+              <Route path="/printing-colors" element={<PrintingColors />} />
+              <Route path="/printing-colors/add" element={<AddPrintingColor />} />
+              <Route path="/printing-colors/edit/:id" element={<EditPrintingColor />} />
               <Route path="/roles" element={<RoleList />} />
               <Route path="/roles/create" element={<CreateRole />} />
               <Route path="/roles/edit/:id" element={<CreateRole />} />

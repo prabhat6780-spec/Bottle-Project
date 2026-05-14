@@ -45,14 +45,11 @@ exports.updateUser = async (req, res) => {
 
     const data = req.body;
 
-    // if password updated → hash
-    if (data.password) {
-
-      data.password = await bcrypt.hash(
-        data.password,
-        10
-      );
-
+    // if password updated → hash, otherwise remove it from data to prevent overwriting with empty
+    if (data.password && data.password.trim() !== '') {
+      data.password = await bcrypt.hash(data.password, 10);
+    } else {
+      delete data.password;
     }
 
     const user = await User.findByIdAndUpdate(

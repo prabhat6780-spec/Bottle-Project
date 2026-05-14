@@ -1,59 +1,48 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { Link } from 'react-router-dom';
+import { Can } from '../context/AbilityContext';
 import { useDispatch, useSelector } from 'react-redux';
-import { fetchPermissions, deletePermission } from '../redux/slices/permissionSlice';
+import { fetchPrintingTypes, deletePrintingType } from '../redux/slices/printingTypeSlice';
 import Swal from 'sweetalert2';
 
-export default function PermissionList() {
+export default function PrintingTypes() {
+  const dispatch = useDispatch();
+  const { items, loading } = useSelector((state) => state.printingType);
   const [search, setSearch] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(10);
-  const dispatch = useDispatch();
-  const { permissions, loading } = useSelector((state) => state.permissions);
 
   useEffect(() => {
-    dispatch(fetchPermissions());
+    dispatch(fetchPrintingTypes());
   }, [dispatch]);
 
   const handleDelete = (id, name) => {
     Swal.fire({
-      title: 'Are you sure?',
-      text: `You want to delete the "${name}" permission?`,
+      title: 'Delete Printing Type?',
+      text: `Are you sure you want to delete "${name}"?`,
       icon: 'warning',
       showCancelButton: true,
       confirmButtonColor: '#e91e63',
-      cancelButtonColor: '#6c757d',
-      confirmButtonText: 'Yes, delete it!',
-      borderRadius: 15
+      confirmButtonText: 'Yes, delete!'
     }).then((result) => {
       if (result.isConfirmed) {
-        dispatch(deletePermission(id)).then(res => {
-          if (!res.error) {
-            Swal.fire({
-              title: 'Deleted!',
-              text: 'Permission has been removed.',
-              icon: 'success',
-              borderRadius: 15
-            });
-          } else {
-            Swal.fire('Error!', res.payload || 'Failed to delete.', 'error');
-          }
+        dispatch(deletePrintingType(id)).then(res => {
+          if (!res.error) Swal.fire('Deleted!', 'Printing Type removed.', 'success');
+          else Swal.fire('Error!', res.payload || 'Failed to delete.', 'error');
         });
       }
     });
   };
 
-  const filteredPermissions = useMemo(() => {
-    return permissions.filter(p => 
-      p.name.toLowerCase().includes(search.toLowerCase())
-    );
-  }, [permissions, search]);
+  const filteredItems = useMemo(() => {
+    return items.filter(b => b.name?.toLowerCase().includes(search.toLowerCase()));
+  }, [items, search]);
 
-  const totalPages = Math.ceil(filteredPermissions.length / itemsPerPage);
+  const totalPages = Math.ceil(filteredItems.length / itemsPerPage);
   const paginatedItems = useMemo(() => {
     const start = (currentPage - 1) * itemsPerPage;
-    return filteredPermissions.slice(start, start + itemsPerPage);
-  }, [filteredPermissions, currentPage, itemsPerPage]);
+    return filteredItems.slice(start, start + itemsPerPage);
+  }, [filteredItems, currentPage, itemsPerPage]);
 
   useEffect(() => {
     setCurrentPage(1);
@@ -61,17 +50,19 @@ export default function PermissionList() {
 
   return (
     <div className="page-content">
-      <div className="page-header d-flex align-items-center justify-content-between mb-4">
+      <div className="page-header d-flex align-items-center justify-content-between">
         <div>
-          <h1 className="page-title mb-1">System Permissions</h1>
-          <p className="page-subtitle mb-0">Total permissions found: {permissions.length}</p>
+          <h1 className="page-title">Printing Types</h1>
+          <p className="page-subtitle">Manage printing method options</p>
         </div>
-        <Link to="/permissions/create" className="btn-accent shadow-sm px-4 py-2 rounded-3">
-          <i className="bi bi-shield-plus me-2" /> Add Permission
-        </Link>
+        <Can I="create" a="printing-type">
+          <Link to="/printing-types/add" className="btn-accent">
+            <i className="bi bi-plus-circle-fill me-2" /> Add Printing Type
+          </Link>
+        </Can>
       </div>
 
-      <div className="dash-card border-0 shadow-sm overflow-hidden" style={{ borderRadius: 20 }}>
+      <div className="dash-card">
         <div className="dash-card-header d-flex align-items-center justify-content-between p-3 border-bottom bg-white">
           <div className="d-flex align-items-center gap-2 text-muted small fw-500">
             <span>Show</span>
@@ -92,7 +83,7 @@ export default function PermissionList() {
             <input
               type="text"
               className="form-control form-control-sm border-light-subtle bg-light ps-5 py-2 shadow-none"
-              placeholder="Search permissions..."
+              placeholder="Search printing types..."
               value={search}
               onChange={e => setSearch(e.target.value)}
               style={{ borderRadius: 10, fontSize: 13 }}
@@ -100,42 +91,46 @@ export default function PermissionList() {
           </div>
         </div>
 
-        <div className="table-responsive">
+        <div style={{ overflowX: 'auto' }}>
           <table className="data-table mb-0">
-            <thead className="bg-light">
+            <thead>
               <tr>
                 <th className="py-3 text-uppercase small fw-bold text-muted ps-5 text-start" style={{ width: 150 }}>Sr No</th>
-                <th className="py-3 text-uppercase small fw-bold text-muted text-center">Permission Name</th>
+                <th className="py-3 text-uppercase small fw-bold text-muted text-center">Type Name</th>
+                <th className="py-3 text-uppercase small fw-bold text-muted text-center">Status</th>
                 <th className="py-3 text-uppercase small fw-bold text-muted text-center" style={{ width: 150 }}>Actions</th>
               </tr>
             </thead>
             <tbody>
-               {paginatedItems.map((permission, index) => (
-                <tr key={permission._id} className="align-middle hover-bg-light transition-all border-bottom">
+               {paginatedItems.map((b, index) => (
+                <tr key={b._id} className="align-middle border-bottom transition-all hover-bg-light">
                   <td className="py-3 ps-5 text-start">
                     <span className="text-muted fw-bold" style={{ fontSize: 13 }}>{String((currentPage - 1) * itemsPerPage + index + 1).padStart(2, '0')}</span>
                   </td>
-                  <td className="py-3 text-center fw-600 text-dark">
-                    <span className="badge-permission">
-                      {permission.name}
+                  <td className="py-3 text-center fw-600">{b.name}</td>
+                  <td className="py-3 text-center">
+                    <span className={`badge-status badge-${(b.status === true || b.status === 'active' || b.status === undefined) ? 'active' : 'inactive'}`}>
+                      {(b.status === true || b.status === 'active' || b.status === undefined) ? 'ACTIVE' : 'INACTIVE'}
                     </span>
                   </td>
                   <td className="py-3 text-center">
                     <div className="d-flex gap-2 justify-content-center">
-                      <Link to={`/permissions/edit/${permission._id}`} className="btn btn-sm btn-outline-primary border-0 rounded-3 shadow-none p-2" title="Edit Permission">
-                        <i className="bi bi-pencil-square fs-6" />
-                      </Link>
-                      <button onClick={() => handleDelete(permission._id, permission.name)} className="btn btn-sm btn-outline-danger border-0 rounded-3 shadow-none p-2" title="Delete Permission">
-                        <i className="bi bi-trash fs-6" />
-                      </button>
+                      <Can I="edit" a="printing-type">
+                        <Link to={`/printing-types/edit/${b._id}`} className="btn btn-sm btn-outline-primary border-0 rounded-3 shadow-none p-2" title="Edit">
+                          <i className="bi bi-pencil-square fs-6" />
+                        </Link>
+                      </Can>
+                      <Can I="delete" a="printing-type">
+                        <button onClick={() => handleDelete(b._id, b.name)} className="btn btn-sm btn-outline-danger border-0 rounded-3 shadow-none p-2" title="Delete">
+                          <i className="bi bi-trash fs-6" />
+                        </button>
+                      </Can>
                     </div>
                   </td>
                 </tr>
               ))}
               {paginatedItems.length === 0 && !loading && (
-                <tr>
-                  <td colSpan={3} className="text-center py-5 text-muted">No permissions found</td>
-                </tr>
+                <tr><td colSpan={5} className="text-center py-5 text-muted">No printing types found</td></tr>
               )}
             </tbody>
           </table>
@@ -143,7 +138,7 @@ export default function PermissionList() {
 
         <div className="dash-card-footer d-flex align-items-center justify-content-between p-3 border-top bg-white">
           <div className="text-muted small fw-500">
-            Showing <b>{filteredPermissions.length > 0 ? (currentPage - 1) * itemsPerPage + 1 : 0}</b> to <b>{Math.min(currentPage * itemsPerPage, filteredPermissions.length)}</b> of <b>{filteredPermissions.length}</b> entries
+            Showing <b>{filteredItems.length > 0 ? (currentPage - 1) * itemsPerPage + 1 : 0}</b> to <b>{Math.min(currentPage * itemsPerPage, filteredItems.length)}</b> of <b>{filteredItems.length}</b> entries
           </div>
           <nav aria-label="Page navigation">
             <ul className="pagination pagination-sm mb-0 gap-2">

@@ -17,14 +17,16 @@ const bottleSpecSchema = new mongoose.Schema({
     required: true
   },
 
-  printingType: {
-    type: String,
-    required: true,
-    trim: true
+  printingTypeId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "PrintingType",
+    required: true
   },
 
-  printingSubType: {
-    type: String // color
+  printingColorId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "PrintingColor",
+    required: true
   },
 
   status: {

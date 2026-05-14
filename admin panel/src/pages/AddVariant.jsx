@@ -38,10 +38,8 @@ export default function AddVariant() {
       bottleSpecId: 'Bottle Specification'
     };
 
-    if (!value) {
+    if (!value || value.trim() === '') {
       msg = `${fieldNames[name] || name} is mandatory`;
-    } else if (name !== 'bottleSpecId' && /\s/.test(value)) {
-      msg = 'Whitespace is not allowed';
     }
     setErrors(prev => ({ ...prev, [name]: msg }));
     return msg;
@@ -65,8 +63,7 @@ export default function AddVariant() {
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-    const cleanValue = (name === 'bottleSpecId' || name === 'status') ? value : value.replace(/\s/g, '');
-    setFormData(prev => ({ ...prev, [name]: cleanValue }));
+    setFormData(prev => ({ ...prev, [name]: value }));
     if (errors[name]) setErrors(prev => ({ ...prev, [name]: '' }));
   };
 
@@ -135,7 +132,9 @@ export default function AddVariant() {
                     >
                       <option value="">-- Choose Spec --</option>
                       {bottleSpecs.filter(s => s.status && s.brandId?.status).map(s => (
-                        <option key={s._id} value={s._id}>{s.bottleName} ({s.brandId?.name || 'N/A'})</option>
+                        <option key={s._id} value={s._id}>
+                          {s.bottleName} ({s.brandId?.name || 'N/A'}) - {s.printingTypeId?.name || 'N/A'} [{s.printingColorId?.name || 'N/A'}]
+                        </option>
                       ))}
                     </select>
                     {errors.bottleSpecId && <div className="invalid-feedback">{errors.bottleSpecId}</div>}
@@ -143,9 +142,25 @@ export default function AddVariant() {
 
                   {selectedSpec && (
                     <div className="col-md-12">
-                      <div className="alert alert-info py-2 px-3 mb-0" style={{ fontSize: 13, borderRadius: 10 }}>
-                        <i className="bi bi-info-circle me-2" />
-                        Linked Brand: <strong>{selectedSpec.brandId?.name || 'N/A'}</strong>
+                      <div className="alert alert-info py-3 px-3 mb-0" style={{ fontSize: 13, borderRadius: 12, border: 'none', backgroundColor: '#e3f2fd', color: '#0d47a1' }}>
+                        <div className="d-flex align-items-center mb-1">
+                          <i className="bi bi-info-circle-fill me-2" />
+                          <span className="fw-bold">Linked Specification Details:</span>
+                        </div>
+                        <div className="row g-2 mt-1">
+                          <div className="col-md-4">
+                            <span className="text-muted small text-uppercase fw-600 d-block">Brand</span>
+                            <span className="fw-600">{selectedSpec.brandId?.name || 'N/A'}</span>
+                          </div>
+                          <div className="col-md-4">
+                            <span className="text-muted small text-uppercase fw-600 d-block">Printing Type</span>
+                            <span className="fw-600">{selectedSpec.printingTypeId?.name || 'N/A'}</span>
+                          </div>
+                          <div className="col-md-4">
+                            <span className="text-muted small text-uppercase fw-600 d-block">Printing Color</span>
+                            <span className="fw-600">{selectedSpec.printingColorId?.name || 'N/A'}</span>
+                          </div>
+                        </div>
                       </div>
                     </div>
                   )}

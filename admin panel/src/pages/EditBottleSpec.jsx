@@ -3,6 +3,8 @@ import { useNavigate, useParams, Link } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
 import { updateBottleSpec } from '../redux/slices/bottleSpecSlice';
 import { fetchBrands } from '../redux/slices/brandSlice';
+import { fetchPrintingTypes } from '../redux/slices/printingTypeSlice';
+import { fetchPrintingColors } from '../redux/slices/printingColorSlice';
 import Swal from 'sweetalert2';
 
 export default function EditBottleSpec() {
@@ -11,13 +13,15 @@ export default function EditBottleSpec() {
   const dispatch = useDispatch();
   const { bottleSpecs, loading } = useSelector((state) => state.bottleSpecs);
   const { brands } = useSelector((state) => state.brands);
+  const { items: printingTypes } = useSelector((state) => state.printingType);
+  const { items: printingColors } = useSelector((state) => state.printingColor);
 
   const [formData, setFormData] = useState({
     brandId: '',
     bottleName: '',
     code: '',
-    printingType: '',
-    printingSubType: '',
+    printingTypeId: '',
+    printingColorId: '',
     status: 'active'
   });
 
@@ -25,9 +29,40 @@ export default function EditBottleSpec() {
     brandId: '',
     bottleName: '',
     code: '',
-    printingType: '',
-    printingSubType: ''
+    printingTypeId: '',
+    printingColorId: ''
   });
+
+  const [filteredColors, setFilteredColors] = useState([]);
+
+  useEffect(() => {
+    dispatch(fetchBrands());
+    dispatch(fetchPrintingTypes());
+    dispatch(fetchPrintingColors());
+  }, [dispatch]);
+
+  useEffect(() => {
+    const spec = bottleSpecs.find(s => s._id === id);
+    if (spec) {
+      setFormData({
+        brandId: spec.brandId?._id || spec.brandId || '',
+        bottleName: spec.bottleName || '',
+        code: spec.code || '',
+        printingTypeId: spec.printingTypeId?._id || spec.printingTypeId || '',
+        printingColorId: spec.printingColorId?._id || spec.printingColorId || '',
+        status: spec.status === true ? 'active' : 'inactive'
+      });
+    }
+  }, [id, bottleSpecs]);
+
+  useEffect(() => {
+    if (formData.printingTypeId) {
+      const filtered = printingColors.filter(c => c.printingTypeId?._id === formData.printingTypeId || c.printingTypeId === formData.printingTypeId);
+      setFilteredColors(filtered);
+    } else {
+      setFilteredColors([]);
+    }
+  }, [formData.printingTypeId, printingColors]);
 
   const validateField = (name, value) => {
     let msg = '';
@@ -35,14 +70,12 @@ export default function EditBottleSpec() {
       brandId: 'Brand',
       bottleName: 'Bottle Name',
       code: 'Bottle Code',
-      printingType: 'Printing Type',
-      printingSubType: 'Subprinting'
+      printingTypeId: 'Printing Type',
+      printingColorId: 'Printing Color'
     };
 
     if (!value) {
       msg = `${fieldNames[name] || name} is mandatory`;
-    } else if (name !== 'brandId' && /\s/.test(value)) {
-      msg = 'Whitespace is not allowed';
     }
     setErrors(prev => ({ ...prev, [name]: msg }));
     return msg;
@@ -66,28 +99,14 @@ export default function EditBottleSpec() {
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-    const cleanValue = (name === 'brandId' || name === 'status') ? value : value.replace(/\s/g, '');
-    setFormData(prev => ({ ...prev, [name]: cleanValue }));
+    setFormData(prev => ({ ...prev, [name]: value }));
     if (errors[name]) setErrors(prev => ({ ...prev, [name]: '' }));
-  };
-
-  useEffect(() => {
-    dispatch(fetchBrands());
-  }, [dispatch]);
-
-  useEffect(() => {
-    const spec = bottleSpecs.find(s => s._id === id);
-    if (spec) {
-      setFormData({
-        brandId: spec.brandId?._id || spec.brandId || '',
-        bottleName: spec.bottleName || '',
-        code: spec.code || '',
-        printingType: spec.printingType || '',
-        printingSubType: spec.printingSubType || '',
-        status: spec.status === true ? 'active' : 'inactive'
-      });
+    
+    // Reset color if type changes
+    if (name === 'printingTypeId') {
+        setFormData(prev => ({ ...prev, printingColorId: '' }));
     }
-  }, [id, bottleSpecs]);
+  };
 
   const handleSubmit = (e) => {
     e.preventDefault();
@@ -96,14 +115,12 @@ export default function EditBottleSpec() {
     const brandError = validateField('brandId', formData.brandId);
     const nameError = validateField('bottleName', formData.bottleName);
     const codeError = validateField('code', formData.code);
-    const typeError = validateField('printingType', formData.printingType);
-    const subError = validateField('printingSubType', formData.printingSubType);
+    const typeError = validateField('printingTypeId', formData.printingTypeId);
+    const colorError = validateField('printingColorId', formData.printingColorId);
 
-    if (brandError) return Swal.fire('Validation Error', brandError, 'error');
-    if (nameError) return Swal.fire('Validation Error', nameError, 'error');
-    if (codeError) return Swal.fire('Validation Error', codeError, 'error');
-    if (typeError) return Swal.fire('Validation Error', typeError, 'error');
-    if (subError) return Swal.fire('Validation Error', subError, 'error');
+    if (brandError || nameError || codeError || typeError || colorError) {
+      return Swal.fire('Validation Error', 'Please fix errors before submitting.', 'error');
+    }
 
     dispatch(updateBottleSpec({ id, formData })).then((res) => {
       if (!res.error) {
@@ -192,33 +209,43 @@ export default function EditBottleSpec() {
                     <label className="form-label fw-600 small text-uppercase text-muted">
                       Printing Type <span className="text-danger">*</span>
                     </label>
-                    <input
-                      type="text"
-                      name="printingType"
-                      className={`form-control custom-input-field ${errors.printingType ? 'is-invalid' : ''}`}
+                    <select
+                      className={`form-select custom-input-field ${errors.printingTypeId ? 'is-invalid' : ''}`}
+                      name="printingTypeId"
                       required
-                      value={formData.printingType}
+                      value={formData.printingTypeId}
                       onChange={handleChange}
                       onBlur={handleBlur}
                       style={{ borderRadius: 12 }}
-                    />
-                    {errors.printingType && <div className="invalid-feedback">{errors.printingType}</div>}
+                    >
+                      <option value="">Select Printing Type</option>
+                      {printingTypes.filter(t => t.status || t._id === formData.printingTypeId).map(t => (
+                        <option key={t._id} value={t._id}>{t.name}</option>
+                      ))}
+                    </select>
+                    {errors.printingTypeId && <div className="invalid-feedback">{errors.printingTypeId}</div>}
                   </div>
+
                   <div className="col-md-6">
                     <label className="form-label fw-600 small text-uppercase text-muted">
-                      Subprinting <span className="text-danger">*</span>
+                      Printing Color <span className="text-danger">*</span>
                     </label>
-                    <input
-                      type="text"
-                      name="printingSubType"
-                      className={`form-control custom-input-field ${errors.printingSubType ? 'is-invalid' : ''}`}
+                    <select
+                      className={`form-select custom-input-field ${errors.printingColorId ? 'is-invalid' : ''}`}
+                      name="printingColorId"
                       required
-                      value={formData.printingSubType}
+                      disabled={!formData.printingTypeId}
+                      value={formData.printingColorId}
                       onChange={handleChange}
                       onBlur={handleBlur}
                       style={{ borderRadius: 12 }}
-                    />
-                    {errors.printingSubType && <div className="invalid-feedback">{errors.printingSubType}</div>}
+                    >
+                      <option value="">Select Color</option>
+                      {filteredColors.filter(c => c.status || c._id === formData.printingColorId).map(c => (
+                        <option key={c._id} value={c._id}>{c.name}</option>
+                      ))}
+                    </select>
+                    {errors.printingColorId && <div className="invalid-feedback">{errors.printingColorId}</div>}
                   </div>
 
                   <div className="col-md-12">

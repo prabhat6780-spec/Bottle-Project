@@ -28,13 +28,15 @@ export default function EditUser() {
 
   const validateField = (name, value) => {
     let error = '';
-    if (!value) {
+    if (name === 'password' && !value) {
+      error = '';
+    } else if (!value || value.trim() === '') {
       error = `${name === 'name' ? 'Full Name' : name.charAt(0).toUpperCase() + name.slice(1)} is mandatory`;
     } else {
-      if (/\s/.test(value)) {
+      if (name !== 'name' && /\s/.test(value)) {
         error = 'Whitespace is not allowed';
       } else if (name === 'name') {
-        if (!/^[a-zA-Z]+$/.test(value)) {
+        if (!/^[a-zA-Z\s]+$/.test(value)) {
           error = 'Full Name should only contain characters';
         }
       } else if (name === 'email') {
@@ -69,8 +71,7 @@ export default function EditUser() {
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-    // Remove all whitespace as requested
-    const cleanValue = value.replace(/\s/g, '');
+    const cleanValue = name === 'name' ? value : value.replace(/\s/g, '');
     setFormData(prev => ({ ...prev, [name]: cleanValue }));
     
     // Clear error while typing if it becomes valid
@@ -103,7 +104,7 @@ export default function EditUser() {
     // Validate all fields before submission
     const nameError = validateField('name', formData.name);
     const emailError = validateField('email', formData.email);
-    const passwordError = validateField('password', formData.password);
+    const passwordError = formData.password ? validateField('password', formData.password) : '';
 
     if (nameError) return Swal.fire('Validation Error', nameError, 'error');
     if (emailError) return Swal.fire('Validation Error', emailError, 'error');
@@ -188,7 +189,7 @@ export default function EditUser() {
 
                   <div className="col-md-12">
                     <label className="form-label fw-600 small text-uppercase text-muted">
-                      Password <span className="text-danger">*</span>
+                      Password (Leave blank to keep current)
                     </label>
                     <div className="input-group">
                       <span className="input-group-text bg-light border-end-0" style={{ borderRadius: '12px 0 0 12px' }}>
@@ -199,7 +200,6 @@ export default function EditUser() {
                         name="password"
                         className={`form-control custom-input-field ${errors.password ? 'is-invalid' : ''}`}
                         placeholder="Enter new password"
-                        required
                         value={formData.password}
                         onChange={handleChange}
                         onBlur={handleBlur}

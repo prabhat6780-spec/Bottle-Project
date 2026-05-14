@@ -9,6 +9,8 @@ export default function BottleSpecs() {
   const dispatch = useDispatch();
   const { bottleSpecs: specs, loading } = useSelector((state) => state.bottleSpecs);
   const [search, setSearch] = useState('');
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(10);
 
   useEffect(() => {
     dispatch(fetchBottleSpecs());
@@ -32,11 +34,25 @@ export default function BottleSpecs() {
     });
   };
 
-  const filteredSpecs = specs.filter(s =>
-    s.bottleName?.toLowerCase().includes(search.toLowerCase()) ||
-    s.code?.toLowerCase().includes(search.toLowerCase()) ||
-    s.brandId?.name?.toLowerCase().includes(search.toLowerCase())
-  );
+  const filteredSpecs = useMemo(() => {
+    return specs.filter(s =>
+      s.bottleName?.toLowerCase().includes(search.toLowerCase()) ||
+      s.code?.toLowerCase().includes(search.toLowerCase()) ||
+      s.brandId?.name?.toLowerCase().includes(search.toLowerCase()) ||
+      s.printingTypeId?.name?.toLowerCase().includes(search.toLowerCase()) ||
+      s.printingColorId?.name?.toLowerCase().includes(search.toLowerCase())
+    );
+  }, [specs, search]);
+
+  const totalPages = Math.ceil(filteredSpecs.length / itemsPerPage);
+  const paginatedItems = useMemo(() => {
+    const start = (currentPage - 1) * itemsPerPage;
+    return filteredSpecs.slice(start, start + itemsPerPage);
+  }, [filteredSpecs, currentPage, itemsPerPage]);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [search, itemsPerPage]);
 
   return (
     <div className="page-content">
@@ -56,7 +72,12 @@ export default function BottleSpecs() {
         <div className="dash-card-header d-flex align-items-center justify-content-between p-3 border-bottom bg-white">
           <div className="d-flex align-items-center gap-2 text-muted small fw-500">
             <span>Show</span>
-            <select className="form-select form-select-sm shadow-none border-light-subtle bg-light" style={{ width: 70, borderRadius: 8, cursor: 'pointer' }}>
+            <select 
+              className="form-select form-select-sm shadow-none border-light-subtle bg-light" 
+              style={{ width: 70, borderRadius: 8, cursor: 'pointer' }}
+              value={itemsPerPage}
+              onChange={(e) => setItemsPerPage(Number(e.target.value))}
+            >
               <option value="10">10</option>
               <option value="25">25</option>
               <option value="50">50</option>
@@ -89,10 +110,10 @@ export default function BottleSpecs() {
               </tr>
             </thead>
             <tbody>
-              {filteredSpecs.map((s, index) => (
+               {paginatedItems.map((s, index) => (
                 <tr key={s._id} className="align-middle transition-all hover-bg-light border-bottom">
                   <td className="py-3 ps-5 text-start">
-                    <span className="text-muted fw-bold" style={{ fontSize: 13 }}>{String(index + 1).padStart(2, '0')}</span>
+                    <span className="text-muted fw-bold" style={{ fontSize: 13 }}>{String((currentPage - 1) * itemsPerPage + index + 1).padStart(2, '0')}</span>
                   </td>
                   <td className="py-3">
                     <div className="d-flex align-items-center">
@@ -114,8 +135,8 @@ export default function BottleSpecs() {
                   </td>
                   <td className="py-3 text-center">
                     <div className="d-flex flex-column align-items-center">
-                      <div className="fw-600 text-dark" style={{ fontSize: 13 }}>{s.printingType}</div>
-                      <div className="text-muted" style={{ fontSize: 12 }}>{s.printingSubType || 'No Subprinting'}</div>
+                      <div className="fw-600 text-dark" style={{ fontSize: 13 }}>{s.printingTypeId?.name || 'N/A'}</div>
+                      <div className="text-muted small badge bg-light text-primary border" style={{ fontSize: 11, marginTop: 4 }}>{s.printingColorId?.name || 'No Color'}</div>
                     </div>
                   </td>
                   <td className="py-3 text-center">
@@ -147,7 +168,7 @@ export default function BottleSpecs() {
                   </td>
                 </tr>
               ))}
-              {filteredSpecs.length === 0 && !loading && (
+              {paginatedItems.length === 0 && !loading && (
                 <tr>
                   <td colSpan={6} className="text-center py-5">
                     <div className="py-4">
@@ -164,18 +185,38 @@ export default function BottleSpecs() {
 
         <div className="dash-card-footer d-flex align-items-center justify-content-between p-3 border-top bg-white">
           <div className="text-muted small fw-500">
-            Showing <b>1</b> to <b>{filteredSpecs.length}</b> of <b>{filteredSpecs.length}</b> entries
+            Showing <b>{filteredSpecs.length > 0 ? (currentPage - 1) * itemsPerPage + 1 : 0}</b> to <b>{Math.min(currentPage * itemsPerPage, filteredSpecs.length)}</b> of <b>{filteredSpecs.length}</b> entries
           </div>
           <nav aria-label="Page navigation">
             <ul className="pagination pagination-sm mb-0 gap-2">
-              <li className="page-item disabled">
-                <button className="page-link border-0 bg-light text-muted px-3" style={{ borderRadius: 8 }}>Previous</button>
+              <li className={`page-item ${currentPage === 1 ? 'disabled' : ''}`}>
+                <button 
+                  className="page-link border-0 bg-light text-muted px-3" 
+                  style={{ borderRadius: 8 }}
+                  onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                >
+                  Previous
+                </button>
               </li>
-              <li className="page-item active">
-                <button className="page-link border-0 px-3" style={{ borderRadius: 8, backgroundColor: 'var(--accent)' }}>1</button>
-              </li>
-              <li className="page-item disabled">
-                <button className="page-link border-0 bg-light text-muted px-3" style={{ borderRadius: 8 }}>Next</button>
+              {[...Array(totalPages)].map((_, i) => (
+                <li key={i} className={`page-item ${currentPage === i + 1 ? 'active' : ''}`}>
+                  <button 
+                    className="page-link border-0 px-3" 
+                    style={{ borderRadius: 8, backgroundColor: currentPage === i + 1 ? 'var(--accent)' : 'transparent' }}
+                    onClick={() => setCurrentPage(i + 1)}
+                  >
+                    {i + 1}
+                  </button>
+                </li>
+              ))}
+              <li className={`page-item ${currentPage === totalPages || totalPages === 0 ? 'disabled' : ''}`}>
+                <button 
+                  className="page-link border-0 bg-light text-muted px-3" 
+                  style={{ borderRadius: 8 }}
+                  onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+                >
+                  Next
+                </button>
               </li>
             </ul>
           </nav>
