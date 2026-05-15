@@ -3,6 +3,7 @@ import { useNavigate, useParams, Link } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
 import { updateBottleSpec } from '../redux/slices/bottleSpecSlice';
 import { fetchBrands } from '../redux/slices/brandSlice';
+import { fetchCompanies } from '../redux/slices/companySlice';
 import { fetchPrintingTypes } from '../redux/slices/printingTypeSlice';
 import { fetchPrintingColors } from '../redux/slices/printingColorSlice';
 import Swal from 'sweetalert2';
@@ -13,10 +14,12 @@ export default function EditBottleSpec() {
   const dispatch = useDispatch();
   const { bottleSpecs, loading } = useSelector((state) => state.bottleSpecs);
   const { brands } = useSelector((state) => state.brands);
+  const { companies } = useSelector((state) => state.companies);
   const { items: printingTypes } = useSelector((state) => state.printingType);
   const { items: printingColors } = useSelector((state) => state.printingColor);
 
   const [formData, setFormData] = useState({
+    companyId: '',
     brandId: '',
     bottleName: '',
     code: '',
@@ -26,6 +29,7 @@ export default function EditBottleSpec() {
   });
 
   const [errors, setErrors] = useState({
+    companyId: '',
     brandId: '',
     bottleName: '',
     code: '',
@@ -36,6 +40,7 @@ export default function EditBottleSpec() {
   const [filteredColors, setFilteredColors] = useState([]);
 
   useEffect(() => {
+    dispatch(fetchCompanies());
     dispatch(fetchBrands());
     dispatch(fetchPrintingTypes());
     dispatch(fetchPrintingColors());
@@ -45,6 +50,7 @@ export default function EditBottleSpec() {
     const spec = bottleSpecs.find(s => s._id === id);
     if (spec) {
       setFormData({
+        companyId: spec.brandId?.companyId?._id || spec.brandId?.companyId || '',
         brandId: spec.brandId?._id || spec.brandId || '',
         bottleName: spec.bottleName || '',
         code: spec.code || '',
@@ -67,6 +73,7 @@ export default function EditBottleSpec() {
   const validateField = (name, value) => {
     let msg = '';
     const fieldNames = {
+      companyId: 'Company',
       brandId: 'Brand',
       bottleName: 'Bottle Name',
       code: 'Bottle Code',
@@ -99,7 +106,11 @@ export default function EditBottleSpec() {
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-    setFormData(prev => ({ ...prev, [name]: value }));
+    if (name === 'companyId') {
+      setFormData(prev => ({ ...prev, companyId: value, brandId: '' }));
+    } else {
+      setFormData(prev => ({ ...prev, [name]: value }));
+    }
     if (errors[name]) setErrors(prev => ({ ...prev, [name]: '' }));
     
     // Reset color if type changes
@@ -112,13 +123,14 @@ export default function EditBottleSpec() {
     e.preventDefault();
 
     // Validate all mandatory fields
+    const companyError = validateField('companyId', formData.companyId);
     const brandError = validateField('brandId', formData.brandId);
     const nameError = validateField('bottleName', formData.bottleName);
     const codeError = validateField('code', formData.code);
     const typeError = validateField('printingTypeId', formData.printingTypeId);
     const colorError = validateField('printingColorId', formData.printingColorId);
 
-    if (brandError || nameError || codeError || typeError || colorError) {
+    if (companyError || brandError || nameError || codeError || typeError || colorError) {
       return Swal.fire('Validation Error', 'Please fix errors before submitting.', 'error');
     }
 
@@ -150,7 +162,28 @@ export default function EditBottleSpec() {
             <div className="dash-card-body p-4">
               <form onSubmit={handleSubmit}>
                 <div className="row g-4">
-                  <div className="col-md-12">
+                  <div className="col-md-6">
+                    <label className="form-label fw-600 small text-uppercase text-muted">
+                      Select Company <span className="text-danger">*</span>
+                    </label>
+                    <select 
+                      className={`form-select custom-input-field ${errors.companyId ? 'is-invalid' : ''}`}
+                      name="companyId"
+                      required
+                      value={formData.companyId} 
+                      onChange={handleChange}
+                      onBlur={handleBlur}
+                      style={{ borderRadius: 12 }}
+                    >
+                      <option value="">-- Choose Company --</option>
+                      {companies.filter(c => c.status || c._id === formData.companyId).map(c => (
+                        <option key={c._id} value={c._id}>{c.name}</option>
+                      ))}
+                    </select>
+                    {errors.companyId && <div className="invalid-feedback">{errors.companyId}</div>}
+                  </div>
+
+                  <div className="col-md-6">
                     <label className="form-label fw-600 small text-uppercase text-muted">
                       Select Brand <span className="text-danger">*</span>
                     </label>
@@ -158,13 +191,14 @@ export default function EditBottleSpec() {
                       className={`form-select custom-input-field ${errors.brandId ? 'is-invalid' : ''}`}
                       name="brandId"
                       required
+                      disabled={!formData.companyId}
                       value={formData.brandId} 
                       onChange={handleChange}
                       onBlur={handleBlur}
                       style={{ borderRadius: 12 }}
                     >
                       <option value="">-- Choose Brand --</option>
-                      {brands.filter(b => b.status || b._id === formData.brandId).map(b => (
+                      {brands.filter(b => (b.status || b._id === formData.brandId) && (b.companyId?._id === formData.companyId || b.companyId === formData.companyId)).map(b => (
                         <option key={b._id} value={b._id}>{b.name}</option>
                       ))}
                     </select>

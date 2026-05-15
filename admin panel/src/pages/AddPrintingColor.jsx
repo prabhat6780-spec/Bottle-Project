@@ -119,12 +119,7 @@ export default function AddPrintingColor() {
           timer: 1500,
           showConfirmButton: false
         });
-        if (e.nativeEvent.submitter?.name === 'saveAndAdd') {
-          setColorRows([{ name: '', status: 'active' }]);
-          setErrors({});
-        } else {
-          navigate('/printing-colors');
-        }
+        navigate('/printing-colors');
       } else {
         Swal.fire('Error!', res.payload || 'Failed to add printing color.', 'error');
       }
@@ -232,9 +227,7 @@ export default function AddPrintingColor() {
                       <><i className="bi bi-check2-circle me-2" /> Save & Back</>
                     )}
                   </button>
-                  <button type="submit" name="saveAndAdd" className="btn btn-outline-primary px-5 py-3 flex-grow-1" disabled={loading}>
-                    {loading ? 'Saving...' : <><i className="bi bi-plus-circle me-2" /> Save & Add More</>}
-                  </button>
+
                   <button type="button" onClick={() => navigate('/printing-colors')} className="btn-ghost px-5 py-3">
                     Cancel
                   </button>

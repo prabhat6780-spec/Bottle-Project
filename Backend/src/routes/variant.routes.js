@@ -9,10 +9,11 @@ const {
 
 const { auth } = require("../middleware/auth.middleware");
 const checkAbility = require("../middleware/checkAbility");
+const upload = require("../middleware/upload.middleware");
 
 // 👑 Admin & Manager can manage variants
-router.post("/", auth, checkAbility("create", "variant"), createVariant);
-router.put("/:id", auth, checkAbility("edit", "variant"), updateVariant);
+router.post("/", auth, checkAbility("create", "variant"), upload.single("image"), createVariant);
+router.put("/:id", auth, checkAbility("edit", "variant"), upload.single("image"), updateVariant);
 router.delete("/:id", auth, checkAbility("delete", "variant"), deleteVariant);
 
 // 👀 All roles can read

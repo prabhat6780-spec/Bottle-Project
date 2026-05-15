@@ -12,6 +12,9 @@ import Users from './pages/Users';
 import AddUser from './pages/AddUser';
 import EditUser from './pages/EditUser';
 import UserDetail from './pages/UserDetail';
+import Companies from './pages/Companies';
+import AddCompany from './pages/AddCompany';
+import EditCompany from './pages/EditCompany';
 import Brands from './pages/Brands';
 import AddBrand from './pages/AddBrand';
 import EditBrand from './pages/EditBrand';
@@ -24,6 +27,7 @@ import AddVariant from './pages/AddVariant';
 import EditVariant from './pages/EditVariant';
 import VariantDetail from './pages/VariantDetail';
 import Productions from './pages/Productions';
+import Production from './pages/Production';
 import AddProduction from './pages/AddProduction';
 import EditProduction from './pages/EditProduction';
 import Settings from './pages/Settings';
@@ -75,6 +79,9 @@ export default function App() {
               <Route path="/users/add" element={<AddUser />} />
               <Route path="/users/edit/:id" element={<EditUser />} />
               <Route path="/users/view/:id" element={<UserDetail />} />
+              <Route path="/companies" element={<Companies />} />
+              <Route path="/companies/add" element={<AddCompany />} />
+              <Route path="/companies/edit/:id" element={<EditCompany />} />
               <Route path="/brands" element={<Brands />} />
               <Route path="/brands/add" element={<AddBrand />} />
               <Route path="/brands/edit/:id" element={<EditBrand />} />
@@ -87,6 +94,7 @@ export default function App() {
               <Route path="/variants/edit/:id" element={<EditVariant />} />
               <Route path="/variants/view/:id" element={<VariantDetail />} />
               <Route path="/productions" element={<Productions />} />
+              <Route path="/production" element={<Production />} />
               <Route path="/productions/add" element={<AddProduction />} />
               <Route path="/productions/edit/:id" element={<EditProduction />} />
               <Route path="/printing-types" element={<PrintingTypes />} />

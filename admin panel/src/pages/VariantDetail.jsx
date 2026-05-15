@@ -63,7 +63,7 @@ export default function VariantDetail() {
                     <tr>
                       <th className="px-4 py-3 text-uppercase small fw-bold text-muted" style={{ fontSize: 11 }}>Variant Name</th>
                       <th className="px-4 py-3 text-uppercase small fw-bold text-muted" style={{ fontSize: 11 }}>Product Name</th>
-                      <th className="px-4 py-3 text-uppercase small fw-bold text-muted" style={{ fontSize: 11 }}>Type / Size</th>
+                      <th className="px-4 py-3 text-uppercase small fw-bold text-muted" style={{ fontSize: 11 }}>Size</th>
                       <th className="px-4 py-3 text-uppercase small fw-bold text-muted" style={{ fontSize: 11 }}>Bottle Spec</th>
                       <th className="px-4 py-3 text-uppercase small fw-bold text-muted" style={{ fontSize: 11 }}>Status</th>
                       <th className="px-4 py-3 text-uppercase small fw-bold text-muted" style={{ fontSize: 11 }}>Action</th>
@@ -77,8 +77,7 @@ export default function VariantDetail() {
                         <small className="text-accent">{variant.bottleSpecId?.brandId?.name || 'N/A'}</small>
                       </td>
                       <td className="px-4 py-4">
-                        <span className="badge bg-secondary-subtle text-secondary me-1">{variant.variantType}</span>
-                        <span className="badge bg-secondary-subtle text-secondary">{variant.variantSize}</span>
+                        <span className="badge bg-secondary-subtle text-secondary">{variant.variantSize || 'N/A'}</span>
                       </td>
                       <td className="px-4 py-4">{variant.bottleSpecId?.bottleName || 'N/A'}</td>
                       <td className="px-4 py-4">

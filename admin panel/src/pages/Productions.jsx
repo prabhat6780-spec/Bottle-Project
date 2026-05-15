@@ -5,6 +5,8 @@ import { useDispatch, useSelector } from 'react-redux';
 import { fetchProductions, deleteProduction } from '../redux/slices/productionSlice';
 import { fetchBrands } from '../redux/slices/brandSlice';
 import { fetchBottleSpecs } from '../redux/slices/bottleSpecSlice';
+import { fetchCompanies } from '../redux/slices/companySlice';
+import { fetchVariants } from '../redux/slices/variantSlice';
 import Swal from 'sweetalert2';
 import * as XLSX from 'xlsx';
 
@@ -12,12 +14,16 @@ export default function Productions() {
   const dispatch = useDispatch();
   const { productions, loading } = useSelector((state) => state.productions);
   const { brands } = useSelector((state) => state.brands);
+  const { companies } = useSelector((state) => state.companies);
   const { bottleSpecs } = useSelector((state) => state.bottleSpecs);
+  const { variants } = useSelector((state) => state.variants);
   const [search, setSearch] = useState('');
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
+  const [selectedCompany, setSelectedCompany] = useState('');
   const [selectedBrand, setSelectedBrand] = useState('');
   const [selectedSpec, setSelectedSpec] = useState('');
+  const [selectedVariant, setSelectedVariant] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(10);
 
@@ -25,6 +31,8 @@ export default function Productions() {
     dispatch(fetchProductions());
     dispatch(fetchBrands());
     dispatch(fetchBottleSpecs());
+    dispatch(fetchCompanies());
+    dispatch(fetchVariants());
   }, [dispatch]);
 
   const handleDelete = (id) => {
@@ -48,6 +56,7 @@ export default function Productions() {
   const filteredProductions = useMemo(() => {
     return productions.filter(p => {
       const brandName = p.brandId?.name || p.bottleSpecId?.brandId?.name || '';
+      const companyName = p.brandId?.companyId?.name || p.bottleSpecId?.brandId?.companyId?.name || '';
       const variantName = p.variantId?.variantName || '';
       const productName = p.variantId?.productName || '';
       const specName = p.bottleSpecId?.bottleName || '';
@@ -62,23 +71,30 @@ export default function Productions() {
 
       const matchesSearch = (
         brandName.toLowerCase().includes(search.toLowerCase()) ||
+        companyName.toLowerCase().includes(search.toLowerCase()) ||
         variantName.toLowerCase().includes(search.toLowerCase()) ||
         productName.toLowerCase().includes(search.toLowerCase()) ||
         specName.toLowerCase().includes(search.toLowerCase())
       );
 
       const matchesDate = (!start || prodDate >= start) &&
-                          (!end || prodDate <= end);
+        (!end || prodDate <= end);
 
-      const matchesBrand = !selectedBrand || 
-                           p.brandId?._id === selectedBrand || 
-                           p.bottleSpecId?.brandId?._id === selectedBrand;
-      
+      const matchesCompany = !selectedCompany || 
+        p.brandId?.companyId?._id === selectedCompany || 
+        p.brandId?.companyId === selectedCompany;
+
+      const matchesBrand = !selectedBrand ||
+        p.brandId?._id === selectedBrand ||
+        p.bottleSpecId?.brandId?._id === selectedBrand;
+
       const matchesSpec = !selectedSpec || p.bottleSpecId?._id === selectedSpec;
 
-      return matchesSearch && matchesDate && matchesBrand && matchesSpec;
+      const matchesVariant = !selectedVariant || p.variantId?._id === selectedVariant;
+
+      return matchesSearch && matchesDate && matchesCompany && matchesBrand && matchesSpec && matchesVariant;
     });
-  }, [productions, search, startDate, endDate, selectedBrand, selectedSpec]);
+  }, [productions, search, startDate, endDate, selectedCompany, selectedBrand, selectedSpec, selectedVariant]);
 
   const handleExport = () => {
     if (filteredProductions.length === 0) {
@@ -89,23 +105,26 @@ export default function Productions() {
     const data = filteredProductions.map((p, index) => ({
       'Sr No': index + 1,
       'Date': new Date(p.date).toLocaleDateString(),
-      'Brand': p.brandId?.name || p.bottleSpecId?.brandId?.name || 'Deleted Brand',
+      'Company': p.brandId?.companyId?.name || 'N/A',
+      'Brand': p.brandId?.name || 'N/A',
       'Bottle Name': p.bottleSpecId?.bottleName || 'N/A',
+      'Bottle Code': p.bottleSpecId?.code || 'N/A',
       'Printing Type': p.bottleSpecId?.printingTypeId?.name || 'N/A',
-      'Printing Color': p.bottleSpecId?.printingColorId?.name || 'No Color',
+      'Printing Color': p.bottleSpecId?.printingColorId?.name || 'N/A',
       'Product Name': p.variantId?.productName || 'N/A',
-      'Variant': p.variantId?.variantName || 'N/A',
-      'Size': p.variantId?.variantSize || 'N/A',
-      'Total Printed (pcs)': p.totalPrinted,
-      'Total Boxes': p.totalBoxes
+      'Variant Name': p.variantId?.variantName || 'N/A',
+      'Variant Size': p.variantId?.variantSize || 'N/A',
+      'Total Printed Bottles': p.totalPrinted,
+      'Bottles Per Box': p.bottlePerBox,
+      'Printed Remaining Bottles': p.remainingBottles
     }));
 
     const worksheet = XLSX.utils.json_to_sheet(data);
     const workbook = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(workbook, worksheet, "Production Report");
-    
+    XLSX.utils.book_append_sheet(workbook, worksheet, "Printing Production Report");
+
     // Generate filename based on dates
-    let filename = "Production_Report";
+    let filename = "Printing_Production_Report";
     if (startDate) filename += `_from_${startDate}`;
     if (endDate) filename += `_to_${endDate}`;
     filename += ".xlsx";
@@ -121,21 +140,21 @@ export default function Productions() {
 
   useEffect(() => {
     setCurrentPage(1);
-  }, [search, itemsPerPage, startDate, endDate, selectedBrand, selectedSpec]);
+  }, [search, itemsPerPage, startDate, endDate, selectedCompany, selectedBrand, selectedSpec, selectedVariant]);
 
   return (
     <div className="page-content">
       <div className="page-header d-flex align-items-center justify-content-between">
         <div>
-          <h1 className="page-title">Production Logs</h1>
+          <h1 className="page-title">Printing Production Logs</h1>
           <p className="page-subtitle">Track and manage daily production entries</p>
         </div>
         <div className="d-flex align-items-center gap-3">
           <div className="d-flex align-items-center gap-2 bg-white px-3 py-2 rounded-3 shadow-sm border">
             <label className="small text-muted fw-bold mb-0">From:</label>
-            <input 
-              type="date" 
-              className="form-control form-control-sm border-0 shadow-none p-0" 
+            <input
+              type="date"
+              className="form-control form-control-sm border-0 shadow-none p-0"
               style={{ width: 120 }}
               value={startDate}
               onChange={(e) => setStartDate(e.target.value)}
@@ -143,9 +162,9 @@ export default function Productions() {
           </div>
           <div className="d-flex align-items-center gap-2 bg-white px-3 py-2 rounded-3 shadow-sm border">
             <label className="small text-muted fw-bold mb-0">To:</label>
-            <input 
-              type="date" 
-              className="form-control form-control-sm border-0 shadow-none p-0" 
+            <input
+              type="date"
+              className="form-control form-control-sm border-0 shadow-none p-0"
               style={{ width: 120 }}
               value={endDate}
               onChange={(e) => setEndDate(e.target.value)}
@@ -165,39 +184,85 @@ export default function Productions() {
       <div className="dash-card border-0 shadow-sm mb-4" style={{ borderRadius: 20 }}>
         <div className="dash-card-body p-3">
           <div className="row g-3">
-            <div className="col-md-3">
-              <label className="small text-muted fw-bold mb-1">Filter by Brand</label>
-              <select 
+            <div className="col-md-2">
+              <label className="small text-muted fw-bold mb-1">Company</label>
+              <select
                 className="form-select form-select-sm border-light-subtle bg-light shadow-none py-2"
                 style={{ borderRadius: 10 }}
-                value={selectedBrand}
-                onChange={(e) => { setSelectedBrand(e.target.value); setSelectedSpec(''); }}
+                value={selectedCompany}
+                onChange={(e) => { 
+                  setSelectedCompany(e.target.value); 
+                  setSelectedBrand(''); 
+                  setSelectedSpec(''); 
+                  setSelectedVariant(''); 
+                }}
               >
-                <option value="">All Brands</option>
-                {brands.map(b => (
-                  <option key={b._id} value={b._id}>{b.name}</option>
+                <option value="">All Companies</option>
+                {companies.map(c => (
+                  <option key={c._id} value={c._id}>{c.name}</option>
                 ))}
               </select>
             </div>
-            <div className="col-md-3">
-              <label className="small text-muted fw-bold mb-1">Filter by Bottle Spec</label>
-              <select 
+            <div className="col-md-2">
+              <label className="small text-muted fw-bold mb-1">Brand</label>
+              <select
+                className="form-select form-select-sm border-light-subtle bg-light shadow-none py-2"
+                style={{ borderRadius: 10 }}
+                value={selectedBrand}
+                onChange={(e) => { 
+                  setSelectedBrand(e.target.value); 
+                  setSelectedSpec(''); 
+                  setSelectedVariant(''); 
+                }}
+              >
+                <option value="">All Brands</option>
+                {brands
+                  .filter(b => !selectedCompany || b.companyId?._id === selectedCompany || b.companyId === selectedCompany)
+                  .map(b => (
+                    <option key={b._id} value={b._id}>{b.name}</option>
+                  ))
+                }
+              </select>
+            </div>
+            <div className="col-md-2">
+              <label className="small text-muted fw-bold mb-1">Bottle Spec</label>
+              <select
                 className="form-select form-select-sm border-light-subtle bg-light shadow-none py-2"
                 style={{ borderRadius: 10 }}
                 value={selectedSpec}
-                onChange={(e) => setSelectedSpec(e.target.value)}
+                onChange={(e) => {
+                  setSelectedSpec(e.target.value);
+                  setSelectedVariant('');
+                }}
               >
-                <option value="">All Specifications</option>
+                <option value="">All Specs</option>
                 {bottleSpecs
-                  .filter(s => !selectedBrand || s.brandId?._id === selectedBrand)
+                  .filter(s => (!selectedBrand || s.brandId?._id === selectedBrand) && (!selectedCompany || s.brandId?.companyId?._id === selectedCompany || s.brandId?.companyId === selectedCompany))
                   .map(s => (
                     <option key={s._id} value={s._id}>{s.bottleName} ({s.code})</option>
                   ))
                 }
               </select>
             </div>
-            <div className="col-md-3">
-              <label className="small text-muted fw-bold mb-1">Search Anything</label>
+            <div className="col-md-2">
+              <label className="small text-muted fw-bold mb-1">Variant</label>
+              <select
+                className="form-select form-select-sm border-light-subtle bg-light shadow-none py-2"
+                style={{ borderRadius: 10 }}
+                value={selectedVariant}
+                onChange={(e) => setSelectedVariant(e.target.value)}
+              >
+                <option value="">All Variants</option>
+                {variants
+                  .filter(v => (!selectedSpec || v.bottleSpecId?._id === selectedSpec) && (!selectedBrand || v.bottleSpecId?.brandId?._id === selectedBrand))
+                  .map(v => (
+                    <option key={v._id} value={v._id}>{v.variantName} ({v.productName})</option>
+                  ))
+                }
+              </select>
+            </div>
+            <div className="col-md-2">
+              <label className="small text-muted fw-bold mb-1">Search</label>
               <div className="search-input-wrapper position-relative">
                 <i className="bi bi-search text-muted position-absolute top-50 start-0 translate-middle-y ms-3" style={{ pointerEvents: 'none' }} />
                 <input
@@ -210,20 +275,22 @@ export default function Productions() {
                 />
               </div>
             </div>
-            <div className="col-md-3 d-flex align-items-end gap-2">
-               <button 
+            <div className="col-md-2 d-flex align-items-end">
+              <button
                 onClick={() => {
                   setSearch('');
                   setStartDate('');
                   setEndDate('');
+                  setSelectedCompany('');
                   setSelectedBrand('');
                   setSelectedSpec('');
+                  setSelectedVariant('');
                 }}
                 className="btn btn-sm btn-light border-light-subtle w-100 py-2"
                 style={{ borderRadius: 10, fontWeight: 600 }}
-               >
+              >
                 Reset Filters
-               </button>
+              </button>
             </div>
           </div>
         </div>
@@ -233,8 +300,8 @@ export default function Productions() {
         <div className="dash-card-header d-flex align-items-center justify-content-between p-3 border-bottom bg-white">
           <div className="d-flex align-items-center gap-2 text-muted small fw-500">
             <span>Show</span>
-            <select 
-              className="form-select form-select-sm shadow-none border-light-subtle bg-light" 
+            <select
+              className="form-select form-select-sm shadow-none border-light-subtle bg-light"
               style={{ width: 70, borderRadius: 8, cursor: 'pointer' }}
               value={itemsPerPage}
               onChange={(e) => setItemsPerPage(Number(e.target.value))}
@@ -321,8 +388,8 @@ export default function Productions() {
           <nav aria-label="Page navigation">
             <ul className="pagination pagination-sm mb-0 gap-2">
               <li className={`page-item ${currentPage === 1 ? 'disabled' : ''}`}>
-                <button 
-                  className="page-link border-0 bg-light text-muted px-3" 
+                <button
+                  className="page-link border-0 bg-light text-muted px-3"
                   style={{ borderRadius: 8 }}
                   onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
                 >
@@ -331,8 +398,8 @@ export default function Productions() {
               </li>
               {[...Array(totalPages)].map((_, i) => (
                 <li key={i} className={`page-item ${currentPage === i + 1 ? 'active' : ''}`}>
-                  <button 
-                    className="page-link border-0 px-3" 
+                  <button
+                    className="page-link border-0 px-3"
                     style={{ borderRadius: 8, backgroundColor: currentPage === i + 1 ? 'var(--accent)' : 'transparent' }}
                     onClick={() => setCurrentPage(i + 1)}
                   >
@@ -341,8 +408,8 @@ export default function Productions() {
                 </li>
               ))}
               <li className={`page-item ${currentPage === totalPages || totalPages === 0 ? 'disabled' : ''}`}>
-                <button 
-                  className="page-link border-0 bg-light text-muted px-3" 
+                <button
+                  className="page-link border-0 bg-light text-muted px-3"
                   style={{ borderRadius: 8 }}
                   onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
                 >

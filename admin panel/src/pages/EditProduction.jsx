@@ -17,6 +17,14 @@ export default function EditProduction() {
   const { variants } = useSelector((state) => state.variants);
   const { productions, loading } = useSelector((state) => state.productions);
 
+  // Calculate min and max dates (Today, Yesterday, Day before yesterday)
+  const today = new Date();
+  const maxDate = today.toISOString().split('T')[0];
+
+  const twoDaysAgo = new Date(today);
+  twoDaysAgo.setDate(today.getDate() - 2);
+  const minDate = twoDaysAgo.toISOString().split('T')[0];
+
   const [formData, setFormData] = useState({
     brandId: '',
     bottleSpecId: '',
@@ -74,7 +82,7 @@ export default function EditProduction() {
   const handleChange = (e) => {
     const { name, value } = e.target;
     let cleanValue = value;
-    
+
     if (['totalPrinted', 'bottlePerBox'].includes(name)) {
       cleanValue = value.replace(/\s/g, '');
     }
@@ -171,7 +179,7 @@ export default function EditProduction() {
           <i className="bi bi-arrow-left" style={{ fontSize: 20 }} />
         </Link>
         <div>
-          <h1 className="page-title">Edit Production Log</h1>
+          <h1 className="page-title">Edit Printing Production Log</h1>
           <p className="page-subtitle">Update details for the selected log</p>
         </div>
       </div>
@@ -186,11 +194,11 @@ export default function EditProduction() {
                     <label className="form-label fw-600 small text-uppercase text-muted">
                       1. Brand <span className="text-danger">*</span>
                     </label>
-                    <select 
+                    <select
                       className={`form-select custom-input-field ${errors.brandId ? 'is-invalid' : ''}`}
                       name="brandId"
                       required
-                      value={formData.brandId} 
+                      value={formData.brandId}
                       onChange={handleChange}
                       onBlur={handleBlur}
                       style={{ borderRadius: 12 }}
@@ -207,12 +215,12 @@ export default function EditProduction() {
                     <label className="form-label fw-600 small text-uppercase text-muted">
                       2. Bottle Spec <span className="text-danger">*</span>
                     </label>
-                    <select 
+                    <select
                       className={`form-select custom-input-field ${errors.bottleSpecId ? 'is-invalid' : ''}`}
                       name="bottleSpecId"
                       required
                       disabled={!formData.brandId}
-                      value={formData.bottleSpecId} 
+                      value={formData.bottleSpecId}
                       onChange={handleChange}
                       onBlur={handleBlur}
                       style={{ borderRadius: 12 }}
@@ -231,12 +239,12 @@ export default function EditProduction() {
                     <label className="form-label fw-600 small text-uppercase text-muted">
                       3. Variant <span className="text-danger">*</span>
                     </label>
-                    <select 
+                    <select
                       className={`form-select custom-input-field ${errors.variantId ? 'is-invalid' : ''}`}
                       name="variantId"
                       required
                       disabled={!formData.bottleSpecId}
-                      value={formData.variantId} 
+                      value={formData.variantId}
                       onChange={handleChange}
                       onBlur={handleBlur}
                       style={{ borderRadius: 12 }}
@@ -244,7 +252,7 @@ export default function EditProduction() {
                       <option value="">-- Choose Variant --</option>
                       {filteredVariants.map(v => (
                         <option key={v._id} value={v._id}>
-                          {v.variantName} — {v.variantType} — {v.variantSize}
+                          {v.variantName} — {v.variantSize || 'N/A'}
                         </option>
                       ))}
                     </select>
@@ -262,6 +270,8 @@ export default function EditProduction() {
                       name="date"
                       className={`form-control custom-input-field ${errors.date ? 'is-invalid' : ''}`}
                       required
+                      min={minDate}
+                      max={maxDate}
                       value={formData.date}
                       onChange={handleChange}
                       onBlur={handleBlur}
@@ -312,7 +322,7 @@ export default function EditProduction() {
                   </div>
                   <div style={{ width: 1, background: '#dee2e6' }} />
                   <div>
-                    <div className="text-muted small text-uppercase fw-bold mb-1">Remaining Bottles</div>
+                    <div className="text-muted small text-uppercase fw-bold mb-1">Printed  Remaining Bottles</div>
                     <div className={`h3 mb-0 fw-bold ${calc.rem > 0 ? 'text-danger' : 'text-success'}`}>{calc.rem}</div>
                   </div>
                 </div>
@@ -322,7 +332,7 @@ export default function EditProduction() {
                     {loading ? (
                       <><span className="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>Updating...</>
                     ) : (
-                      <><i className="bi bi-check2-circle me-2" /> Update Production Log</>
+                      <><i className="bi bi-check2-circle me-2" /> Update Printing Production Log</>
                     )}
                   </button>
                   <button type="button" onClick={() => navigate('/productions')} className="btn-ghost px-5 py-3">

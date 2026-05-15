@@ -39,6 +39,7 @@ export default function BottleSpecs() {
       s.bottleName?.toLowerCase().includes(search.toLowerCase()) ||
       s.code?.toLowerCase().includes(search.toLowerCase()) ||
       s.brandId?.name?.toLowerCase().includes(search.toLowerCase()) ||
+      s.brandId?.companyId?.name?.toLowerCase().includes(search.toLowerCase()) ||
       s.printingTypeId?.name?.toLowerCase().includes(search.toLowerCase()) ||
       s.printingColorId?.name?.toLowerCase().includes(search.toLowerCase())
     );
@@ -103,6 +104,7 @@ export default function BottleSpecs() {
               <tr>
                 <th className="py-3 text-uppercase small fw-bold text-muted ps-5 text-start" style={{ width: 150 }}>Sr No</th>
                 <th className="py-3 text-uppercase small fw-bold text-muted">Design & Code</th>
+                <th className="py-3 text-uppercase small fw-bold text-muted text-center">Company</th>
                 <th className="py-3 text-uppercase small fw-bold text-muted text-center">Associated Brand</th>
                 <th className="py-3 text-uppercase small fw-bold text-muted text-center">Printing Details</th>
                 <th className="py-3 text-uppercase small fw-bold text-muted text-center">Status</th>
@@ -127,6 +129,11 @@ export default function BottleSpecs() {
                         </div>
                       </div>
                     </div>
+                  </td>
+                  <td className="py-3 text-center">
+                    <span className="fw-600 text-dark" style={{ fontSize: 13 }}>
+                      {s.brandId?.companyId?.name || 'N/A'}
+                    </span>
                   </td>
                   <td className="py-3 text-center">
                     <span className="badge rounded-pill px-3 py-2" style={{ backgroundColor: '#fff0f3', color: '#e91e63', fontWeight: 600, fontSize: 12 }}>

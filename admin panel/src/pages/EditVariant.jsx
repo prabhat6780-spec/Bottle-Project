@@ -15,17 +15,16 @@ export default function EditVariant() {
   const [formData, setFormData] = useState({
     productName: '',
     variantName: '',
-    variantType: '',
     variantSize: '',
     status: 'active',
-    bottleSpecId: ''
+    bottleSpecId: '',
+    image: null,
+    existingImage: null
   });
 
   const [errors, setErrors] = useState({
     productName: '',
     variantName: '',
-    variantType: '',
-    variantSize: '',
     bottleSpecId: ''
   });
 
@@ -34,8 +33,6 @@ export default function EditVariant() {
     const fieldNames = {
       productName: 'Product Name',
       variantName: 'Variant Name',
-      variantType: 'Variant Type',
-      variantSize: 'Variant Size',
       bottleSpecId: 'Bottle Specification'
     };
 
@@ -63,8 +60,12 @@ export default function EditVariant() {
   };
 
   const handleChange = (e) => {
-    const { name, value } = e.target;
-    setFormData(prev => ({ ...prev, [name]: value }));
+    const { name, value, type, files } = e.target;
+    if (type === 'file') {
+      setFormData(prev => ({ ...prev, [name]: files[0] }));
+    } else {
+      setFormData(prev => ({ ...prev, [name]: value }));
+    }
     if (errors[name]) setErrors(prev => ({ ...prev, [name]: '' }));
   };
 
@@ -78,10 +79,11 @@ export default function EditVariant() {
       setFormData({
         productName: variant.productName || '',
         variantName: variant.variantName || '',
-        variantType: variant.variantType || '',
         variantSize: variant.variantSize || '',
         status: variant.status === true || variant.status === 'active' ? 'active' : 'inactive',
-        bottleSpecId: variant.bottleSpecId?._id || variant.bottleSpecId || ''
+        bottleSpecId: variant.bottleSpecId?._id || variant.bottleSpecId || '',
+        existingImage: variant.image || null,
+        image: null
       });
     }
   }, [id, variants]);
@@ -93,16 +95,19 @@ export default function EditVariant() {
     const specError = validateField('bottleSpecId', formData.bottleSpecId);
     const prodError = validateField('productName', formData.productName);
     const varNameError = validateField('variantName', formData.variantName);
-    const varTypeError = validateField('variantType', formData.variantType);
-    const varSizeError = validateField('variantSize', formData.variantSize);
-
     if (specError) return Swal.fire('Validation Error', specError, 'error');
     if (prodError) return Swal.fire('Validation Error', prodError, 'error');
     if (varNameError) return Swal.fire('Validation Error', varNameError, 'error');
-    if (varTypeError) return Swal.fire('Validation Error', varTypeError, 'error');
-    if (varSizeError) return Swal.fire('Validation Error', varSizeError, 'error');
 
-    dispatch(updateVariant({ id, formData })).then((res) => {
+    const submitData = new FormData();
+    for (const key in formData) {
+      if (key === 'existingImage') continue;
+      if (formData[key] !== null && formData[key] !== undefined) {
+        submitData.append(key, formData[key]);
+      }
+    }
+
+    dispatch(updateVariant({ id, formData: submitData })).then((res) => {
       if (!res.error) {
         Swal.fire('Updated!', 'Variant updated successfully!', 'success');
         navigate('/variants');
@@ -214,38 +219,59 @@ export default function EditVariant() {
                     {errors.variantName && <div className="invalid-feedback">{errors.variantName}</div>}
                   </div>
 
-                  <div className="col-md-6">
-                    <label className="form-label fw-600 small text-uppercase text-muted">
-                      Variant Type <span className="text-danger">*</span>
-                    </label>
-                    <input
-                      type="text"
-                      name="variantType"
-                      className={`form-control custom-input-field ${errors.variantType ? 'is-invalid' : ''}`}
-                      required
-                      value={formData.variantType}
-                      onChange={handleChange}
-                      onBlur={handleBlur}
-                      style={{ borderRadius: 12 }}
-                    />
-                    {errors.variantType && <div className="invalid-feedback">{errors.variantType}</div>}
-                  </div>
+
 
                   <div className="col-md-6">
                     <label className="form-label fw-600 small text-uppercase text-muted">
-                      Variant Size <span className="text-danger">*</span>
+                      Variant Size
                     </label>
                     <input
                       type="text"
                       name="variantSize"
-                      className={`form-control custom-input-field ${errors.variantSize ? 'is-invalid' : ''}`}
-                      required
+                      className="form-control custom-input-field"
                       value={formData.variantSize}
                       onChange={handleChange}
-                      onBlur={handleBlur}
                       style={{ borderRadius: 12 }}
                     />
-                    {errors.variantSize && <div className="invalid-feedback">{errors.variantSize}</div>}
+                  </div>
+
+                  <div className="col-md-6">
+                    <label className="form-label fw-600 small text-uppercase text-muted d-block mb-3">
+                      Variant Image {formData.existingImage && !formData.image && <span className="badge bg-info ms-2">Existing</span>}
+                    </label>
+                    <div className="d-flex align-items-end gap-3">
+                      {formData.image ? (
+                        <div className="position-relative shadow-sm rounded-3 overflow-hidden border border-light-subtle" style={{ width: '80px', height: '80px', flexShrink: 0 }}>
+                          <img src={URL.createObjectURL(formData.image)} alt="Preview" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                          <button 
+                            type="button" 
+                            className="btn btn-sm btn-danger rounded-circle position-absolute p-0 d-flex align-items-center justify-content-center shadow" 
+                            style={{ width: 22, height: 22, top: 4, right: 4 }}
+                            onClick={() => {
+                              setFormData(prev => ({ ...prev, image: null }));
+                              document.getElementById('imageInput').value = '';
+                            }}
+                          >
+                            <i className="bi bi-x" style={{ fontSize: 16 }} />
+                          </button>
+                        </div>
+                      ) : formData.existingImage ? (
+                        <div className="position-relative shadow-sm rounded-3 overflow-hidden border border-light-subtle" style={{ width: '80px', height: '80px', flexShrink: 0 }}>
+                          <img src={`http://localhost:5000${formData.existingImage}`} alt="Variant" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                        </div>
+                      ) : null}
+                      <div className="flex-grow-1">
+                        <input
+                          id="imageInput"
+                          type="file"
+                          name="image"
+                          className="form-control custom-input-field"
+                          onChange={handleChange}
+                          accept="image/*"
+                          style={{ borderRadius: 12 }}
+                        />
+                      </div>
+                    </div>
                   </div>
 
                   <div className="col-md-12">

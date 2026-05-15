@@ -2,38 +2,49 @@ import { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
 import { createBrand, fetchBrands } from '../redux/slices/brandSlice';
+import { fetchCompanies } from '../redux/slices/companySlice';
 import Swal from 'sweetalert2';
 
 export default function AddBrand() {
   const navigate = useNavigate();
   const dispatch = useDispatch();
   const { brands = [], loading } = useSelector((state) => state.brands);
+  const { companies = [] } = useSelector((state) => state.companies);
+  const [companyId, setCompanyId] = useState('');
   const [name, setName] = useState('');
   const [status, setStatus] = useState('active');
-  const [error, setError] = useState('');
+  const [error, setError] = useState({});
 
   useEffect(() => {
     dispatch(fetchBrands());
+    dispatch(fetchCompanies());
   }, [dispatch]);
 
-  const validateField = (value) => {
+  const validateField = (field, value, currentCompanyId = companyId) => {
     let msg = '';
-    if (!value || value.trim() === '') {
-      msg = 'Brand Name is mandatory';
-    } else if (!/^[a-zA-Z\s]+$/.test(value)) {
-      msg = 'Brand Name should only contain characters';
-    } else {
-      const isDuplicate = brands.some(b => b.name.toLowerCase().trim() === value.toLowerCase().trim());
-      if (isDuplicate) {
-        msg = `Brand "${value}" already exists`;
+    if (field === 'companyId') {
+      if (!value) msg = 'Company is mandatory';
+    } else if (field === 'name') {
+      if (!value || value.trim() === '') {
+        msg = 'Brand Name is mandatory';
+      } else if (!/^[a-zA-Z\s]+$/.test(value)) {
+        msg = 'Brand Name should only contain characters';
+      } else if (currentCompanyId) {
+        const isDuplicate = brands.some(b => 
+          (b.companyId?._id === currentCompanyId || b.companyId === currentCompanyId) &&
+          b.name.toLowerCase().trim() === value.toLowerCase().trim()
+        );
+        if (isDuplicate) {
+          msg = `Brand "${value}" already exists for this company`;
+        }
       }
     }
-    setError(msg);
+    setError(prev => ({ ...prev, [field]: msg }));
     return msg;
   };
 
-  const handleBlur = () => {
-    const msg = validateField(name);
+  const handleBlur = (field, value) => {
+    const msg = validateField(field, value);
     if (msg) {
       Swal.fire({
         icon: 'warning',
@@ -48,18 +59,27 @@ export default function AddBrand() {
   };
 
   const handleChange = (e) => {
-    setName(e.target.value);
-    if (error) setError('');
+    const { name, value } = e.target;
+    if (name === 'companyId') {
+      setCompanyId(value);
+      if (error.companyId) setError(prev => ({ ...prev, companyId: '' }));
+      // Re-validate name if company changes
+      if (name) validateField('name', name, value);
+    } else if (name === 'name') {
+      setName(value);
+      if (error.name) setError(prev => ({ ...prev, name: '' }));
+    }
   };
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    const msg = validateField(name);
-    if (msg) {
-      return Swal.fire('Validation Error', msg, 'error');
+    const companyMsg = validateField('companyId', companyId);
+    const nameMsg = validateField('name', name);
+    if (companyMsg || nameMsg) {
+      return Swal.fire('Validation Error', companyMsg || nameMsg, 'error');
     }
 
-    dispatch(createBrand({ name, status })).then((res) => {
+    dispatch(createBrand({ companyId, name, status })).then((res) => {
       if (!res.error) {
         Swal.fire('Success!', `Brand "${name}" added successfully!`, 'success');
         navigate('/brands');
@@ -88,19 +108,41 @@ export default function AddBrand() {
               <form onSubmit={handleSubmit}>
                 <div className="mb-4">
                   <label className="form-label fw-600 small text-uppercase text-muted">
+                    Company <span className="text-danger">*</span>
+                  </label>
+                  <select
+                    className={`form-select custom-input-field ${error.companyId ? 'is-invalid' : ''}`}
+                    name="companyId"
+                    required
+                    value={companyId}
+                    onChange={handleChange}
+                    onBlur={(e) => handleBlur('companyId', e.target.value)}
+                    style={{ borderRadius: 12 }}
+                  >
+                    <option value="">-- Choose Company --</option>
+                    {companies.filter(c => c.status).map(c => (
+                      <option key={c._id} value={c._id}>{c.name}</option>
+                    ))}
+                  </select>
+                  {error.companyId && <div className="invalid-feedback">{error.companyId}</div>}
+                </div>
+
+                <div className="mb-4">
+                  <label className="form-label fw-600 small text-uppercase text-muted">
                     Brand Name <span className="text-danger">*</span>
                   </label>
                   <input
                     type="text"
-                    className={`form-control custom-input-field ${error ? 'is-invalid' : ''}`}
+                    name="name"
+                    className={`form-control custom-input-field ${error.name ? 'is-invalid' : ''}`}
                     placeholder="Enter brand name"
                     required
                     value={name}
                     onChange={handleChange}
-                    onBlur={handleBlur}
+                    onBlur={(e) => handleBlur('name', e.target.value)}
                     style={{ borderRadius: 12 }}
                   />
-                  {error && <div className="invalid-feedback">{error}</div>}
+                  {error.name && <div className="invalid-feedback">{error.name}</div>}
                 </div>
 
                 <div className="mb-4">

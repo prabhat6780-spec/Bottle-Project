@@ -8,10 +8,19 @@ exports.createVariant = async (req, res) => {
     if (typeof body.status === 'string') {
       body.status = body.status === 'active';
     }
+    
+    if (req.file) {
+      body.image = `/uploads/${req.file.filename}`;
+    }
+
     const variant = await Variant.create(body);
     const populated = await Variant.findById(variant._id).populate({
       path: "bottleSpecId",
-      populate: ["brandId", "printingTypeId", "printingColorId"]
+      populate: [
+        { path: "brandId", populate: { path: "companyId" } },
+        "printingTypeId",
+        "printingColorId"
+      ]
     });
     res.json(populated);
   } catch (err) {
@@ -26,7 +35,11 @@ exports.getVariants = async (req, res) => {
     const variants = await Variant.find()
       .populate({
         path: "bottleSpecId",
-        populate: ["brandId", "printingTypeId", "printingColorId"]
+        populate: [
+          { path: "brandId", populate: { path: "companyId" } },
+          "printingTypeId",
+          "printingColorId"
+        ]
       });
 
     res.json(variants);
@@ -47,6 +60,10 @@ exports.updateVariant = async (req, res) => {
       body.status = body.status === 'active';
     }
 
+    if (req.file) {
+      body.image = `/uploads/${req.file.filename}`;
+    }
+
     console.log("UPDATE BODY (converted):", body);
 
     const variant = await Variant.findByIdAndUpdate(
@@ -55,7 +72,11 @@ exports.updateVariant = async (req, res) => {
       { returnDocument: 'after' }
     ).populate({
       path: "bottleSpecId",
-      populate: ["brandId", "printingTypeId", "printingColorId"]
+      populate: [
+        { path: "brandId", populate: { path: "companyId" } },
+        "printingTypeId",
+        "printingColorId"
+      ]
     });
 
     res.json(variant);

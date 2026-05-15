@@ -39,4 +39,4 @@ const productionSchema = new mongoose.Schema({
 }, { timestamps: true });
 
 
-module.exports= mongoose.model("Production", productionSchema);
+module.exports = mongoose.model("Production", productionSchema);

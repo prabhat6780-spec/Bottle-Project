@@ -37,10 +37,12 @@ export default function Variants() {
   const filteredVariants = useMemo(() => {
     return variants.filter(v => {
       const brandName = v.bottleSpecId?.brandId?.name || '';
+      const companyName = v.bottleSpecId?.brandId?.companyId?.name || '';
       return (
         v.variantName?.toLowerCase().includes(search.toLowerCase()) ||
         v.productName?.toLowerCase().includes(search.toLowerCase()) ||
-        brandName.toLowerCase().includes(search.toLowerCase())
+        brandName.toLowerCase().includes(search.toLowerCase()) ||
+        companyName.toLowerCase().includes(search.toLowerCase())
       );
     });
   }, [variants, search]);
@@ -102,10 +104,12 @@ export default function Variants() {
           <table className="data-table">
             <thead>
               <tr>
-                <th className="py-3 text-uppercase small fw-bold text-muted ps-5 text-start" style={{ width: 150 }}>Sr No</th>
+                <th className="py-3 text-uppercase small fw-bold text-muted ps-5 text-start" style={{ width: 100 }}>Sr No</th>
+                <th className="py-3 text-uppercase small fw-bold text-muted text-center" style={{ width: 80 }}>Image</th>
                 <th className="py-3 text-uppercase small fw-bold text-muted text-center">Product & Variant</th>
-                <th className="py-3 text-uppercase small fw-bold text-muted text-center">Type & Size</th>
+                <th className="py-3 text-uppercase small fw-bold text-muted text-center">Size</th>
                 <th className="py-3 text-uppercase small fw-bold text-muted text-center">Bottle Spec</th>
+                <th className="py-3 text-uppercase small fw-bold text-muted text-center">Company</th>
                 <th className="py-3 text-uppercase small fw-bold text-muted text-center">Brand</th>
                 <th className="py-3 text-uppercase small fw-bold text-muted text-center">Status</th>
                 <th className="py-3 text-uppercase small fw-bold text-muted text-center" style={{ width: 150 }}>Actions</th>
@@ -118,13 +122,21 @@ export default function Variants() {
                     <span className="text-muted fw-bold" style={{ fontSize: 13 }}>{String((currentPage - 1) * itemsPerPage + index + 1).padStart(2, '0')}</span>
                   </td>
                   <td className="py-3 text-center">
+                    {v.image ? (
+                      <img src={`http://localhost:5000${v.image}`} alt="Variant" style={{ width: 40, height: 40, objectFit: 'cover', borderRadius: 8 }} />
+                    ) : (
+                      <div className="bg-light d-flex align-items-center justify-content-center text-muted" style={{ width: 40, height: 40, borderRadius: 8, margin: '0 auto', fontSize: 18 }}>
+                        <i className="bi bi-image" />
+                      </div>
+                    )}
+                  </td>
+                  <td className="py-3 text-center">
                     <div className="fw-600 text-dark">{v.productName}</div>
                     <div className="small text-muted">{v.variantName}</div>
                   </td>
                   <td className="py-3 text-center">
                     <div className="d-flex flex-column gap-1 align-items-center">
-                      <span className="badge bg-light text-dark border px-2 py-1" style={{ fontSize: 11 }}>{v.variantType}</span>
-                      <span className="badge bg-soft-primary text-primary px-2 py-1" style={{ fontSize: 11 }}>{v.variantSize}</span>
+                      <span className="badge bg-soft-primary text-primary px-2 py-1" style={{ fontSize: 11 }}>{v.variantSize || 'N/A'}</span>
                     </div>
                   </td>
                   <td className="py-3 text-center">
@@ -132,6 +144,9 @@ export default function Variants() {
                     <div className="small text-muted" style={{ fontSize: 11 }}>
                       {v.bottleSpecId?.printingTypeId?.name || 'N/A'} — {v.bottleSpecId?.printingColorId?.name || 'No Color'}
                     </div>
+                  </td>
+                  <td className="py-3 text-center fw-600 text-dark" style={{ fontSize: 13 }}>
+                    {v.bottleSpecId?.brandId?.companyId?.name || 'N/A'}
                   </td>
                   <td className="py-3 text-center text-accent fw-500">
                     {v.bottleSpecId?.brandId?.name || 'N/A'}
@@ -156,7 +171,7 @@ export default function Variants() {
               ))}
               {paginatedItems.length === 0 && !loading && (
                 <tr>
-                  <td colSpan={7} className="text-center py-5 text-muted">No variants found</td>
+                  <td colSpan={8} className="text-center py-5 text-muted">No variants found</td>
                 </tr>
               )}
             </tbody>

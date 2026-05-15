@@ -17,14 +17,14 @@ const variantSchema = new mongoose.Schema({
     required: true
   },
 
-  variantType: {
-    type: String,
-    required: true
-  },
+
 
   variantSize: {
-    type: String,
-    required: true
+    type: String
+  },
+
+  image: {
+    type: String
   },
 
   status: {

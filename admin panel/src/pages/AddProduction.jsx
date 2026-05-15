@@ -12,12 +12,20 @@ import Swal from 'sweetalert2';
 export default function AddProduction() {
   const navigate = useNavigate();
   const dispatch = useDispatch();
-  
+
   const { brands } = useSelector((state) => state.brands);
   const { bottleSpecs: specs } = useSelector((state) => state.bottleSpecs);
   const { variants } = useSelector((state) => state.variants);
   const { loading: saving } = useSelector((state) => state.productions);
   const { loading: matching, matchResult } = useSelector((state) => state.vision);
+
+  // Calculate min and max dates (Today, Yesterday, Day before yesterday)
+  const today = new Date();
+  const maxDate = today.toISOString().split('T')[0];
+
+  const twoDaysAgo = new Date(today);
+  twoDaysAgo.setDate(today.getDate() - 2);
+  const minDate = twoDaysAgo.toISOString().split('T')[0];
 
   const [formData, setFormData] = useState({
     brandId: '',
@@ -76,7 +84,7 @@ export default function AddProduction() {
   const handleChange = (e) => {
     const { name, value } = e.target;
     let cleanValue = value;
-    
+
     if (['totalPrinted', 'bottlePerBox'].includes(name)) {
       cleanValue = value.replace(/\s/g, '');
     }
@@ -155,7 +163,7 @@ export default function AddProduction() {
     canvas.height = video.videoHeight;
     const ctx = canvas.getContext('2d');
     ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-    
+
     canvas.toBlob((blob) => {
       const file = new File([blob], "capture.jpg", { type: "image/jpeg" });
       setImage(file);
@@ -170,7 +178,7 @@ export default function AddProduction() {
 
   const handleMatch = () => {
     if (!image) return Swal.fire('Error', 'Please provide an image first', 'error');
-    
+
     dispatch(matchBottle(image)).then((res) => {
       if (res.payload?.match) {
         const data = res.payload;
@@ -227,19 +235,19 @@ export default function AddProduction() {
             <i className="bi bi-arrow-left" style={{ fontSize: 20 }} />
           </Link>
           <div>
-            <h1 className="page-title">Add Production</h1>
+            <h1 className="page-title">Add Printing Production</h1>
             <p className="page-subtitle">Choose entry mode and log details</p>
           </div>
         </div>
 
         <div className="mode-toggle-container p-1 bg-light rounded-4 d-flex" style={{ border: '1px solid #eee' }}>
-          <button 
+          <button
             className={`btn btn-sm py-2 px-4 rounded-3 border-0 transition-all ${mode === 'camera' ? 'btn-accent shadow-sm' : 'btn-ghost'}`}
             onClick={() => setMode('camera')}
           >
             <i className="bi bi-camera-fill me-2" /> Camera Mode
           </button>
-          <button 
+          <button
             className={`btn btn-sm py-2 px-4 rounded-3 border-0 transition-all ${mode === 'manual' ? 'btn-accent shadow-sm' : 'btn-ghost'}`}
             onClick={() => setMode('manual')}
           >
@@ -250,16 +258,16 @@ export default function AddProduction() {
 
       <div className="row justify-content-center">
         <div className="col-lg-10">
-          
+
           {mode === 'camera' ? (
             <div className="dash-card mb-4 overflow-hidden border-0 shadow-lg" style={{ borderRadius: 24 }}>
               <div className="dash-card-body p-5 text-center">
-                
+
                 {!cameraSource && !image ? (
                   <div className="py-5">
                     <h3 className="fw-bold mb-4">How would you like to provide the image?</h3>
                     <div className="d-flex justify-content-center gap-4">
-                      <button 
+                      <button
                         className="btn btn-outline-accent p-4 rounded-4 d-flex flex-column align-items-center gap-2"
                         style={{ width: 180, borderWidth: 2 }}
                         onClick={startCamera}
@@ -267,7 +275,7 @@ export default function AddProduction() {
                         <i className="bi bi-camera" style={{ fontSize: 32 }} />
                         <span className="fw-bold">Use Camera</span>
                       </button>
-                      <button 
+                      <button
                         className="btn btn-outline-accent p-4 rounded-4 d-flex flex-column align-items-center gap-2"
                         style={{ width: 180, borderWidth: 2 }}
                         onClick={() => setCameraSource('upload')}
@@ -283,21 +291,21 @@ export default function AddProduction() {
                       <div className="position-relative mx-auto" style={{ width: '100%', maxWidth: 400, aspectRatio: '4/3', borderRadius: 24, overflow: 'hidden', background: '#000' }}>
                         <video ref={videoRef} autoPlay playsInline style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                         <div className="position-absolute bottom-0 start-0 end-0 p-3 bg-dark bg-opacity-50">
-                           <button className="btn btn-accent rounded-circle p-0" style={{ width: 64, height: 64 }} onClick={capturePhoto}>
-                              <div style={{ width: 48, height: 48, borderRadius: '50%', border: '4px solid white', margin: 'auto' }} />
-                           </button>
+                          <button className="btn btn-accent rounded-circle p-0" style={{ width: 64, height: 64 }} onClick={capturePhoto}>
+                            <div style={{ width: 48, height: 48, borderRadius: '50%', border: '4px solid white', margin: 'auto' }} />
+                          </button>
                         </div>
                         <button className="btn btn-sm btn-light position-absolute top-0 end-0 m-3 rounded-circle" onClick={() => { stopCamera(); setCameraSource(null); }}>
-                           <i className="bi bi-x-lg" />
+                          <i className="bi bi-x-lg" />
                         </button>
                       </div>
                     ) : (
-                      <div 
+                      <div
                         className="upload-placeholder mx-auto mb-4 d-flex flex-column align-items-center justify-content-center"
-                        style={{ 
-                          width: 240, 
-                          height: 240, 
-                          borderRadius: 30, 
+                        style={{
+                          width: 240,
+                          height: 240,
+                          borderRadius: 30,
                           border: '3px dashed #ddd',
                           background: image ? 'transparent' : '#fcfcfc',
                           cursor: 'pointer',
@@ -320,17 +328,17 @@ export default function AddProduction() {
                       </div>
                     )}
 
-                    <input 
-                      type="file" 
-                      id="camera-file" 
-                      hidden 
-                      accept="image/*" 
+                    <input
+                      type="file"
+                      id="camera-file"
+                      hidden
+                      accept="image/*"
                       onChange={e => {
                         setImage(e.target.files[0]);
                         setCameraSource('upload');
-                      }} 
+                      }}
                     />
-                    
+
                     {image && (
                       <>
                         <h3 className="fw-bold mt-4">Bottle Identified?</h3>
@@ -342,7 +350,7 @@ export default function AddProduction() {
 
                 {(image || cameraSource) && (
                   <div className="d-flex justify-content-center gap-3 mt-4">
-                    <button 
+                    <button
                       className="btn-accent px-5 py-3 rounded-4 shadow-sm d-flex align-items-center gap-2"
                       onClick={handleMatch}
                       disabled={!image || matching}
@@ -369,18 +377,18 @@ export default function AddProduction() {
                       <label className="form-label fw-600 small text-uppercase text-muted">
                         1. Brand <span className="text-danger">*</span>
                       </label>
-                      <select 
+                      <select
                         className={`form-select custom-input-field ${errors.brandId ? 'is-invalid' : ''}`}
                         name="brandId"
                         required
-                        value={formData.brandId} 
+                        value={formData.brandId}
                         onChange={handleChange}
                         onBlur={handleBlur}
                         style={{ borderRadius: 12 }}
                       >
                         <option value="">-- Choose Brand --</option>
                         {brands.filter(b => b.status).map(b => (
-                          <option key={b._id} value={b._id}>{b.name}</option>
+                          <option key={b._id} value={b._id}>{b.name} {b.companyId?.name ? `(${b.companyId.name})` : ''}</option>
                         ))}
                       </select>
                       {errors.brandId && <div className="invalid-feedback">{errors.brandId}</div>}
@@ -390,12 +398,12 @@ export default function AddProduction() {
                       <label className="form-label fw-600 small text-uppercase text-muted">
                         2. Bottle Spec <span className="text-danger">*</span>
                       </label>
-                      <select 
+                      <select
                         className={`form-select custom-input-field ${errors.bottleSpecId ? 'is-invalid' : ''}`}
                         name="bottleSpecId"
                         required
                         disabled={!formData.brandId}
-                        value={formData.bottleSpecId} 
+                        value={formData.bottleSpecId}
                         onChange={handleChange}
                         onBlur={handleBlur}
                         style={{ borderRadius: 12 }}
@@ -414,12 +422,12 @@ export default function AddProduction() {
                       <label className="form-label fw-600 small text-uppercase text-muted">
                         3. Variant <span className="text-danger">*</span>
                       </label>
-                      <select 
+                      <select
                         className={`form-select custom-input-field ${errors.variantId ? 'is-invalid' : ''}`}
                         name="variantId"
                         required
                         disabled={!formData.bottleSpecId}
-                        value={formData.variantId} 
+                        value={formData.variantId}
                         onChange={handleChange}
                         onBlur={handleBlur}
                         style={{ borderRadius: 12 }}
@@ -427,7 +435,7 @@ export default function AddProduction() {
                         <option value="">-- Choose Variant --</option>
                         {filteredVariants.map(v => (
                           <option key={v._id} value={v._id}>
-                            {v.variantName} — {v.variantType} — {v.variantSize}
+                            {v.variantName} — {v.variantSize || 'N/A'}
                           </option>
                         ))}
                       </select>
@@ -445,6 +453,8 @@ export default function AddProduction() {
                         name="date"
                         className={`form-control custom-input-field ${errors.date ? 'is-invalid' : ''}`}
                         required
+                        min={minDate}
+                        max={maxDate}
                         value={formData.date}
                         onChange={handleChange}
                         onBlur={handleBlur}
@@ -455,7 +465,7 @@ export default function AddProduction() {
 
                     <div className="col-md-4">
                       <label className="form-label fw-600 small text-uppercase text-muted">
-                        Total Printed <span className="text-danger">*</span>
+                        Total Printed Bottles <span className="text-danger">*</span>
                       </label>
                       <input
                         type="number"
@@ -472,7 +482,7 @@ export default function AddProduction() {
 
                     <div className="col-md-4">
                       <label className="form-label fw-600 small text-uppercase text-muted">
-                        Per Box <span className="text-danger">*</span>
+                        Bottles Per Box <span className="text-danger">*</span>
                       </label>
                       <input
                         type="number"
@@ -495,7 +505,7 @@ export default function AddProduction() {
                     </div>
                     <div style={{ width: 1, background: '#cbd5e1' }} />
                     <div>
-                      <div className="text-muted small text-uppercase fw-bold mb-1">Remaining</div>
+                      <div className="text-muted small text-uppercase fw-bold mb-1">Printed Remaining Bottles</div>
                       <div className={`h2 mb-0 fw-bold ${calc.rem > 0 ? 'text-danger' : 'text-success'}`}>{calc.rem}</div>
                     </div>
                   </div>

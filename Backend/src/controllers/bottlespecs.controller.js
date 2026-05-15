@@ -9,7 +9,10 @@ exports.createSpec = async (req, res) => {
     }
     const spec = await BottleSpec.create(body);
     const populated = await BottleSpec.findById(spec._id)
-      .populate("brandId")
+      .populate({
+        path: "brandId",
+        populate: { path: "companyId" }
+      })
       .populate("printingTypeId")
       .populate("printingColorId");
     res.json(populated);
@@ -22,7 +25,10 @@ exports.createSpec = async (req, res) => {
 exports.getSpecs = async (req, res) => {
   try {
     const specs = await BottleSpec.find()
-      .populate("brandId")
+      .populate({
+        path: "brandId",
+        populate: { path: "companyId" }
+      })
       .populate("printingTypeId")
       .populate("printingColorId");
     res.json(specs);
@@ -42,7 +48,10 @@ exports.updateSpec = async (req, res) => {
       req.params.id,
       body,
       { returnDocument: "after" }
-    ).populate("brandId").populate("printingTypeId").populate("printingColorId");
+    ).populate({
+      path: "brandId",
+      populate: { path: "companyId" }
+    }).populate("printingTypeId").populate("printingColorId");
     res.json(spec);
   } catch (err) {
     res.status(500).json(err.message);

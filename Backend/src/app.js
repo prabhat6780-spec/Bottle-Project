@@ -19,6 +19,7 @@ app.use("/uploads", express.static("uploads"));
 
 app.use("/api/auth", require("./routes/auth.routes"));
 app.use("/api/users", require("./routes/user.routes"));
+app.use("/api/company", require("./routes/company.routes"));
 app.use("/api/brand", require("./routes/brand.routes"));
 app.use("/api/variant", require("./routes/variant.routes"));
 app.use("/api/bottle-spec", require("./routes/bottlespecs.routes"));

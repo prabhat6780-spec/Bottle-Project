@@ -73,7 +73,6 @@ exports.matchBottle = async (req, res) => {
       const brandName = variant.bottleSpecId?.brandId?.name?.toLowerCase() || "";
       const productName = variant.productName?.toLowerCase() || "";
       const variantName = variant.variantName?.toLowerCase() || "";
-      const variantType = variant.variantType?.toLowerCase() || "";
       const variantSize = variant.variantSize?.toLowerCase() || "";
 
       // BRAND NAME MATCH (High Priority)
@@ -91,10 +90,7 @@ exports.matchBottle = async (req, res) => {
         score += 40;
       }
 
-      // VARIANT TYPE
-      if (variantType && detectedText.includes(variantType)) {
-        score += 20;
-      }
+
 
       // VARIANT SIZE
       if (variantSize && detectedText.includes(variantSize)) {
@@ -156,8 +152,7 @@ exports.matchBottle = async (req, res) => {
       variantName:
         bestMatch.variantName,
 
-      variantType:
-        bestMatch.variantType,
+
 
       variantSize:
         bestMatch.variantSize

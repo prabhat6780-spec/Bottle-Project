@@ -13,6 +13,7 @@ const seedRBAC = async () => {
       "create-permission", "edit-permission", "delete-permission", "sidebar-permission", "read-permission",
       "create-printing-type", "edit-printing-type", "delete-printing-type", "sidebar-printing-type", "read-printing-type",
       "create-printing-color", "edit-printing-color", "delete-printing-color", "sidebar-printing-color", "read-printing-color",
+      "create-company", "edit-company", "delete-company", "sidebar-company", "read-company",
       "use-vision", "manage-all"
     ];
 

@@ -9,13 +9,14 @@ exports.createBrand = async (req, res) => {
       ? rawStatus === 'active'
       : rawStatus ?? true;
 
-    const { name } = req.body;
-    const existing = await Brand.findOne({ name: { $regex: new RegExp("^" + name.trim() + "$", "i") } });
+    const { name, companyId } = req.body;
+    const existing = await Brand.findOne({ companyId, name: { $regex: new RegExp("^" + name.trim() + "$", "i") } });
     if (existing) {
-      return res.status(400).json(`Brand "${name}" already exists.`);
+      return res.status(400).json(`Brand "${name}" already exists for this company.`);
     }
 
     const brand = await Brand.create({
+      companyId,
       name: name.trim(),
       status
     });
@@ -29,7 +30,7 @@ exports.createBrand = async (req, res) => {
 // ✅ GET
 exports.getBrands = async (req, res) => {
   try {
-    const brands = await Brand.find();
+    const brands = await Brand.find().populate("companyId", "name status");
     res.json(brands);
   } catch (err) {
     res.status(500).json(err.message);
@@ -44,15 +45,20 @@ exports.updateBrand = async (req, res) => {
     if (typeof body.status === 'string') {
       body.status = body.status === 'active';
     }
-    if (body.name) {
+    if (body.name || body.companyId) {
+      const brandToUpdate = await Brand.findById(req.params.id);
+      const targetName = body.name ? body.name.trim() : brandToUpdate.name;
+      const targetCompanyId = body.companyId || brandToUpdate.companyId;
+
       const existing = await Brand.findOne({ 
-        name: { $regex: new RegExp("^" + body.name.trim() + "$", "i") },
+        companyId: targetCompanyId,
+        name: { $regex: new RegExp("^" + targetName + "$", "i") },
         _id: { $ne: req.params.id }
       });
       if (existing) {
-        return res.status(400).json(`Brand "${body.name}" already exists.`);
+        return res.status(400).json(`Brand "${targetName}" already exists for this company.`);
       }
-      body.name = body.name.trim();
+      if (body.name) body.name = body.name.trim();
     }
 
     const brand = await Brand.findByIdAndUpdate(
