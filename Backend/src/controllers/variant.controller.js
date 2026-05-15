@@ -8,7 +8,7 @@ exports.createVariant = async (req, res) => {
     if (typeof body.status === 'string') {
       body.status = body.status === 'active';
     }
-    
+
     if (req.file) {
       body.image = `/uploads/${req.file.filename}`;
     }

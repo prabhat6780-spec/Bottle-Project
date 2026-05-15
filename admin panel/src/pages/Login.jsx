@@ -8,6 +8,7 @@ import logo from '../assets/hero.png';
 export default function Login() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const navigate = useNavigate();
   const dispatch = useDispatch();
 
@@ -28,7 +29,7 @@ export default function Login() {
     <div className="login-page-wrapper" style={{ backgroundImage: `url(${bgImage})` }}>
       <div className="techerp-card fade-in-up">
         <div className="techerp-content">
-          <div className="techerp-logo" style={{ margin: '-40px auto 5px', width: 'fit-content' }}>
+          <div className="techerp-logo" style={{ margin: '-40px auto -15px', width: 'fit-content' }}>
             <img src={logo} alt="Shayona Glass" style={{ height: '200px', width: 'auto', display: 'block' }} />
           </div>
 
@@ -43,35 +44,33 @@ export default function Login() {
             )}
 
             <div className="techerp-input-group">
-              <label className="techerp-label">Email Address</label>
+              <label className="techerp-label">Email <span>*</span></label>
               <div className="techerp-input-container">
                 <input
                   type="email"
                   className="techerp-input"
-                  placeholder="example@email.com"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   required
                 />
-                <div className="techerp-icon-box">
-                  <i className="bi bi-envelope"></i>
-                </div>
               </div>
             </div>
 
             <div className="techerp-input-group">
-              <label className="techerp-label">Password</label>
+              <label className="techerp-label">Password <span>*</span></label>
               <div className="techerp-input-container">
                 <input
-                  type="password"
+                  type={showPassword ? 'text' : 'password'}
                   className="techerp-input"
-                  placeholder="Enter your password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   required
                 />
-                <div className="techerp-icon-box">
-                  <i className="bi bi-lock"></i>
+                <div 
+                  className="techerp-icon-box" 
+                  onClick={() => setShowPassword(!showPassword)}
+                >
+                  <i className={`bi bi-eye${showPassword ? '-slash' : ''}`}></i>
                 </div>
               </div>
             </div>

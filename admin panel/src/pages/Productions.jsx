@@ -82,11 +82,15 @@ export default function Productions() {
 
       const matchesCompany = !selectedCompany || 
         p.brandId?.companyId?._id === selectedCompany || 
-        p.brandId?.companyId === selectedCompany;
+        p.brandId?.companyId === selectedCompany ||
+        p.bottleSpecId?.brandId?.companyId?._id === selectedCompany ||
+        p.bottleSpecId?.brandId?.companyId === selectedCompany;
 
       const matchesBrand = !selectedBrand ||
         p.brandId?._id === selectedBrand ||
-        p.bottleSpecId?.brandId?._id === selectedBrand;
+        p.brandId === selectedBrand ||
+        p.bottleSpecId?.brandId?._id === selectedBrand ||
+        p.bottleSpecId?.brandId === selectedBrand;
 
       const matchesSpec = !selectedSpec || p.bottleSpecId?._id === selectedSpec;
 
