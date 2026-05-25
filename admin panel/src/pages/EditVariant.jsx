@@ -17,8 +17,8 @@ export default function EditVariant() {
     productName: '',
     variantName: '',
     variantSize: '',
+    coatingShade: '',
     status: 'active',
-    bottleSpecId: '',
     bottleSpecId: '',
     image: null,
     existingImage: null,
@@ -110,6 +110,7 @@ export default function EditVariant() {
         productName: variant.productName || '',
         variantName: variant.variantName || '',
         variantSize: variant.variantSize || '',
+        coatingShade: variant.coatingShade || '',
         status: variant.status === true || variant.status === 'active' ? 'active' : 'inactive',
         bottleSpecId: variant.bottleSpecId?._id || variant.bottleSpecId || '',
         existingImage: variant.image || null,
@@ -261,6 +262,21 @@ export default function EditVariant() {
                       name="variantSize"
                       className="form-control custom-input-field"
                       value={formData.variantSize}
+                      onChange={handleChange}
+                      style={{ borderRadius: 12 }}
+                    />
+                  </div>
+
+                  <div className="col-md-6">
+                    <label className="form-label fw-600 small text-uppercase text-muted">
+                      Coating Shade
+                    </label>
+                    <input
+                      type="text"
+                      name="coatingShade"
+                      className="form-control custom-input-field"
+                      placeholder="e.g. Glossy Blue, Matte White"
+                      value={formData.coatingShade}
                       onChange={handleChange}
                       style={{ borderRadius: 12 }}
                     />

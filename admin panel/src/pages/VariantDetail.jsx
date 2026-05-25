@@ -118,6 +118,12 @@ export default function VariantDetail() {
                 </div>
                 <div className="col-md-6">
                   <div className="p-3 bg-light rounded-4 border border-light-subtle">
+                    <span className="text-uppercase small fw-bold text-muted d-block mb-1">Coating Shade</span>
+                    <span className="fw-bold fs-6">{variant.coatingShade || 'N/A'}</span>
+                  </div>
+                </div>
+                <div className="col-md-6">
+                  <div className="p-3 bg-light rounded-4 border border-light-subtle">
                     <span className="text-uppercase small fw-bold text-muted d-block mb-1">Detected Text Color</span>
                     <span className="fw-bold fs-6 d-flex align-items-center gap-2">
                       <i className="bi bi-palette-fill text-muted" />

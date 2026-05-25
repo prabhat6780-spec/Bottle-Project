@@ -23,6 +23,11 @@ const variantSchema = new mongoose.Schema({
     type: String
   },
 
+  coatingShade: {
+    type: String,
+    trim: true
+  },
+
   image: {
     type: String
   },

@@ -41,6 +41,7 @@ export default function Variants() {
       return (
         v.variantName?.toLowerCase().includes(search.toLowerCase()) ||
         v.productName?.toLowerCase().includes(search.toLowerCase()) ||
+        v.coatingShade?.toLowerCase().includes(search.toLowerCase()) ||
         brandName.toLowerCase().includes(search.toLowerCase()) ||
         companyName.toLowerCase().includes(search.toLowerCase())
       );
@@ -134,6 +135,11 @@ export default function Variants() {
                   <td className="py-3 text-center">
                     <div className="fw-600 text-dark">{v.productName}</div>
                     <div className="small text-muted">{v.variantName}</div>
+                    {v.coatingShade ? (
+                      <span className="badge bg-soft-warning text-warning-accent px-2 py-1 mt-1" style={{ fontSize: 10 }}>
+                        {v.coatingShade}
+                      </span>
+                    ) : null}
                   </td>
                   <td className="py-3 text-center">
                     <div className="d-flex flex-column gap-1 align-items-center">

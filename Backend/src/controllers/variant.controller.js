@@ -21,6 +21,9 @@ exports.createVariant = async (req, res) => {
     if (body.detectedTextColor && typeof body.detectedTextColor === 'string') {
       body.detectedTextColor = body.detectedTextColor.trim();
     }
+    if (body.coatingShade && typeof body.coatingShade === 'string') {
+      body.coatingShade = body.coatingShade.trim();
+    }
 
     if (req.file) {
       body.image = `/uploads/${req.file.filename}`;
@@ -88,6 +91,9 @@ exports.updateVariant = async (req, res) => {
 
     if (body.detectedTextColor && typeof body.detectedTextColor === 'string') {
       body.detectedTextColor = body.detectedTextColor.trim();
+    }
+    if (body.coatingShade && typeof body.coatingShade === 'string') {
+      body.coatingShade = body.coatingShade.trim();
     }
 
     if (req.file) {

@@ -16,6 +16,7 @@ export default function AddVariant() {
     productName: '',
     variantName: '',
     variantSize: '',
+    coatingShade: '',
     status: 'active',
     bottleSpecId: '',
     image: null,
@@ -240,6 +241,21 @@ export default function AddVariant() {
                       name="variantSize"
                       className="form-control custom-input-field"
                       value={formData.variantSize}
+                      onChange={handleChange}
+                      style={{ borderRadius: 12 }}
+                    />
+                  </div>
+
+                  <div className="col-md-6">
+                    <label className="form-label fw-600 small text-uppercase text-muted">
+                      Coating Shade
+                    </label>
+                    <input
+                      type="text"
+                      name="coatingShade"
+                      className="form-control custom-input-field"
+                      placeholder="e.g. Glossy Blue, Matte White"
+                      value={formData.coatingShade}
                       onChange={handleChange}
                       style={{ borderRadius: 12 }}
                     />

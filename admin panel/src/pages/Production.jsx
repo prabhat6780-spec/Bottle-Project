@@ -28,7 +28,8 @@ export default function Production() {
         (v.bottleSpecId?.code || '').toLowerCase().includes(s) ||
         (v.productName || '').toLowerCase().includes(s) ||
         (v.variantName || '').toLowerCase().includes(s) ||
-        (v.variantSize || '').toLowerCase().includes(s)
+        (v.variantSize || '').toLowerCase().includes(s) ||
+        (v.coatingShade || '').toLowerCase().includes(s)
       );
     });
   }, [variants, search]);
@@ -46,6 +47,7 @@ export default function Production() {
         v.productName,
         v.variantName,
         v.variantSize,
+        v.coatingShade,
       ].join('||');
       if (seen.has(key)) return false;
       seen.add(key);
@@ -78,6 +80,7 @@ export default function Production() {
       'Product Name': v.productName || 'N/A',
       'Variant Name': v.variantName || 'N/A',
       'Variant Size': v.variantSize || 'N/A',
+      'Coating Shade': v.coatingShade || 'N/A',
     }));
 
     const worksheet = XLSX.utils.json_to_sheet(data);
@@ -103,6 +106,7 @@ export default function Production() {
     { label: 'Product Name' },
     { label: 'Variant Name' },
     { label: 'Variant Size' },
+    { label: 'Coating Shade' },
   ];
 
   return (
@@ -213,7 +217,7 @@ export default function Production() {
             <tbody>
               {loading && (
                 <tr>
-                  <td colSpan={9} className="text-center py-5">
+                  <td colSpan={10} className="text-center py-5">
                     <div className="spinner-border spinner-border-sm text-accent me-2" role="status" />
                     <span className="text-muted">Loading...</span>
                   </td>
@@ -288,6 +292,11 @@ export default function Production() {
                     <td style={{ padding: '13px 16px' }}>
                       <span className="fw-bold small" style={{ color: 'var(--accent)' }}>
                         {v.variantSize || '—'}
+                      </span>
+                    </td>
+                    <td style={{ padding: '13px 16px' }}>
+                      <span className="fw-500 text-dark small">
+                        {v.coatingShade || <span className="text-muted">—</span>}
                       </span>
                     </td>
                   </tr>

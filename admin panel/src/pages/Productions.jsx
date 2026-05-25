@@ -254,6 +254,9 @@ export default function Productions() {
       'Product Name': p.variantId?.productName || 'N/A',
       'Variant Name': p.variantId?.variantName || 'N/A',
       'Variant Size': p.variantId?.variantSize || 'N/A',
+      'Coating Shade': p.variantId?.coatingShade ||
+        variants.find(v => v._id === (p.variantId?._id || p.variantId))?.coatingShade ||
+        'N/A',
       'Text Color': p.variantId?.detectedTextColor ||
         variants.find(v => v._id === (p.variantId?._id || p.variantId))?.detectedTextColor ||
         'N/A',
@@ -516,6 +519,11 @@ export default function Productions() {
                   <td className="py-3 text-center">
                     <div className="fw-600 text-dark">{p.variantId?.productName}</div>
                     <div className="small text-muted mb-1">{p.variantId?.variantName} {p.variantId?.variantSize ? `(${p.variantId.variantSize})` : ''}</div>
+                    {p.variantId?.coatingShade && (
+                      <span className="badge bg-soft-warning text-warning-accent px-2 py-1 mt-1" style={{ fontSize: 10 }}>
+                        Coating: {p.variantId.coatingShade}
+                      </span>
+                    )}
                     {p.variantId?.detectedTextColor && (
                       <span className="badge bg-light text-dark border px-2 py-1 mt-1" style={{ fontSize: 10 }}>
                         Text: {p.variantId.detectedTextColor}

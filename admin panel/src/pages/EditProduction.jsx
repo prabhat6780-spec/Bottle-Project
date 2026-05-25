@@ -235,7 +235,7 @@ export default function EditProduction() {
                     {errors.bottleSpecId && <div className="invalid-feedback">{errors.bottleSpecId}</div>}
                   </div>
 
-                  <div className="col-md-8">
+                  <div className="col-md-4">
                     <label className="form-label fw-600 small text-uppercase text-muted">
                       3. Variant <span className="text-danger">*</span>
                     </label>
@@ -257,6 +257,15 @@ export default function EditProduction() {
                       ))}
                     </select>
                     {errors.variantId && <div className="invalid-feedback">{errors.variantId}</div>}
+                  </div>
+
+                  <div className="col-md-4">
+                    <label className="form-label fw-600 small text-uppercase text-muted">
+                      Coating Shade
+                    </label>
+                    <div className="form-control custom-input-field bg-light text-center fw-bold text-dark d-flex align-items-center justify-content-center" style={{ borderRadius: 12 }}>
+                      {formData.variantId ? (variants.find(v => v._id === formData.variantId)?.coatingShade || 'N/A') : 'N/A'}
+                    </div>
                   </div>
 
                   <div className="col-md-4">
