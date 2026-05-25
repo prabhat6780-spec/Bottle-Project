@@ -55,6 +55,8 @@ export default function EditUser() {
 
   const handleBlur = (e) => {
     const { name, value } = e.target;
+    if (name === 'password' && !value.trim()) return;
+    if (!value.trim()) return;
     const error = validateField(name, value);
     if (error) {
       Swal.fire({
@@ -139,10 +141,26 @@ export default function EditUser() {
               <span className="dash-card-title">Account Details</span>
             </div>
             <div className="dash-card-body p-4">
-              <form onSubmit={handleSubmit}>
+              <form onSubmit={handleSubmit} autoComplete="off">
+                <input
+                  type="text"
+                  name="prevent_autofill_username"
+                  autoComplete="username"
+                  tabIndex={-1}
+                  aria-hidden="true"
+                  style={{ position: 'absolute', left: '-9999px', width: 0, height: 0, opacity: 0 }}
+                />
+                <input
+                  type="password"
+                  name="prevent_autofill_password"
+                  autoComplete="current-password"
+                  tabIndex={-1}
+                  aria-hidden="true"
+                  style={{ position: 'absolute', left: '-9999px', width: 0, height: 0, opacity: 0 }}
+                />
                 <div className="row g-4">
                   <div className="col-md-12">
-                    <label className="form-label fw-600 small text-uppercase text-muted">
+                    <label className="form-label fw-600 small text-uppercase text-muted" htmlFor="edit-user-name">
                       Full Name <span className="text-danger">*</span>
                     </label>
                     <div className="input-group">
@@ -150,11 +168,13 @@ export default function EditUser() {
                         <i className="bi bi-person text-muted" />
                       </span>
                       <input
+                        id="edit-user-name"
                         type="text"
                         name="name"
                         className={`form-control custom-input-field ${errors.name ? 'is-invalid' : ''}`}
                         placeholder="John Doe"
                         required
+                        autoComplete="off"
                         value={formData.name}
                         onChange={handleChange}
                         onBlur={handleBlur}
@@ -173,11 +193,14 @@ export default function EditUser() {
                         <i className="bi bi-envelope text-muted" />
                       </span>
                       <input
-                        type="email"
+                        id="edit-user-email"
+                        type="text"
                         name="email"
+                        inputMode="email"
                         className={`form-control custom-input-field ${errors.email ? 'is-invalid' : ''}`}
                         placeholder="john@example.com"
                         required
+                        autoComplete="off"
                         value={formData.email}
                         onChange={handleChange}
                         onBlur={handleBlur}
@@ -196,10 +219,12 @@ export default function EditUser() {
                         <i className="bi bi-shield-lock text-muted" />
                       </span>
                       <input
+                        id="edit-user-password"
                         type="password"
                         name="password"
                         className={`form-control custom-input-field ${errors.password ? 'is-invalid' : ''}`}
                         placeholder="Enter new password"
+                        autoComplete="new-password"
                         value={formData.password}
                         onChange={handleChange}
                         onBlur={handleBlur}

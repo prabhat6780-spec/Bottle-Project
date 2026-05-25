@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useParams, Link } from 'react-router-dom';
+import API from '../services/api';
 import { useDispatch, useSelector } from 'react-redux';
 import { fetchBottleSpecs } from '../redux/slices/bottleSpecSlice';
 import { updateVariant } from '../redux/slices/variantSlice';
@@ -18,9 +19,12 @@ export default function EditVariant() {
     variantSize: '',
     status: 'active',
     bottleSpecId: '',
+    bottleSpecId: '',
     image: null,
-    existingImage: null
+    existingImage: null,
+    detectedTextColor: ''
   });
+  const [analyzingColor, setAnalyzingColor] = useState(false);
 
   const [errors, setErrors] = useState({
     productName: '',
@@ -59,12 +63,38 @@ export default function EditVariant() {
     }
   };
 
-  const handleChange = (e) => {
+  const handleChange = async (e) => {
     const { name, value, type, files } = e.target;
     if (type === 'file') {
-      setFormData(prev => ({ ...prev, [name]: files[0] }));
+      const file = files[0];
+      setFormData(prev => ({ ...prev, [name]: file }));
+      
+      if (file) {
+        setAnalyzingColor(true);
+        const data = new FormData();
+        data.append('image', file);
+        try {
+          const res = await API.post('/text-color/analyze', data);
+          if (res.data?.success && res.data?.data?.detectedName) {
+            setFormData(prev => ({ ...prev, detectedTextColor: res.data.data.detectedName }));
+          } else {
+            setFormData(prev => ({ ...prev, detectedTextColor: 'Not Detected' }));
+          }
+        } catch (err) {
+          console.error("Color analysis error:", err);
+          setFormData(prev => ({ ...prev, detectedTextColor: 'Analysis Failed' }));
+        } finally {
+          setAnalyzingColor(false);
+        }
+      } else {
+        setFormData(prev => ({ ...prev, detectedTextColor: '' }));
+      }
     } else {
-      setFormData(prev => ({ ...prev, [name]: value }));
+      let cleanValue = value;
+      if (name === 'detectedTextColor' && typeof cleanValue === 'string') {
+        cleanValue = cleanValue.replace(/^\s+/, '');
+      }
+      setFormData(prev => ({ ...prev, [name]: cleanValue }));
     }
     if (errors[name]) setErrors(prev => ({ ...prev, [name]: '' }));
   };
@@ -83,7 +113,8 @@ export default function EditVariant() {
         status: variant.status === true || variant.status === 'active' ? 'active' : 'inactive',
         bottleSpecId: variant.bottleSpecId?._id || variant.bottleSpecId || '',
         existingImage: variant.image || null,
-        image: null
+        image: null,
+        detectedTextColor: variant.detectedTextColor || ''
       });
     }
   }, [id, variants]);
@@ -272,6 +303,22 @@ export default function EditVariant() {
                         />
                       </div>
                     </div>
+                  </div>
+
+                  <div className="col-md-6">
+                    <label className="form-label fw-600 small text-uppercase text-muted">
+                      Detected Text Color
+                      {analyzingColor && <span className="spinner-border spinner-border-sm text-accent ms-2" role="status" />}
+                    </label>
+                    <input
+                      type="text"
+                      name="detectedTextColor"
+                      className="form-control custom-input-field"
+                      placeholder="Auto-detected on image upload"
+                      value={formData.detectedTextColor}
+                      onChange={handleChange}
+                      style={{ borderRadius: 12 }}
+                    />
                   </div>
 
                   <div className="col-md-12">

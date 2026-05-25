@@ -1,12 +1,20 @@
 const axios = require("axios");
 const fs = require("fs");
 const path = require("path");
-const sharp = require("sharp");
+let sharp;
+try {
+  sharp = require("sharp");
+} catch (err) {
+  // Silent fallback: sharp missing binaries on Windows
+}
 const Variant = require("../models/Variant");
+
+// detectTextColor logic removed from matching as per user request
 
 // Helper to calculate image similarity using sharp (Perceptual Hashing / Pixel Match)
 const getImageBuffer = async (filePath) => {
   try {
+    if (!sharp) return null;
     if (!fs.existsSync(filePath)) return null;
     return await sharp(filePath)
       .resize(64, 64, { fit: 'fill' })
@@ -41,6 +49,8 @@ exports.matchBottle = async (req, res) => {
 
     const uploadedImagePath = req.file.path;
     const uploadedBuffer = await getImageBuffer(uploadedImagePath);
+
+    // Text color detection on uploaded image removed as per user request
 
     // GOOGLE VISION API
     const imageBuffer = fs.readFileSync(uploadedImagePath);
@@ -94,55 +104,69 @@ exports.matchBottle = async (req, res) => {
       let score = 0;
       let textMatchCount = 0;
 
-      const brandName = variant.bottleSpecId?.brandId?.name?.toLowerCase() || "";
-      const productName = variant.productName?.toLowerCase() || "";
-      const variantName = variant.variantName?.toLowerCase() || "";
-      const variantSize = variant.variantSize?.toLowerCase() || "";
-      const normVariantSize = normalizeSize(variantSize);
+      const brandName = variant.bottleSpecId?.brandId?.name?.toLowerCase().trim() || "";
+      const variantName = variant.variantName?.toLowerCase().trim() || "";
+      const variantSize = variant.variantSize?.toLowerCase().trim() || "";
 
-      // 1. TEXT MATCHING
-      if (brandName && (detectedText.includes(brandName) || detectedLogos.some(l => l.includes(brandName)))) {
-        score += 60;
-        textMatchCount++;
-      }
-      if (productName && detectedText.includes(productName)) {
-        score += 30;
-        textMatchCount++;
-      }
-      if (variantName && detectedText.includes(variantName)) {
-        score += 70;
-        textMatchCount++;
-      }
+      if (detectedText) {
+        // Strict 3-way match: Brand Name and Variant Name must match. Size must also match IF it is found in the scan text.
+        const normBrand = brandName.replace(/\s+/g, "");
+        const normVariant = variantName.replace(/\s+/g, "");
+        const normSize = variantSize.replace(/\s+/g, "");
 
-      if (normVariantSize) {
-        if (normalizedDetected.includes(normVariantSize)) {
-          score += 100;
-          textMatchCount++;
-        } else {
-          const sizeRegex = /\d+\s*(ml|l|g|kg|pcs)/gi;
-          const detectedSizes = detectedText.match(sizeRegex)?.map(s => normalizeSize(s)) || [];
-          if (detectedSizes.length > 0 && !detectedSizes.includes(normVariantSize)) {
-            score -= 200; // Heavy penalty for size mismatch
+        const brandMatched = brandName && (
+          normalizedDetected.includes(normBrand) ||
+          detectedLogos.some(l => l.replace(/\s+/g, "").includes(normBrand))
+        );
+        const variantMatched = variantName && normalizedDetected.includes(normVariant);
+
+        // Check if there is a size (e.g. 20ml, 50ml, 100g, etc.) printed on the scanned bottle / detected in text
+        const sizeRegex = /\d+\s*(ml|l|g|kg|pcs)/i;
+        const hasSizeInDetectedText = sizeRegex.test(detectedText);
+
+        // If scanned text has a size, the variant's size must match it strictly.
+        // If scanned text has NO size, we bypass the size check (treat sizeMatched as true).
+        const sizeMatched = hasSizeInDetectedText
+          ? (variantSize && normalizedDetected.includes(normSize))
+          : true;
+
+        if (brandMatched && variantMatched && sizeMatched) {
+          // Text color verification removed - detection not based on text color
+
+          score += 1000;
+          textMatchCount += 3;
+
+          // Product name bonus (optional, for additional confidence)
+          const productName = variant.productName?.toLowerCase().trim() || "";
+          const normProduct = productName.replace(/\s+/g, "");
+          if (normProduct && normalizedDetected.includes(normProduct)) {
+            score += 100;
+          }
+
+          // Visual similarity bonus
+          if (variant.image) {
+            const imagePath = variant.image.startsWith('/') ? variant.image.substring(1) : variant.image;
+            const fullImagePath = path.join(__dirname, "../../", imagePath);
+
+            const variantBuffer = await getImageBuffer(fullImagePath);
+            if (variantBuffer) {
+              const similarity = calculateSimilarity(uploadedBuffer, variantBuffer);
+              console.log(`Similarity with ${variantName}:`, (similarity * 100).toFixed(2) + "%");
+              score += similarity * 50;
+            }
           }
         }
-      }
+      } else {
+        // Fallback to purely visual similarity when no text is detected at all
+        if (variant.image) {
+          const imagePath = variant.image.startsWith('/') ? variant.image.substring(1) : variant.image;
+          const fullImagePath = path.join(__dirname, "../../", imagePath);
 
-      // 2. DESIGN MATCHING (Visual Similarity)
-      if (variant.image) {
-        // Handle path resolution: check if variant.image already contains 'uploads'
-        const imagePath = variant.image.startsWith('/') ? variant.image.substring(1) : variant.image;
-        const fullImagePath = path.join(__dirname, "../../", imagePath);
-        
-        const variantBuffer = await getImageBuffer(fullImagePath);
-        if (variantBuffer) {
-          const similarity = calculateSimilarity(uploadedBuffer, variantBuffer);
-          console.log(`Similarity with ${variantName}:`, (similarity * 100).toFixed(2) + "%");
-          
-          // If no text is matched, similarity becomes very important
-          if (textMatchCount === 0) {
-            score += similarity * 150; // Max 150 points for design similarity
-          } else {
-            score += similarity * 50; // Max 50 points as a bonus to text matching
+          const variantBuffer = await getImageBuffer(fullImagePath);
+          if (variantBuffer) {
+            const similarity = calculateSimilarity(uploadedBuffer, variantBuffer);
+            console.log(`Visual similarity with ${variantName}:`, (similarity * 100).toFixed(2) + "%");
+            score += similarity * 150;
           }
         }
       }
@@ -154,9 +178,9 @@ exports.matchBottle = async (req, res) => {
     }
 
     // CONFIDENCE THRESHOLD
-    // If no text was found, we rely on similarity. Threshold should be reasonable.
-    const finalThreshold = detectedText ? 90 : 110; 
-    
+    // If text was found, we require a successful strict match (score > 1000), otherwise visual similarity.
+    const finalThreshold = detectedText ? 1000 : 110;
+
     if (bestScore < finalThreshold) {
       bestMatch = null;
     }
@@ -182,7 +206,8 @@ exports.matchBottle = async (req, res) => {
       variantId: bestMatch._id,
       productName: bestMatch.productName,
       variantName: bestMatch.variantName,
-      variantSize: bestMatch.variantSize
+      variantSize: bestMatch.variantSize,
+      detectedTextColor: bestMatch.detectedTextColor || 'Not Detected'
     });
 
   } catch (err) {

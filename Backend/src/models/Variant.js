@@ -30,6 +30,11 @@ const variantSchema = new mongoose.Schema({
   status: {
     type: Boolean,
     default: true
+  },
+
+  detectedTextColor: {
+    type: String,
+    default: "Not Detected"
   }
 
 }, { timestamps: true });

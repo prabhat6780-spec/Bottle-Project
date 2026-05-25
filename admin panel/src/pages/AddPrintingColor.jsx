@@ -41,8 +41,8 @@ export default function AddPrintingColor() {
       msg = `${fieldLabel} is mandatory`;
     } else if (/\s/.test(value)) {
       msg = 'Whitespace is not allowed';
-    } else if (!/^[a-zA-Z]+$/.test(value)) {
-      msg = `${fieldLabel} should only contain characters`;
+    } else if (!/^[a-zA-Z0-9_-]+$/.test(value)) {
+      msg = `${fieldLabel} should only contain characters, numbers, underscores, or hyphens`;
     } else if (printingTypeId) {
       const isDuplicate = printingColors.some(c => 
         (c.printingTypeId?._id === printingTypeId || c.printingTypeId === printingTypeId) &&

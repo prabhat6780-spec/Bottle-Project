@@ -112,6 +112,7 @@ export default function Variants() {
                 <th className="py-3 text-uppercase small fw-bold text-muted text-center">Company</th>
                 <th className="py-3 text-uppercase small fw-bold text-muted text-center">Brand</th>
                 <th className="py-3 text-uppercase small fw-bold text-muted text-center">Status</th>
+                <th className="py-3 text-uppercase small fw-bold text-muted text-center">Text Color</th>
                 <th className="py-3 text-uppercase small fw-bold text-muted text-center" style={{ width: 150 }}>Actions</th>
               </tr>
             </thead>
@@ -157,6 +158,11 @@ export default function Variants() {
                     </span>
                   </td>
                   <td className="py-3 text-center">
+                    <span className="badge bg-light text-dark border px-2 py-1" style={{ fontSize: 11 }}>
+                      {v.detectedTextColor || 'Not Detected'}
+                    </span>
+                  </td>
+                  <td className="py-3 text-center">
                     <div className="d-flex gap-2 justify-content-center">
                       <Link to={`/variants/view/${v._id}`} className="btn btn-sm btn-outline-info border-0 rounded-3 shadow-none p-2" title="View Details"><i className="bi bi-eye fs-6" /></Link>
                       <Can I="edit" a="variant">
@@ -171,7 +177,7 @@ export default function Variants() {
               ))}
               {paginatedItems.length === 0 && !loading && (
                 <tr>
-                  <td colSpan={8} className="text-center py-5 text-muted">No variants found</td>
+                  <td colSpan={9} className="text-center py-5 text-muted">No variants found</td>
                 </tr>
               )}
             </tbody>

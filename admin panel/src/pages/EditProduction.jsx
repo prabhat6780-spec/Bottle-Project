@@ -235,7 +235,7 @@ export default function EditProduction() {
                     {errors.bottleSpecId && <div className="invalid-feedback">{errors.bottleSpecId}</div>}
                   </div>
 
-                  <div className="col-md-12">
+                  <div className="col-md-8">
                     <label className="form-label fw-600 small text-uppercase text-muted">
                       3. Variant <span className="text-danger">*</span>
                     </label>
@@ -259,7 +259,16 @@ export default function EditProduction() {
                     {errors.variantId && <div className="invalid-feedback">{errors.variantId}</div>}
                   </div>
 
-                  <hr className="my-4" />
+                  <div className="col-md-4">
+                    <label className="form-label fw-600 small text-uppercase text-muted">
+                      Text Color
+                    </label>
+                    <div className="form-control custom-input-field bg-light text-center fw-bold text-dark d-flex align-items-center justify-content-center" style={{ borderRadius: 12 }}>
+                      {formData.variantId ? (variants.find(v => v._id === formData.variantId)?.detectedTextColor || 'Not Detected') : 'N/A'}
+                    </div>
+                  </div>
+
+                  <div className="col-12"><hr className="my-4 opacity-50" /></div>
 
                   <div className="col-md-4">
                     <label className="form-label fw-600 small text-uppercase text-muted">
@@ -322,7 +331,7 @@ export default function EditProduction() {
                   </div>
                   <div style={{ width: 1, background: '#dee2e6' }} />
                   <div>
-                    <div className="text-muted small text-uppercase fw-bold mb-1">Printed  Remaining Bottles</div>
+                    <div className="text-muted small text-uppercase fw-bold mb-1">Extra Printed Bottles</div>
                     <div className={`h3 mb-0 fw-bold ${calc.rem > 0 ? 'text-danger' : 'text-success'}`}>{calc.rem}</div>
                   </div>
                 </div>

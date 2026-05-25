@@ -1,5 +1,14 @@
 const Variant = require("../models/Variant");
 
+let detectTextColor;
+try {
+  detectTextColor = require('../services/textColor').detectTextColor;
+} catch (error) {
+  // Silent fallback: sharp missing binaries on Windows
+  detectTextColor = async () => null;
+}
+
+
 // ✅ CREATE
 exports.createVariant = async (req, res) => {
   try {
@@ -9,8 +18,25 @@ exports.createVariant = async (req, res) => {
       body.status = body.status === 'active';
     }
 
+    if (body.detectedTextColor && typeof body.detectedTextColor === 'string') {
+      body.detectedTextColor = body.detectedTextColor.trim();
+    }
+
     if (req.file) {
       body.image = `/uploads/${req.file.filename}`;
+      if (!body.detectedTextColor || body.detectedTextColor === "Not Detected" || body.detectedTextColor === "Analysis Failed") {
+        try {
+          const colorResult = await detectTextColor(req.file.path);
+          if (colorResult) {
+            body.detectedTextColor = colorResult.name || `RGB(${colorResult.r}, ${colorResult.g}, ${colorResult.b})`;
+          } else {
+            body.detectedTextColor = "Not Detected";
+          }
+        } catch (err) {
+          console.error("Text color detection failed:", err);
+          body.detectedTextColor = "Detection Failed";
+        }
+      }
     }
 
     const variant = await Variant.create(body);
@@ -60,8 +86,25 @@ exports.updateVariant = async (req, res) => {
       body.status = body.status === 'active';
     }
 
+    if (body.detectedTextColor && typeof body.detectedTextColor === 'string') {
+      body.detectedTextColor = body.detectedTextColor.trim();
+    }
+
     if (req.file) {
       body.image = `/uploads/${req.file.filename}`;
+      if (!body.detectedTextColor || body.detectedTextColor === "Not Detected" || body.detectedTextColor === "Analysis Failed") {
+        try {
+          const colorResult = await detectTextColor(req.file.path);
+          if (colorResult) {
+            body.detectedTextColor = colorResult.name || `RGB(${colorResult.r}, ${colorResult.g}, ${colorResult.b})`;
+          } else {
+            body.detectedTextColor = "Not Detected";
+          }
+        } catch (err) {
+          console.error("Text color detection failed:", err);
+          body.detectedTextColor = "Detection Failed";
+        }
+      }
     }
 
     console.log("UPDATE BODY (converted):", body);

@@ -10,6 +10,49 @@ import { fetchVariants } from '../redux/slices/variantSlice';
 import Swal from 'sweetalert2';
 import * as XLSX from 'xlsx';
 
+const parseProductionDate = (dateStr) => {
+  if (!dateStr) return null;
+  const [y, m, d] = String(dateStr).split('T')[0].split('-').map(Number);
+  if (!y || !m || !d) return new Date(dateStr);
+  return new Date(y, m - 1, d);
+};
+
+const daysFromToday = (dateStr) => {
+  const day = parseProductionDate(dateStr);
+  if (!day) return null;
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  day.setHours(0, 0, 0, 0);
+  return Math.round((today - day) / 86400000);
+};
+
+const formatProductionDate = (dateStr) => {
+  const offset = daysFromToday(dateStr);
+  if (offset === 0) return 'Today';
+  if (offset === 1) return 'Yesterday';
+  if (offset === 2) return 'Day before yesterday';
+  const day = parseProductionDate(dateStr);
+  return day ? day.toLocaleDateString() : 'N/A';
+};
+
+const toIsoDate = (date) => {
+  const y = date.getFullYear();
+  const m = String(date.getMonth() + 1).padStart(2, '0');
+  const d = String(date.getDate()).padStart(2, '0');
+  return `${y}-${m}-${d}`;
+};
+
+const matchesDateRange = (dateStr, startIso, endIso) => {
+  const prodDay = parseProductionDate(dateStr);
+  if (!prodDay) return !startIso && !endIso;
+  prodDay.setHours(0, 0, 0, 0);
+  const start = startIso ? parseProductionDate(startIso) : null;
+  const end = endIso ? parseProductionDate(endIso) : null;
+  if (start) start.setHours(0, 0, 0, 0);
+  if (end) end.setHours(23, 59, 59, 999);
+  return (!start || prodDay >= start) && (!end || prodDay <= end);
+};
+
 export default function Productions() {
   const dispatch = useDispatch();
   const { productions, loading } = useSelector((state) => state.productions);
@@ -26,6 +69,13 @@ export default function Productions() {
   const [selectedVariant, setSelectedVariant] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(10);
+
+  const maxFilterDate = toIsoDate(new Date());
+  const minFilterDate = (() => {
+    const d = new Date();
+    d.setDate(d.getDate() - 2);
+    return toIsoDate(d);
+  })();
 
   useEffect(() => {
     dispatch(fetchProductions());
@@ -53,6 +103,66 @@ export default function Productions() {
     });
   };
 
+  const productionsByDate = useMemo(() => {
+    if (!startDate && !endDate) return productions;
+    return productions.filter(p => matchesDateRange(p.date, startDate, endDate));
+  }, [productions, startDate, endDate]);
+
+  const filteredCompanies = useMemo(() => {
+    const ids = new Set();
+    productionsByDate.forEach(p => {
+      const id = p.brandId?.companyId?._id || p.brandId?.companyId ||
+        p.bottleSpecId?.brandId?.companyId?._id || p.bottleSpecId?.brandId?.companyId;
+      if (id) ids.add(String(id));
+    });
+    return companies.filter(c => ids.has(String(c._id)));
+  }, [companies, productionsByDate]);
+
+  const filteredBrands = useMemo(() => {
+    const ids = new Set();
+    productionsByDate.forEach(p => {
+      const id = p.brandId?._id || p.brandId || p.bottleSpecId?.brandId?._id || p.bottleSpecId?.brandId;
+      if (id) ids.add(String(id));
+    });
+    return brands.filter(b => {
+      const inDateRange = ids.has(String(b._id));
+      const matchesCompany = !selectedCompany ||
+        b.companyId?._id === selectedCompany || b.companyId === selectedCompany;
+      return inDateRange && matchesCompany;
+    });
+  }, [brands, productionsByDate, selectedCompany]);
+
+  const filteredBottleSpecs = useMemo(() => {
+    const ids = new Set();
+    productionsByDate.forEach(p => {
+      const id = p.bottleSpecId?._id || p.bottleSpecId;
+      if (id) ids.add(String(id));
+    });
+    return bottleSpecs.filter(s => {
+      const inDateRange = ids.has(String(s._id));
+      const matchesBrand = !selectedBrand || s.brandId?._id === selectedBrand || s.brandId === selectedBrand;
+      const matchesCompany = !selectedCompany ||
+        s.brandId?.companyId?._id === selectedCompany || s.brandId?.companyId === selectedCompany;
+      return inDateRange && matchesBrand && matchesCompany;
+    });
+  }, [bottleSpecs, productionsByDate, selectedBrand, selectedCompany]);
+
+  const filteredVariants = useMemo(() => {
+    const ids = new Set();
+    productionsByDate.forEach(p => {
+      const id = p.variantId?._id || p.variantId;
+      if (id) ids.add(String(id));
+    });
+    return variants.filter(v => {
+      const inDateRange = ids.has(String(v._id));
+      const matchesSpec = !selectedSpec || v.bottleSpecId?._id === selectedSpec || v.bottleSpecId === selectedSpec;
+      const matchesBrand = !selectedBrand || v.bottleSpecId?.brandId?._id === selectedBrand || v.bottleSpecId?.brandId === selectedBrand;
+      const matchesCompany = !selectedCompany ||
+        v.bottleSpecId?.brandId?.companyId?._id === selectedCompany || v.bottleSpecId?.brandId?.companyId === selectedCompany;
+      return inDateRange && matchesSpec && matchesBrand && matchesCompany;
+    });
+  }, [variants, productionsByDate, selectedSpec, selectedBrand, selectedCompany]);
+
   const filteredProductions = useMemo(() => {
     return productions.filter(p => {
       const brandName = p.brandId?.name || p.bottleSpecId?.brandId?.name || '';
@@ -60,14 +170,6 @@ export default function Productions() {
       const variantName = p.variantId?.variantName || '';
       const productName = p.variantId?.productName || '';
       const specName = p.bottleSpecId?.bottleName || '';
-      const prodDate = new Date(p.date);
-      const start = startDate ? new Date(startDate) : null;
-      const end = endDate ? new Date(endDate) : null;
-
-      // Normalize start date to beginning of day
-      if (start) start.setHours(0, 0, 0, 0);
-      // Normalize end date to end of day
-      if (end) end.setHours(23, 59, 59, 999);
 
       const matchesSearch = (
         brandName.toLowerCase().includes(search.toLowerCase()) ||
@@ -77,11 +179,10 @@ export default function Productions() {
         specName.toLowerCase().includes(search.toLowerCase())
       );
 
-      const matchesDate = (!start || prodDate >= start) &&
-        (!end || prodDate <= end);
+      const matchesDate = matchesDateRange(p.date, startDate, endDate);
 
-      const matchesCompany = !selectedCompany || 
-        p.brandId?.companyId?._id === selectedCompany || 
+      const matchesCompany = !selectedCompany ||
+        p.brandId?.companyId?._id === selectedCompany ||
         p.brandId?.companyId === selectedCompany ||
         p.bottleSpecId?.brandId?.companyId?._id === selectedCompany ||
         p.bottleSpecId?.brandId?.companyId === selectedCompany;
@@ -97,8 +198,43 @@ export default function Productions() {
       const matchesVariant = !selectedVariant || p.variantId?._id === selectedVariant;
 
       return matchesSearch && matchesDate && matchesCompany && matchesBrand && matchesSpec && matchesVariant;
+    }).sort((a, b) => {
+      const dateA = parseProductionDate(a.date)?.getTime() ?? 0;
+      const dateB = parseProductionDate(b.date)?.getTime() ?? 0;
+      if (dateB !== dateA) return dateB - dateA;
+      return new Date(b.createdAt) - new Date(a.createdAt);
     });
   }, [productions, search, startDate, endDate, selectedCompany, selectedBrand, selectedSpec, selectedVariant]);
+
+  useEffect(() => {
+    if (selectedCompany && !filteredCompanies.some(c => c._id === selectedCompany)) {
+      setSelectedCompany('');
+      setSelectedBrand('');
+      setSelectedSpec('');
+      setSelectedVariant('');
+    }
+  }, [filteredCompanies, selectedCompany]);
+
+  useEffect(() => {
+    if (selectedBrand && !filteredBrands.some(b => b._id === selectedBrand)) {
+      setSelectedBrand('');
+      setSelectedSpec('');
+      setSelectedVariant('');
+    }
+  }, [filteredBrands, selectedBrand]);
+
+  useEffect(() => {
+    if (selectedSpec && !filteredBottleSpecs.some(s => s._id === selectedSpec)) {
+      setSelectedSpec('');
+      setSelectedVariant('');
+    }
+  }, [filteredBottleSpecs, selectedSpec]);
+
+  useEffect(() => {
+    if (selectedVariant && !filteredVariants.some(v => v._id === selectedVariant)) {
+      setSelectedVariant('');
+    }
+  }, [filteredVariants, selectedVariant]);
 
   const handleExport = () => {
     if (filteredProductions.length === 0) {
@@ -108,7 +244,7 @@ export default function Productions() {
 
     const data = filteredProductions.map((p, index) => ({
       'Sr No': index + 1,
-      'Date': new Date(p.date).toLocaleDateString(),
+      'Date': formatProductionDate(p.date),
       'Company': p.brandId?.companyId?.name || 'N/A',
       'Brand': p.brandId?.name || 'N/A',
       'Bottle Name': p.bottleSpecId?.bottleName || 'N/A',
@@ -118,9 +254,12 @@ export default function Productions() {
       'Product Name': p.variantId?.productName || 'N/A',
       'Variant Name': p.variantId?.variantName || 'N/A',
       'Variant Size': p.variantId?.variantSize || 'N/A',
+      'Text Color': p.variantId?.detectedTextColor ||
+        variants.find(v => v._id === (p.variantId?._id || p.variantId))?.detectedTextColor ||
+        'N/A',
       'Total Printed Bottles': p.totalPrinted,
       'Bottles Per Box': p.bottlePerBox,
-      'Printed Remaining Bottles': p.remainingBottles
+      'Extra Printed Bottles': p.remainingBottles
     }));
 
     const worksheet = XLSX.utils.json_to_sheet(data);
@@ -150,30 +289,10 @@ export default function Productions() {
     <div className="page-content">
       <div className="page-header d-flex align-items-center justify-content-between">
         <div>
-          <h1 className="page-title">Printing Production Logs</h1>
+          <h1 className="page-title">Printing Production</h1>
           <p className="page-subtitle">Track and manage daily production entries</p>
         </div>
         <div className="d-flex align-items-center gap-3">
-          <div className="d-flex align-items-center gap-2 bg-white px-3 py-2 rounded-3 shadow-sm border">
-            <label className="small text-muted fw-bold mb-0">From:</label>
-            <input
-              type="date"
-              className="form-control form-control-sm border-0 shadow-none p-0"
-              style={{ width: 120 }}
-              value={startDate}
-              onChange={(e) => setStartDate(e.target.value)}
-            />
-          </div>
-          <div className="d-flex align-items-center gap-2 bg-white px-3 py-2 rounded-3 shadow-sm border">
-            <label className="small text-muted fw-bold mb-0">To:</label>
-            <input
-              type="date"
-              className="form-control form-control-sm border-0 shadow-none p-0"
-              style={{ width: 120 }}
-              value={endDate}
-              onChange={(e) => setEndDate(e.target.value)}
-            />
-          </div>
           <button onClick={handleExport} className="btn btn-outline-success shadow-sm px-4 py-2 rounded-3">
             <i className="bi bi-file-earmark-excel-fill me-2" /> Export Excel
           </button>
@@ -187,52 +306,73 @@ export default function Productions() {
 
       <div className="dash-card border-0 shadow-sm mb-4" style={{ borderRadius: 20 }}>
         <div className="dash-card-body p-3">
-          <div className="row g-3">
-            <div className="col-md-2">
-              <label className="small text-muted fw-bold mb-1">Company</label>
+          <div className="row g-3 align-items-end">
+            <div className="col-6 col-md-4 col-lg">
+              <label className="small text-muted fw-bold mb-1 d-block">From</label>
+              <input
+                type="date"
+                className="form-control form-control-sm border-light-subtle bg-light shadow-none w-100"
+                style={{ borderRadius: 10, height: 38 }}
+                min={minFilterDate}
+                max={maxFilterDate}
+                value={startDate}
+                onChange={(e) => setStartDate(e.target.value)}
+              />
+            </div>
+            <div className="col-6 col-md-4 col-lg">
+              <label className="small text-muted fw-bold mb-1 d-block">To</label>
+              <input
+                type="date"
+                className="form-control form-control-sm border-light-subtle bg-light shadow-none w-100"
+                style={{ borderRadius: 10, height: 38 }}
+                min={minFilterDate}
+                max={maxFilterDate}
+                value={endDate}
+                onChange={(e) => setEndDate(e.target.value)}
+              />
+            </div>
+            <div className="col-6 col-md-4 col-lg">
+              <label className="small text-muted fw-bold mb-1 d-block">Company</label>
               <select
-                className="form-select form-select-sm border-light-subtle bg-light shadow-none py-2"
-                style={{ borderRadius: 10 }}
+                className="form-select form-select-sm border-light-subtle bg-light shadow-none w-100"
+                style={{ borderRadius: 10, height: 38 }}
                 value={selectedCompany}
-                onChange={(e) => { 
-                  setSelectedCompany(e.target.value); 
-                  setSelectedBrand(''); 
-                  setSelectedSpec(''); 
-                  setSelectedVariant(''); 
+                onChange={(e) => {
+                  setSelectedCompany(e.target.value);
+                  setSelectedBrand('');
+                  setSelectedSpec('');
+                  setSelectedVariant('');
                 }}
               >
                 <option value="">All Companies</option>
-                {companies.map(c => (
+                {filteredCompanies.map(c => (
                   <option key={c._id} value={c._id}>{c.name}</option>
                 ))}
               </select>
             </div>
-            <div className="col-md-2">
-              <label className="small text-muted fw-bold mb-1">Brand</label>
+            <div className="col-6 col-md-4 col-lg">
+              <label className="small text-muted fw-bold mb-1 d-block">Brand</label>
               <select
-                className="form-select form-select-sm border-light-subtle bg-light shadow-none py-2"
-                style={{ borderRadius: 10 }}
+                className="form-select form-select-sm border-light-subtle bg-light shadow-none w-100"
+                style={{ borderRadius: 10, height: 38 }}
                 value={selectedBrand}
-                onChange={(e) => { 
-                  setSelectedBrand(e.target.value); 
-                  setSelectedSpec(''); 
-                  setSelectedVariant(''); 
+                onChange={(e) => {
+                  setSelectedBrand(e.target.value);
+                  setSelectedSpec('');
+                  setSelectedVariant('');
                 }}
               >
                 <option value="">All Brands</option>
-                {brands
-                  .filter(b => !selectedCompany || b.companyId?._id === selectedCompany || b.companyId === selectedCompany)
-                  .map(b => (
-                    <option key={b._id} value={b._id}>{b.name}</option>
-                  ))
-                }
+                {filteredBrands.map(b => (
+                  <option key={b._id} value={b._id}>{b.name}</option>
+                ))}
               </select>
             </div>
-            <div className="col-md-2">
-              <label className="small text-muted fw-bold mb-1">Bottle Spec</label>
+            <div className="col-6 col-md-4 col-lg">
+              <label className="small text-muted fw-bold mb-1 d-block">Bottle Spec</label>
               <select
-                className="form-select form-select-sm border-light-subtle bg-light shadow-none py-2"
-                style={{ borderRadius: 10 }}
+                className="form-select form-select-sm border-light-subtle bg-light shadow-none w-100"
+                style={{ borderRadius: 10, height: 38 }}
                 value={selectedSpec}
                 onChange={(e) => {
                   setSelectedSpec(e.target.value);
@@ -240,47 +380,42 @@ export default function Productions() {
                 }}
               >
                 <option value="">All Specs</option>
-                {bottleSpecs
-                  .filter(s => (!selectedBrand || s.brandId?._id === selectedBrand) && (!selectedCompany || s.brandId?.companyId?._id === selectedCompany || s.brandId?.companyId === selectedCompany))
-                  .map(s => (
-                    <option key={s._id} value={s._id}>{s.bottleName} ({s.code})</option>
-                  ))
-                }
+                {filteredBottleSpecs.map(s => (
+                  <option key={s._id} value={s._id}>{s.bottleName} ({s.code})</option>
+                ))}
               </select>
             </div>
-            <div className="col-md-2">
-              <label className="small text-muted fw-bold mb-1">Variant</label>
+            <div className="col-6 col-md-4 col-lg">
+              <label className="small text-muted fw-bold mb-1 d-block">Variant</label>
               <select
-                className="form-select form-select-sm border-light-subtle bg-light shadow-none py-2"
-                style={{ borderRadius: 10 }}
+                className="form-select form-select-sm border-light-subtle bg-light shadow-none w-100"
+                style={{ borderRadius: 10, height: 38 }}
                 value={selectedVariant}
                 onChange={(e) => setSelectedVariant(e.target.value)}
               >
                 <option value="">All Variants</option>
-                {variants
-                  .filter(v => (!selectedSpec || v.bottleSpecId?._id === selectedSpec) && (!selectedBrand || v.bottleSpecId?.brandId?._id === selectedBrand))
-                  .map(v => (
-                    <option key={v._id} value={v._id}>{v.variantName} ({v.productName})</option>
-                  ))
-                }
+                {filteredVariants.map(v => (
+                  <option key={v._id} value={v._id}>{v.variantName} ({v.productName})</option>
+                ))}
               </select>
             </div>
-            <div className="col-md-2">
-              <label className="small text-muted fw-bold mb-1">Search</label>
+            <div className="col-6 col-md-4 col-lg">
+              <label className="small text-muted fw-bold mb-1 d-block">Search</label>
               <div className="search-input-wrapper position-relative">
                 <i className="bi bi-search text-muted position-absolute top-50 start-0 translate-middle-y ms-3" style={{ pointerEvents: 'none' }} />
                 <input
                   type="text"
-                  className="form-control form-control-sm border-light-subtle bg-light ps-5 py-2 shadow-none"
+                  className="form-control form-control-sm border-light-subtle bg-light ps-5 shadow-none w-100"
                   placeholder="Search logs..."
                   value={search}
                   onChange={e => setSearch(e.target.value)}
-                  style={{ borderRadius: 10 }}
+                  style={{ borderRadius: 10, height: 38 }}
                 />
               </div>
             </div>
-            <div className="col-md-2 d-flex align-items-end">
+            <div className="col-6 col-md-4 col-lg">
               <button
+                type="button"
                 onClick={() => {
                   setSearch('');
                   setStartDate('');
@@ -290,8 +425,8 @@ export default function Productions() {
                   setSelectedSpec('');
                   setSelectedVariant('');
                 }}
-                className="btn btn-sm btn-light border-light-subtle w-100 py-2"
-                style={{ borderRadius: 10, fontWeight: 600 }}
+                className="btn btn-sm btn-light border-light-subtle w-100"
+                style={{ borderRadius: 10, fontWeight: 600, height: 38 }}
               >
                 Reset Filters
               </button>
@@ -324,22 +459,52 @@ export default function Productions() {
               <tr>
                 <th className="py-3 text-uppercase small fw-bold text-muted ps-5 text-start" style={{ width: 120 }}>Sr No</th>
                 <th className="py-3 text-uppercase small fw-bold text-muted text-center">Date</th>
-                <th className="py-3 text-uppercase small fw-bold text-muted text-center">Brand</th>
+                <th className="py-3 text-uppercase small fw-bold text-muted text-center" style={{ width: 80 }}>Image</th>
+                <th className="py-3 text-uppercase small fw-bold text-muted text-center">Company & Brand</th>
                 <th className="py-3 text-uppercase small fw-bold text-muted text-center">Product & Variant</th>
                 <th className="py-3 text-uppercase small fw-bold text-muted text-center">Qty / Boxes</th>
                 <th className="py-3 text-uppercase small fw-bold text-muted text-center" style={{ width: 150 }}>Actions</th>
               </tr>
             </thead>
             <tbody>
-              {paginatedItems.map((p, index) => (
+              {paginatedItems.map((p, index) => {
+                const variantId = p.variantId?._id || p.variantId;
+                const variantImage =
+                  p.variantId?.image ||
+                  variants.find(v => v._id === variantId)?.image;
+                return (
                 <tr key={p._id} className="align-middle border-bottom transition-all hover-bg-light">
                   <td className="py-3 ps-5 text-start">
                     <span className="text-muted fw-bold" style={{ fontSize: 13 }}>{String((currentPage - 1) * itemsPerPage + index + 1).padStart(2, '0')}</span>
                   </td>
                   <td className="py-3 text-center">
-                    <div className="fw-600 text-dark">{new Date(p.date).toLocaleDateString()}</div>
+                    <div className="fw-600 text-dark">{formatProductionDate(p.date)}</div>
+                    {daysFromToday(p.date) <= 2 && (
+                      <div className="small text-muted" style={{ fontSize: 11 }}>
+                        {parseProductionDate(p.date)?.toLocaleDateString()}
+                      </div>
+                    )}
                   </td>
                   <td className="py-3 text-center">
+                    {variantImage ? (
+                      <img
+                        src={`http://localhost:5000${variantImage}`}
+                        alt={p.variantId?.variantName || 'Bottle'}
+                        style={{ width: 48, height: 48, objectFit: 'cover', borderRadius: 8 }}
+                      />
+                    ) : (
+                      <div
+                        className="bg-light d-flex align-items-center justify-content-center text-muted mx-auto"
+                        style={{ width: 48, height: 48, borderRadius: 8, fontSize: 18 }}
+                      >
+                        <i className="bi bi-image" />
+                      </div>
+                    )}
+                  </td>
+                  <td className="py-3 text-center">
+                    <div className="fw-bold text-dark mb-1" style={{ fontSize: 14 }}>
+                      {p.brandId?.companyId?.name || p.bottleSpecId?.brandId?.companyId?.name || 'N/A'}
+                    </div>
                     <div className="fw-600 text-accent" style={{ fontSize: 13 }}>
                       {p.brandId?.name || p.bottleSpecId?.brandId?.name || 'Deleted Brand'}
                     </div>
@@ -350,13 +515,21 @@ export default function Productions() {
                   </td>
                   <td className="py-3 text-center">
                     <div className="fw-600 text-dark">{p.variantId?.productName}</div>
-                    <div className="small text-muted">{p.variantId?.variantName} ({p.variantId?.variantSize})</div>
+                    <div className="small text-muted mb-1">{p.variantId?.variantName} {p.variantId?.variantSize ? `(${p.variantId.variantSize})` : ''}</div>
+                    {p.variantId?.detectedTextColor && (
+                      <span className="badge bg-light text-dark border px-2 py-1 mt-1" style={{ fontSize: 10 }}>
+                        Text: {p.variantId.detectedTextColor}
+                      </span>
+                    )}
                   </td>
                   <td className="py-3 text-center">
                     <div className="d-flex flex-column align-items-center gap-1">
                       <div className="fw-bold text-dark">{p.totalPrinted} <small className="text-muted fw-normal">pcs</small></div>
                       <span className="badge bg-soft-primary text-primary rounded-pill px-3 py-1" style={{ fontSize: 12 }}>
                         {p.totalBoxes} <small className="fw-normal">Boxes</small>
+                      </span>
+                      <span className="badge bg-soft-warning text-warning-accent rounded-pill px-3 py-1" style={{ fontSize: 12 }}>
+                        {p.remainingBottles ?? 0} <small className="fw-normal">Extra Printed Bottles</small>
                       </span>
                     </div>
                   </td>
@@ -375,10 +548,11 @@ export default function Productions() {
                     </div>
                   </td>
                 </tr>
-              ))}
+              );
+              })}
               {paginatedItems.length === 0 && !loading && (
                 <tr>
-                  <td colSpan={6} className="text-center py-5 text-muted">No production logs found</td>
+                  <td colSpan={7} className="text-center py-5 text-muted">No production logs found</td>
                 </tr>
               )}
             </tbody>

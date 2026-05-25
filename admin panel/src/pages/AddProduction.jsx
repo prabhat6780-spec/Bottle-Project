@@ -189,7 +189,11 @@ export default function AddProduction() {
           variantId: data.variantId || ''
         });
         setMode('manual'); // Switch to manual to show the result
-        Swal.fire('Match Found!', `Detected: ${data.brandName} - ${data.productName}`, 'success');
+        Swal.fire({
+          icon: 'success',
+          title: 'Match Found!',
+          html: `<b>Detected:</b> ${data.brandName} - ${data.productName}<br/><b>Text Color:</b> <span class="badge bg-dark">${data.detectedTextColor || 'N/A'}</span>`
+        });
       } else if (res.payload) {
         Swal.fire('No Match', res.payload.message || 'Bottle not recognized', 'warning');
       } else {
@@ -371,6 +375,17 @@ export default function AddProduction() {
           ) : (
             <div className="dash-card border-0 shadow-sm" style={{ borderRadius: 24 }}>
               <div className="dash-card-body p-4 p-md-5">
+                
+                {matchResult?.match && (
+                  <div className="alert alert-success d-flex align-items-center mb-4" style={{ borderRadius: 12 }}>
+                    <i className="bi bi-check-circle-fill me-3 fs-4" />
+                    <div>
+                      <h6 className="mb-1 fw-bold">Successfully Matched via Camera</h6>
+                      <span className="small">Brand: {matchResult.brandName} | Variant: {matchResult.variantName} | Text Color: <b className="text-dark">{matchResult.detectedTextColor}</b></span>
+                    </div>
+                  </div>
+                )}
+
                 <form onSubmit={handleSubmit}>
                   <div className="row g-4">
                     <div className="col-md-6">
@@ -418,7 +433,7 @@ export default function AddProduction() {
                       {errors.bottleSpecId && <div className="invalid-feedback">{errors.bottleSpecId}</div>}
                     </div>
 
-                    <div className="col-md-12">
+                    <div className="col-md-8">
                       <label className="form-label fw-600 small text-uppercase text-muted">
                         3. Variant <span className="text-danger">*</span>
                       </label>
@@ -440,6 +455,15 @@ export default function AddProduction() {
                         ))}
                       </select>
                       {errors.variantId && <div className="invalid-feedback">{errors.variantId}</div>}
+                    </div>
+
+                    <div className="col-md-4">
+                      <label className="form-label fw-600 small text-uppercase text-muted">
+                        Text Color
+                      </label>
+                      <div className="form-control custom-input-field bg-light text-center fw-bold text-dark d-flex align-items-center justify-content-center" style={{ borderRadius: 12 }}>
+                         {formData.variantId ? (variants.find(v => v._id === formData.variantId)?.detectedTextColor || 'Not Detected') : 'N/A'}
+                      </div>
                     </div>
 
                     <div className="col-12"><hr className="my-4 opacity-50" /></div>
@@ -505,7 +529,7 @@ export default function AddProduction() {
                     </div>
                     <div style={{ width: 1, background: '#cbd5e1' }} />
                     <div>
-                      <div className="text-muted small text-uppercase fw-bold mb-1">Printed Remaining Bottles</div>
+                      <div className="text-muted small text-uppercase fw-bold mb-1">Extra Printed Bottles</div>
                       <div className={`h2 mb-0 fw-bold ${calc.rem > 0 ? 'text-danger' : 'text-success'}`}>{calc.rem}</div>
                     </div>
                   </div>

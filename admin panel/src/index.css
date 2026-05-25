@@ -990,8 +990,16 @@ body {
   background-color: rgba(0, 174, 239, 0.08) !important;
 }
 
+.bg-soft-warning {
+  background-color: rgba(245, 158, 11, 0.12) !important;
+}
+
 .text-primary {
   color: #00aeef !important;
+}
+
+.text-warning-accent {
+  color: #f59e0b !important;
 }
 
 .border-primary-subtle {

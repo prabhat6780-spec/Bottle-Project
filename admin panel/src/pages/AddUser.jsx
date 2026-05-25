@@ -52,6 +52,7 @@ export default function AddUser() {
 
   const handleBlur = (e) => {
     const { name, value } = e.target;
+    if (!value.trim()) return;
     const error = validateField(name, value);
     if (error) {
       Swal.fire({
@@ -130,10 +131,26 @@ export default function AddUser() {
               <span className="dash-card-title">User Information</span>
             </div>
             <div className="dash-card-body p-4">
-              <form onSubmit={handleSubmit}>
+              <form onSubmit={handleSubmit} autoComplete="off">
+                <input
+                  type="text"
+                  name="prevent_autofill_username"
+                  autoComplete="username"
+                  tabIndex={-1}
+                  aria-hidden="true"
+                  style={{ position: 'absolute', left: '-9999px', width: 0, height: 0, opacity: 0 }}
+                />
+                <input
+                  type="password"
+                  name="prevent_autofill_password"
+                  autoComplete="current-password"
+                  tabIndex={-1}
+                  aria-hidden="true"
+                  style={{ position: 'absolute', left: '-9999px', width: 0, height: 0, opacity: 0 }}
+                />
                 <div className="row g-4">
                   <div className="col-md-12">
-                    <label className="form-label fw-600 small text-uppercase text-muted">
+                    <label className="form-label fw-600 small text-uppercase text-muted" htmlFor="add-user-name">
                       Full Name <span className="text-danger">*</span>
                     </label>
                     <div className="input-group">
@@ -141,10 +158,12 @@ export default function AddUser() {
                         <i className="bi bi-person text-muted" />
                       </span>
                       <input
+                        id="add-user-name"
                         type="text"
                         name="name"
                         className={`form-control custom-input-field ${errors.name ? 'is-invalid' : ''}`}
                         required
+                        autoComplete="off"
                         value={formData.name}
                         onChange={handleChange}
                         onBlur={handleBlur}
@@ -155,7 +174,7 @@ export default function AddUser() {
                   </div>
 
                   <div className="col-md-12">
-                    <label className="form-label fw-600 small text-uppercase text-muted">
+                    <label className="form-label fw-600 small text-uppercase text-muted" htmlFor="add-user-email">
                       Email Address <span className="text-danger">*</span>
                     </label>
                     <div className="input-group">
@@ -163,10 +182,13 @@ export default function AddUser() {
                         <i className="bi bi-envelope text-muted" />
                       </span>
                       <input
-                        type="email"
+                        id="add-user-email"
+                        type="text"
                         name="email"
+                        inputMode="email"
                         className={`form-control custom-input-field ${errors.email ? 'is-invalid' : ''}`}
                         required
+                        autoComplete="off"
                         value={formData.email}
                         onChange={handleChange}
                         onBlur={handleBlur}
@@ -177,7 +199,7 @@ export default function AddUser() {
                   </div>
 
                   <div className="col-md-12">
-                    <label className="form-label fw-600 small text-uppercase text-muted">
+                    <label className="form-label fw-600 small text-uppercase text-muted" htmlFor="add-user-password">
                       Password <span className="text-danger">*</span>
                     </label>
                     <div className="input-group">
@@ -185,10 +207,12 @@ export default function AddUser() {
                         <i className="bi bi-shield-lock text-muted" />
                       </span>
                       <input
+                        id="add-user-password"
                         type="password"
                         name="password"
                         className={`form-control custom-input-field ${errors.password ? 'is-invalid' : ''}`}
                         required
+                        autoComplete="new-password"
                         value={formData.password}
                         onChange={handleChange}
                         onBlur={handleBlur}
