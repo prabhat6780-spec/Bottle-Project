@@ -2,15 +2,30 @@ const express = require("express");
 const cors = require("cors");
 const cookieParser = require("cookie-parser");
 const app = express();
+// Add all your allowed domains in this array
+const allowedOrigins = [
+  "http://localhost:5173",
+  "https://erp.shayonaglass.com",
+  "https://application.shayonaglass.com",
+  // Add more domains here anytime you need
+];
+
 app.use(cors({
-  origin: "http://localhost:5173",
+  origin: function(origin, callback) {
+    // Allow requests with no origin (Postman, mobile apps, server-to-server)
+    if (!origin || allowedOrigins.includes(origin)) {
+      callback(null, true);
+    } else {
+      callback(new Error("Not allowed by CORS"));
+    }
+  },
   credentials: true
 }));
 
 app.use(cookieParser());
 
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
+app.use(express.json({ limit: "50mb" }));
+app.use(express.urlencoded({ limit: "50mb", extended: true }));
 
 
 app.use("/uploads", express.static("uploads"));
@@ -30,4 +45,14 @@ app.use("/api/vision", require("./routes/vision.routes"));
 app.use("/api/printing-type", require("./routes/printingType.routes"));
 app.use("/api/printing-color", require("./routes/printingColor.routes"));
 app.use("/api/text-color", require("./routes/textcolor.routes"))
+
+// Added testing routes for the browser
+app.get("/", (req, res) => {
+  res.json({ message: "Welcome to the Bottle Project API! The backend is running successfully." });
+});
+
+app.get("/api", (req, res) => {
+  res.json({ message: "Bottle Project API is active. Please specify a specific endpoint (e.g., /api/users)." });
+});
+
 module.exports = app;

@@ -79,7 +79,7 @@ export default function EditCompany() {
 
   return (
     <div className="page-content">
-      <div className="page-header d-flex align-items-center gap-3">
+      <div className="page-header d-flex align-items-center gap-3 user-form-page-header">
         <Link to="/companies" className="btn-ghost" style={{ width: 40, height: 40, borderRadius: 10, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
           <i className="bi bi-arrow-left" style={{ fontSize: 20 }} />
         </Link>
@@ -123,7 +123,7 @@ export default function EditCompany() {
                   </select>
                 </div>
 
-                <div className="d-flex gap-2 mt-4">
+                <div className="d-flex gap-2 mt-4 user-form-actions">
                   <button type="submit" className="btn-accent px-5 py-3 flex-grow-1" disabled={loading}>
                     {loading ? (
                       <><span className="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>Updating...</>

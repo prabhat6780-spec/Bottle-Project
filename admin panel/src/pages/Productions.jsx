@@ -244,16 +244,11 @@ export default function Productions() {
 
     const data = filteredProductions.map((p, index) => ({
       'Sr No': index + 1,
-      'Date': formatProductionDate(p.date),
+      'Date': parseProductionDate(p.date)?.toLocaleDateString() || 'N/A',
       'Company': p.brandId?.companyId?.name || 'N/A',
       'Brand': p.brandId?.name || 'N/A',
       'Bottle Name': p.bottleSpecId?.bottleName || 'N/A',
-      'Bottle Code': p.bottleSpecId?.code || 'N/A',
-      'Printing Type': p.bottleSpecId?.printingTypeId?.name || 'N/A',
-      'Printing Color': p.bottleSpecId?.printingColorId?.name || 'N/A',
-      'Product Name': p.variantId?.productName || 'N/A',
       'Variant Name': p.variantId?.variantName || 'N/A',
-      'Variant Size': p.variantId?.variantSize || 'N/A',
       'Coating Shade': p.variantId?.coatingShade ||
         variants.find(v => v._id === (p.variantId?._id || p.variantId))?.coatingShade ||
         'N/A',
@@ -288,14 +283,16 @@ export default function Productions() {
     setCurrentPage(1);
   }, [search, itemsPerPage, startDate, endDate, selectedCompany, selectedBrand, selectedSpec, selectedVariant]);
 
+  const backendUrl = import.meta.env.VITE_BACKEND_URL || 'https://application.shayonaglass.com';
+
   return (
     <div className="page-content">
-      <div className="page-header d-flex align-items-center justify-content-between">
+      <div className="page-header d-flex align-items-center justify-content-between companies-page-header">
         <div>
           <h1 className="page-title">Printing Production</h1>
           <p className="page-subtitle">Track and manage daily production entries</p>
         </div>
-        <div className="d-flex align-items-center gap-3">
+        <div className="d-flex align-items-center gap-3 productions-page-actions">
           <button onClick={handleExport} className="btn btn-outline-success shadow-sm px-4 py-2 rounded-3">
             <i className="bi bi-file-earmark-excel-fill me-2" /> Export Excel
           </button>
@@ -309,7 +306,7 @@ export default function Productions() {
 
       <div className="dash-card border-0 shadow-sm mb-4" style={{ borderRadius: 20 }}>
         <div className="dash-card-body p-3">
-          <div className="row g-3 align-items-end">
+          <div className="row g-3 align-items-end productions-filters-panel">
             <div className="col-6 col-md-4 col-lg">
               <label className="small text-muted fw-bold mb-1 d-block">From</label>
               <input
@@ -439,7 +436,7 @@ export default function Productions() {
       </div>
 
       <div className="dash-card">
-        <div className="dash-card-header d-flex align-items-center justify-content-between p-3 border-bottom bg-white">
+        <div className="dash-card-header d-flex align-items-center justify-content-between p-3 border-bottom bg-white companies-dash-toolbar">
           <div className="d-flex align-items-center gap-2 text-muted small fw-500">
             <span>Show</span>
             <select
@@ -456,7 +453,72 @@ export default function Productions() {
           </div>
         </div>
 
-        <div style={{ overflowX: 'auto' }}>
+        <div className="companies-list-mobile">
+          {paginatedItems.map((p, index) => {
+            const variantId = p.variantId?._id || p.variantId;
+            const variantImage =
+              p.variantId?.image ||
+              variants.find(v => v._id === variantId)?.image;
+            return (
+              <div key={p._id} className="companies-mobile-card">
+                <div className="d-flex align-items-start gap-3 flex-grow-1 min-w-0">
+                  {variantImage ? (
+                    <img
+                      src={`${backendUrl}${variantImage}`}
+                      alt={p.variantId?.variantName || 'Bottle'}
+                      className="companies-mobile-avatar"
+                      style={{ objectFit: 'cover', borderRadius: 10 }}
+                    />
+                  ) : (
+                    <div className="companies-mobile-avatar bg-light text-muted d-flex align-items-center justify-content-center">
+                      <i className="bi bi-image" />
+                    </div>
+                  )}
+                  <div className="flex-grow-1 min-w-0">
+                    <div className="d-flex align-items-center gap-2 mb-1 flex-wrap">
+                      <span className="text-muted small fw-bold">#{String((currentPage - 1) * itemsPerPage + index + 1).padStart(2, '0')}</span>
+                      <span className="fw-semibold">{formatProductionDate(p.date)}</span>
+                    </div>
+                    <div className="small text-muted">
+                      {p.brandId?.companyId?.name || p.bottleSpecId?.brandId?.companyId?.name || 'N/A'} · {p.brandId?.name || p.bottleSpecId?.brandId?.name || 'N/A'}
+                    </div>
+                    <div className="small fw-600 text-truncate">{p.bottleSpecId?.bottleName}</div>
+                    <div className="small text-muted">
+                      {p.variantId?.variantName} {p.variantId?.variantSize ? `(${p.variantId.variantSize})` : ''}
+                    </div>
+                    <div className="d-flex flex-wrap gap-1 mt-1">
+                      <span className="badge bg-soft-primary text-primary small">{p.totalBoxes} Boxes</span>
+                      <span className="badge bg-light text-dark border small">{p.totalPrinted} pcs</span>
+                      {(p.remainingBottles ?? 0) > 0 && (
+                        <span className="badge bg-soft-warning text-warning-accent small">{p.remainingBottles} extra</span>
+                      )}
+                    </div>
+                  </div>
+                </div>
+                <div className="companies-mobile-actions">
+                  <Link to={`/productions/view/${p._id}`} className="btn btn-sm btn-outline-info border-0 rounded-3 shadow-none companies-mobile-action-btn" title="View">
+                    <i className="bi bi-eye fs-6" />
+                  </Link>
+                  <Can I="edit" a="production">
+                    <Link to={`/productions/edit/${p._id}`} className="btn btn-sm btn-outline-primary border-0 rounded-3 shadow-none companies-mobile-action-btn" title="Edit">
+                      <i className="bi bi-pencil-square fs-6" />
+                    </Link>
+                  </Can>
+                  <Can I="delete" a="production">
+                    <button type="button" onClick={() => handleDelete(p._id)} className="btn btn-sm btn-outline-danger border-0 rounded-3 shadow-none companies-mobile-action-btn" title="Delete">
+                      <i className="bi bi-trash fs-6" />
+                    </button>
+                  </Can>
+                </div>
+              </div>
+            );
+          })}
+          {paginatedItems.length === 0 && !loading && (
+            <div className="companies-mobile-empty">No production logs found</div>
+          )}
+        </div>
+
+        <div className="companies-list-desktop" style={{ overflowX: 'auto' }}>
           <table className="data-table">
             <thead>
               <tr>
@@ -476,87 +538,90 @@ export default function Productions() {
                   p.variantId?.image ||
                   variants.find(v => v._id === variantId)?.image;
                 return (
-                <tr key={p._id} className="align-middle border-bottom transition-all hover-bg-light">
-                  <td className="py-3 ps-5 text-start">
-                    <span className="text-muted fw-bold" style={{ fontSize: 13 }}>{String((currentPage - 1) * itemsPerPage + index + 1).padStart(2, '0')}</span>
-                  </td>
-                  <td className="py-3 text-center">
-                    <div className="fw-600 text-dark">{formatProductionDate(p.date)}</div>
-                    {daysFromToday(p.date) <= 2 && (
+                  <tr key={p._id} className="align-middle border-bottom transition-all hover-bg-light">
+                    <td className="py-3 ps-5 text-start">
+                      <span className="text-muted fw-bold" style={{ fontSize: 13 }}>{String((currentPage - 1) * itemsPerPage + index + 1).padStart(2, '0')}</span>
+                    </td>
+                    <td className="py-3 text-center">
+                      <div className="fw-600 text-dark">{formatProductionDate(p.date)}</div>
+                      {daysFromToday(p.date) <= 2 && (
+                        <div className="small text-muted" style={{ fontSize: 11 }}>
+                          {parseProductionDate(p.date)?.toLocaleDateString()}
+                        </div>
+                      )}
+                    </td>
+                    <td className="py-3 text-center">
+                      {variantImage ? (
+                        <img
+                          src={`${import.meta.env.VITE_BACKEND_URL || "https://application.shayonaglass.com"}${variantImage}`}
+                          alt={p.variantId?.variantName || 'Bottle'}
+                          style={{ width: 48, height: 48, objectFit: 'cover', borderRadius: 8 }}
+                        />
+                      ) : (
+                        <div
+                          className="bg-light d-flex align-items-center justify-content-center text-muted mx-auto"
+                          style={{ width: 48, height: 48, borderRadius: 8, fontSize: 18 }}
+                        >
+                          <i className="bi bi-image" />
+                        </div>
+                      )}
+                    </td>
+                    <td className="py-3 text-center">
+                      <div className="fw-bold text-dark mb-1" style={{ fontSize: 14 }}>
+                        {p.brandId?.companyId?.name || p.bottleSpecId?.brandId?.companyId?.name || 'N/A'}
+                      </div>
+                      <div className="fw-600 text-accent" style={{ fontSize: 13 }}>
+                        {p.brandId?.name || p.bottleSpecId?.brandId?.name || 'Deleted Brand'}
+                      </div>
+                      <div className="fw-500 text-dark small">{p.bottleSpecId?.bottleName}</div>
                       <div className="small text-muted" style={{ fontSize: 11 }}>
-                        {parseProductionDate(p.date)?.toLocaleDateString()}
+                        {p.bottleSpecId?.printingTypeId?.name || 'N/A'} — {p.bottleSpecId?.printingColorId?.name || 'No Color'}
                       </div>
-                    )}
-                  </td>
-                  <td className="py-3 text-center">
-                    {variantImage ? (
-                      <img
-                        src={`http://localhost:5000${variantImage}`}
-                        alt={p.variantId?.variantName || 'Bottle'}
-                        style={{ width: 48, height: 48, objectFit: 'cover', borderRadius: 8 }}
-                      />
-                    ) : (
-                      <div
-                        className="bg-light d-flex align-items-center justify-content-center text-muted mx-auto"
-                        style={{ width: 48, height: 48, borderRadius: 8, fontSize: 18 }}
-                      >
-                        <i className="bi bi-image" />
+                    </td>
+                    <td className="py-3 text-center">
+                      <div className="fw-600 text-dark">{p.variantId?.productName}</div>
+                      <div className="small text-muted mb-1">{p.variantId?.variantName} {p.variantId?.variantSize ? `(${p.variantId.variantSize})` : ''}</div>
+                      {p.variantId?.coatingShade && (
+                        <span className="badge bg-soft-warning text-warning-accent px-2 py-1 mt-1" style={{ fontSize: 10 }}>
+                          Coating: {p.variantId.coatingShade}
+                        </span>
+                      )}
+                      {p.variantId?.detectedTextColor && (
+                        <span className="badge bg-light text-dark border px-2 py-1 mt-1" style={{ fontSize: 10 }}>
+                          Text: {p.variantId.detectedTextColor}
+                        </span>
+                      )}
+                    </td>
+                    <td className="py-3 text-center">
+                      <div className="d-flex flex-column align-items-center gap-1">
+                        <div className="fw-bold text-dark">{p.totalPrinted} <small className="text-muted fw-normal">pcs</small></div>
+                        <span className="badge bg-soft-primary text-primary rounded-pill px-3 py-1" style={{ fontSize: 12 }}>
+                          {p.totalBoxes} <small className="fw-normal">Boxes</small>
+                        </span>
+                        <span className="badge bg-soft-warning text-warning-accent rounded-pill px-3 py-1" style={{ fontSize: 12 }}>
+                          {p.remainingBottles ?? 0} <small className="fw-normal">Extra Printed Bottles</small>
+                        </span>
                       </div>
-                    )}
-                  </td>
-                  <td className="py-3 text-center">
-                    <div className="fw-bold text-dark mb-1" style={{ fontSize: 14 }}>
-                      {p.brandId?.companyId?.name || p.bottleSpecId?.brandId?.companyId?.name || 'N/A'}
-                    </div>
-                    <div className="fw-600 text-accent" style={{ fontSize: 13 }}>
-                      {p.brandId?.name || p.bottleSpecId?.brandId?.name || 'Deleted Brand'}
-                    </div>
-                    <div className="fw-500 text-dark small">{p.bottleSpecId?.bottleName}</div>
-                    <div className="small text-muted" style={{ fontSize: 11 }}>
-                      {p.bottleSpecId?.printingTypeId?.name || 'N/A'} — {p.bottleSpecId?.printingColorId?.name || 'No Color'}
-                    </div>
-                  </td>
-                  <td className="py-3 text-center">
-                    <div className="fw-600 text-dark">{p.variantId?.productName}</div>
-                    <div className="small text-muted mb-1">{p.variantId?.variantName} {p.variantId?.variantSize ? `(${p.variantId.variantSize})` : ''}</div>
-                    {p.variantId?.coatingShade && (
-                      <span className="badge bg-soft-warning text-warning-accent px-2 py-1 mt-1" style={{ fontSize: 10 }}>
-                        Coating: {p.variantId.coatingShade}
-                      </span>
-                    )}
-                    {p.variantId?.detectedTextColor && (
-                      <span className="badge bg-light text-dark border px-2 py-1 mt-1" style={{ fontSize: 10 }}>
-                        Text: {p.variantId.detectedTextColor}
-                      </span>
-                    )}
-                  </td>
-                  <td className="py-3 text-center">
-                    <div className="d-flex flex-column align-items-center gap-1">
-                      <div className="fw-bold text-dark">{p.totalPrinted} <small className="text-muted fw-normal">pcs</small></div>
-                      <span className="badge bg-soft-primary text-primary rounded-pill px-3 py-1" style={{ fontSize: 12 }}>
-                        {p.totalBoxes} <small className="fw-normal">Boxes</small>
-                      </span>
-                      <span className="badge bg-soft-warning text-warning-accent rounded-pill px-3 py-1" style={{ fontSize: 12 }}>
-                        {p.remainingBottles ?? 0} <small className="fw-normal">Extra Printed Bottles</small>
-                      </span>
-                    </div>
-                  </td>
-                  <td className="py-3 text-center">
-                    <div className="d-flex gap-2 justify-content-center">
-                      <Can I="edit" a="production">
-                        <Link to={`/productions/edit/${p._id}`} className="btn btn-sm btn-outline-primary border-0 rounded-3 shadow-none p-2" title="Edit">
-                          <i className="bi bi-pencil-square fs-6" />
+                    </td>
+                    <td className="py-3 text-center">
+                      <div className="d-flex gap-2 justify-content-center">
+                        <Link to={`/productions/view/${p._id}`} className="btn btn-sm btn-outline-info border-0 rounded-3 shadow-none p-2" title="View">
+                          <i className="bi bi-eye fs-6" />
                         </Link>
-                      </Can>
-                      <Can I="delete" a="production">
-                        <button onClick={() => handleDelete(p._id)} className="btn btn-sm btn-outline-danger border-0 rounded-3 shadow-none p-2" title="Delete">
-                          <i className="bi bi-trash fs-6" />
-                        </button>
-                      </Can>
-                    </div>
-                  </td>
-                </tr>
-              );
+                        <Can I="edit" a="production">
+                          <Link to={`/productions/edit/${p._id}`} className="btn btn-sm btn-outline-primary border-0 rounded-3 shadow-none p-2" title="Edit">
+                            <i className="bi bi-pencil-square fs-6" />
+                          </Link>
+                        </Can>
+                        <Can I="delete" a="production">
+                          <button onClick={() => handleDelete(p._id)} className="btn btn-sm btn-outline-danger border-0 rounded-3 shadow-none p-2" title="Delete">
+                            <i className="bi bi-trash fs-6" />
+                          </button>
+                        </Can>
+                      </div>
+                    </td>
+                  </tr>
+                );
               })}
               {paginatedItems.length === 0 && !loading && (
                 <tr>
@@ -567,7 +632,7 @@ export default function Productions() {
           </table>
         </div>
 
-        <div className="dash-card-footer d-flex align-items-center justify-content-between p-3 border-top bg-white">
+        <div className="dash-card-footer d-flex align-items-center justify-content-between p-3 border-top bg-white companies-dash-footer">
           <div className="text-muted small fw-500">
             Showing <b>{filteredProductions.length > 0 ? (currentPage - 1) * itemsPerPage + 1 : 0}</b> to <b>{Math.min(currentPage * itemsPerPage, filteredProductions.length)}</b> of <b>{filteredProductions.length}</b> entries
           </div>

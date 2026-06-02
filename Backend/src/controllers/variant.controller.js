@@ -61,7 +61,7 @@ exports.createVariant = async (req, res) => {
 exports.getVariants = async (req, res) => {
   try {
 
-    const variants = await Variant.find()
+    const variants = await Variant.find({ isDeleted: { $ne: true } })
       .populate({
         path: "bottleSpecId",
         populate: [
@@ -142,7 +142,7 @@ exports.updateVariant = async (req, res) => {
 // ✅ DELETE
 exports.deleteVariant = async (req, res) => {
   try {
-    await Variant.findByIdAndDelete(req.params.id);
+    await Variant.findByIdAndUpdate(req.params.id, { isDeleted: true }, { new: true });
     res.json({ msg: "Variant Deleted" });
   } catch (err) {
     res.status(500).json(err.message);

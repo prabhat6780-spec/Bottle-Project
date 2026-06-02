@@ -14,7 +14,7 @@ exports.createPermission = async (req, res) => {
 // Get All Permissions
 exports.getAllPermissions = async (req, res) => {
   try {
-    const permissions = await Permission.find();
+    const permissions = await Permission.find({ isDeleted: { $ne: true } });
     res.status(200).json({ success: true, data: permissions });
   } catch (error) {
     res.status(400).json({ success: false, message: error.message });
@@ -47,7 +47,7 @@ exports.updatePermission = async (req, res) => {
 // Delete Permission
 exports.deletePermission = async (req, res) => {
   try {
-    const permission = await Permission.findByIdAndDelete(req.params.id);
+    const permission = await Permission.findByIdAndUpdate(req.params.id, { isDeleted: true }, { new: true });
     if (!permission) return res.status(404).json({ success: false, message: "Permission not found" });
     res.status(200).json({ success: true, message: "Permission deleted" });
   } catch (error) {

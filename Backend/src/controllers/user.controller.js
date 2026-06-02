@@ -25,7 +25,7 @@ exports.createUser = async (req, res) => {
 // ✅ GET ALL USERS
 exports.getUsers = async (req, res) => {
   try {
-    const users = await User.find().select("-password").populate({
+    const users = await User.find({ isDeleted: { $ne: true } }).select("-password").populate({
       path: "role",
       populate: {
         path: "permissions"
@@ -73,7 +73,7 @@ exports.updateUser = async (req, res) => {
 exports.deleteUser = async (req, res) => {
   try {
 
-    await User.findByIdAndDelete(req.params.id);
+    await User.findByIdAndUpdate(req.params.id, { isDeleted: true }, { new: true });
 
     res.json({ msg: "User Deleted" });
 

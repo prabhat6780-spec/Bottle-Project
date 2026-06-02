@@ -59,20 +59,27 @@ export default function PermissionList() {
     setCurrentPage(1);
   }, [search, itemsPerPage]);
 
+  const avatarColors = [
+    'linear-gradient(135deg,#e91e63,#c2185b)',
+    'linear-gradient(135deg,#00aeef,#008ecc)',
+    'linear-gradient(135deg,#007236,#008b45)',
+    'linear-gradient(135deg,#6366f1,#8b5cf6)',
+  ];
+
   return (
     <div className="page-content">
-      <div className="page-header d-flex align-items-center justify-content-between mb-4">
+      <div className="page-header d-flex align-items-center justify-content-between mb-4 companies-page-header">
         <div>
           <h1 className="page-title mb-1">System Permissions</h1>
           <p className="page-subtitle mb-0">Total permissions found: {permissions.length}</p>
         </div>
-        <Link to="/permissions/create" className="btn-accent shadow-sm px-4 py-2 rounded-3">
+        <Link to="/permissions/create" className="btn-accent shadow-sm px-4 py-2 rounded-3 companies-header-action">
           <i className="bi bi-shield-plus me-2" /> Add Permission
         </Link>
       </div>
 
       <div className="dash-card border-0 shadow-sm overflow-hidden" style={{ borderRadius: 20 }}>
-        <div className="dash-card-header d-flex align-items-center justify-content-between p-3 border-bottom bg-white">
+        <div className="dash-card-header d-flex align-items-center justify-content-between p-3 border-bottom bg-white companies-dash-toolbar">
           <div className="d-flex align-items-center gap-2 text-muted small fw-500">
             <span>Show</span>
             <select 
@@ -87,7 +94,7 @@ export default function PermissionList() {
             </select>
             <span>entries</span>
           </div>
-          <div className="search-input-wrapper position-relative" style={{ width: 320 }}>
+          <div className="search-input-wrapper position-relative companies-search-wrap">
             <i className="bi bi-search text-muted position-absolute top-50 start-0 translate-middle-y ms-3" style={{ pointerEvents: 'none' }} />
             <input
               type="text"
@@ -100,7 +107,50 @@ export default function PermissionList() {
           </div>
         </div>
 
-        <div className="table-responsive">
+        <div className="companies-list-mobile">
+          {paginatedItems.map((permission, index) => (
+            <div key={permission._id} className="companies-mobile-card rbac-mobile-card">
+              <div className="d-flex align-items-start gap-3 w-100 min-w-0">
+                <div
+                  className="companies-mobile-avatar"
+                  style={{ background: avatarColors[index % avatarColors.length] }}
+                >
+                  <i className="bi bi-key-fill" />
+                </div>
+                <div className="flex-grow-1 min-w-0">
+                  <div className="text-muted small fw-bold mb-1">
+                    #{String((currentPage - 1) * itemsPerPage + index + 1).padStart(2, '0')}
+                  </div>
+                  <span className="badge-permission d-inline-block" style={{ wordBreak: 'break-word', whiteSpace: 'normal', textAlign: 'left' }}>
+                    {permission.name}
+                  </span>
+                </div>
+              </div>
+              <div className="companies-mobile-actions rbac-mobile-actions">
+                <Link
+                  to={`/permissions/edit/${permission._id}`}
+                  className="btn btn-sm btn-outline-primary border-0 rounded-3 shadow-none companies-mobile-action-btn"
+                  title="Edit Permission"
+                >
+                  <i className="bi bi-pencil-square fs-6" />
+                </Link>
+                <button
+                  type="button"
+                  onClick={() => handleDelete(permission._id, permission.name)}
+                  className="btn btn-sm btn-outline-danger border-0 rounded-3 shadow-none companies-mobile-action-btn"
+                  title="Delete Permission"
+                >
+                  <i className="bi bi-trash fs-6" />
+                </button>
+              </div>
+            </div>
+          ))}
+          {paginatedItems.length === 0 && !loading && (
+            <div className="companies-mobile-empty">No permissions found</div>
+          )}
+        </div>
+
+        <div className="companies-list-desktop table-responsive">
           <table className="data-table mb-0">
             <thead className="bg-light">
               <tr>
@@ -141,7 +191,7 @@ export default function PermissionList() {
           </table>
         </div>
 
-        <div className="dash-card-footer d-flex align-items-center justify-content-between p-3 border-top bg-white">
+        <div className="dash-card-footer d-flex align-items-center justify-content-between p-3 border-top bg-white companies-dash-footer">
           <div className="text-muted small fw-500">
             Showing <b>{filteredPermissions.length > 0 ? (currentPage - 1) * itemsPerPage + 1 : 0}</b> to <b>{Math.min(currentPage * itemsPerPage, filteredPermissions.length)}</b> of <b>{filteredPermissions.length}</b> entries
           </div>

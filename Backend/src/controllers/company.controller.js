@@ -28,7 +28,7 @@ exports.createCompany = async (req, res) => {
 // ✅ GET
 exports.getCompanies = async (req, res) => {
   try {
-    const companies = await Company.find();
+    const companies = await Company.find({ isDeleted: { $ne: true } });
     res.json(companies);
   } catch (err) {
     res.status(500).json(err.message);
@@ -67,7 +67,7 @@ exports.updateCompany = async (req, res) => {
 // ✅ DELETE
 exports.deleteCompany = async (req, res) => {
   try {
-    await Company.findByIdAndDelete(req.params.id);
+    await Company.findByIdAndUpdate(req.params.id, { isDeleted: true }, { new: true });
     res.json({ msg: "Company Deleted" });
   } catch (err) {
     res.status(500).json(err.message);

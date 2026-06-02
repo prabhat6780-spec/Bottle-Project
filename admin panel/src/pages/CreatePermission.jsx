@@ -86,23 +86,23 @@ export default function CreatePermission() {
 
   return (
     <div className="page-content">
-      <div className="page-header d-flex align-items-center gap-3 mb-4">
-        <Link to="/permissions" className="btn-ghost" style={{ width: 40, height: 40, padding: 0, borderRadius: 10, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+      <div className="page-header d-flex align-items-center gap-3 mb-4 brand-form-page-header">
+        <Link to="/permissions" className="btn-ghost brand-form-back" style={{ width: 40, height: 40, padding: 0, borderRadius: 10, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
           <i className="bi bi-arrow-left" style={{ fontSize: 20 }} />
         </Link>
-        <div>
+        <div className="min-w-0">
           <h1 className="page-title mb-1">{id ? 'Edit Permission' : 'Add Permission'}</h1>
           <p className="page-subtitle">{id ? 'Modify existing system permission' : 'Create a new capability for the system'}</p>
         </div>
       </div>
 
-      <div className="row justify-content-center">
-        <div className="col-lg-6">
-          <div className="dash-card border-0 shadow-sm" style={{ borderRadius: 20 }}>
+      <div className="row justify-content-center g-0 g-sm-3">
+        <div className="col-12 col-lg-6">
+          <div className="dash-card border-0 shadow-sm brand-form-card" style={{ borderRadius: 20 }}>
             <div className="dash-card-header bg-white border-bottom p-4">
               <span className="dash-card-title fw-bold">Permission Information</span>
             </div>
-            <div className="dash-card-body p-4">
+            <div className="dash-card-body p-4 brand-form-body">
               <form onSubmit={handleSubmit}>
                 <div className="row g-4">
                   <div className="col-md-12">
@@ -126,11 +126,11 @@ export default function CreatePermission() {
                   </div>
                 </div>
 
-                <div className="d-flex gap-3 mt-5">
-                  <button type="submit" className="btn-accent px-5 py-3 rounded-3 flex-grow-1" disabled={loading}>
+                <div className="d-flex gap-3 mt-5 brand-form-actions">
+                  <button type="submit" className="btn-accent py-3 rounded-3 flex-grow-1" disabled={loading}>
                     {loading ? 'Saving...' : 'Save Permission'}
                   </button>
-                  <button type="button" className="btn-ghost px-5 py-3 rounded-3" onClick={() => navigate('/permissions')}>
+                  <button type="button" className="btn-ghost py-3 rounded-3" onClick={() => navigate('/permissions')}>
                     Cancel
                   </button>
                 </div>

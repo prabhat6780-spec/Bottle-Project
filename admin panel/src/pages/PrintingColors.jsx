@@ -51,9 +51,19 @@ export default function PrintingColors() {
     setCurrentPage(1);
   }, [search, itemsPerPage]);
 
+  const isItemActive = (b) =>
+    b.status === true || b.status === 'active' || b.status === undefined;
+
+  const avatarColors = [
+    'linear-gradient(135deg,#e91e63,#c2185b)',
+    'linear-gradient(135deg,#00aeef,#008ecc)',
+    'linear-gradient(135deg,#007236,#008b45)',
+    'linear-gradient(135deg,#6366f1,#8b5cf6)',
+  ];
+
   return (
     <div className="page-content">
-      <div className="page-header d-flex align-items-center justify-content-between">
+      <div className="page-header d-flex align-items-center justify-content-between companies-page-header">
         <div>
           <h1 className="page-title">Printing Colors</h1>
           <p className="page-subtitle">Manage printing color options</p>
@@ -66,7 +76,7 @@ export default function PrintingColors() {
       </div>
 
       <div className="dash-card">
-        <div className="dash-card-header d-flex align-items-center justify-content-between p-3 border-bottom bg-white">
+        <div className="dash-card-header d-flex align-items-center justify-content-between p-3 border-bottom bg-white companies-dash-toolbar">
           <div className="d-flex align-items-center gap-2 text-muted small fw-500">
             <span>Show</span>
             <select 
@@ -94,7 +104,58 @@ export default function PrintingColors() {
           </div>
         </div>
 
-        <div style={{ overflowX: 'auto' }}>
+        <div className="companies-list-mobile">
+          {paginatedItems.map((b, index) => (
+            <div key={b._id} className="companies-mobile-card">
+              <div className="d-flex align-items-start gap-3 flex-grow-1 min-w-0">
+                <div
+                  className="companies-mobile-avatar"
+                  style={{ background: avatarColors[index % avatarColors.length] }}
+                >
+                  {b.name?.charAt(0).toUpperCase() || 'C'}
+                </div>
+                <div className="flex-grow-1 min-w-0">
+                  <div className="d-flex align-items-center gap-2 mb-1 flex-wrap">
+                    <span className="text-muted small fw-bold">#{String((currentPage - 1) * itemsPerPage + index + 1).padStart(2, '0')}</span>
+                    <span className="fw-semibold text-truncate">{b.name}</span>
+                  </div>
+                  <span className="badge bg-light text-primary border small">{b.printingTypeId?.name || 'N/A'}</span>
+                  <div className="mt-1">
+                    <span className={`badge-status badge-${isItemActive(b) ? 'active' : 'inactive'}`}>
+                      {isItemActive(b) ? 'ACTIVE' : 'INACTIVE'}
+                    </span>
+                  </div>
+                </div>
+              </div>
+              <div className="companies-mobile-actions">
+                <Can I="edit" a="printing-color">
+                  <Link
+                    to={`/printing-colors/edit/${b._id}`}
+                    className="btn btn-sm btn-outline-primary border-0 rounded-3 shadow-none companies-mobile-action-btn"
+                    title="Edit"
+                  >
+                    <i className="bi bi-pencil-square fs-6" />
+                  </Link>
+                </Can>
+                <Can I="delete" a="printing-color">
+                  <button
+                    type="button"
+                    onClick={() => handleDelete(b._id, b.name)}
+                    className="btn btn-sm btn-outline-danger border-0 rounded-3 shadow-none companies-mobile-action-btn"
+                    title="Delete"
+                  >
+                    <i className="bi bi-trash fs-6" />
+                  </button>
+                </Can>
+              </div>
+            </div>
+          ))}
+          {paginatedItems.length === 0 && !loading && (
+            <div className="companies-mobile-empty">No printing colors found</div>
+          )}
+        </div>
+
+        <div className="companies-list-desktop" style={{ overflowX: 'auto' }}>
           <table className="data-table mb-0">
             <thead>
               <tr>
@@ -116,8 +177,8 @@ export default function PrintingColors() {
                   </td>
                   <td className="py-3 text-center fw-600">{b.name}</td>
                   <td className="py-3 text-center">
-                    <span className={`badge-status badge-${(b.status === true || b.status === 'active' || b.status === undefined) ? 'active' : 'inactive'}`}>
-                      {(b.status === true || b.status === 'active' || b.status === undefined) ? 'ACTIVE' : 'INACTIVE'}
+                    <span className={`badge-status badge-${isItemActive(b) ? 'active' : 'inactive'}`}>
+                      {isItemActive(b) ? 'ACTIVE' : 'INACTIVE'}
                     </span>
                   </td>
                   <td className="py-3 text-center">
@@ -143,7 +204,7 @@ export default function PrintingColors() {
           </table>
         </div>
 
-        <div className="dash-card-footer d-flex align-items-center justify-content-between p-3 border-top bg-white">
+        <div className="dash-card-footer d-flex align-items-center justify-content-between p-3 border-top bg-white companies-dash-footer">
           <div className="text-muted small fw-500">
             Showing <b>{filteredItems.length > 0 ? (currentPage - 1) * itemsPerPage + 1 : 0}</b> to <b>{Math.min(currentPage * itemsPerPage, filteredItems.length)}</b> of <b>{filteredItems.length}</b> entries
           </div>

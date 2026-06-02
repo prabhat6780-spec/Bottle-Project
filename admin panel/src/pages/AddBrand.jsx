@@ -4,6 +4,7 @@ import { useDispatch, useSelector } from 'react-redux';
 import { createBrand, fetchBrands } from '../redux/slices/brandSlice';
 import { fetchCompanies } from '../redux/slices/companySlice';
 import Swal from 'sweetalert2';
+import SearchableSelect from '../components/SearchableSelect';
 
 export default function AddBrand() {
   const navigate = useNavigate();
@@ -27,8 +28,6 @@ export default function AddBrand() {
     } else if (field === 'name') {
       if (!value || value.trim() === '') {
         msg = 'Brand Name is mandatory';
-      } else if (!/^[a-zA-Z\s]+$/.test(value)) {
-        msg = 'Brand Name should only contain characters';
       } else if (currentCompanyId) {
         const isDuplicate = brands.some(b => 
           (b.companyId?._id === currentCompanyId || b.companyId === currentCompanyId) &&
@@ -58,14 +57,14 @@ export default function AddBrand() {
     }
   };
 
+  const handleCompanyChange = (value) => {
+    setCompanyId(value);
+    if (error.companyId) setError(prev => ({ ...prev, companyId: '' }));
+  };
+
   const handleChange = (e) => {
     const { name, value } = e.target;
-    if (name === 'companyId') {
-      setCompanyId(value);
-      if (error.companyId) setError(prev => ({ ...prev, companyId: '' }));
-      // Re-validate name if company changes
-      if (name) validateField('name', name, value);
-    } else if (name === 'name') {
+    if (name === 'name') {
       setName(value);
       if (error.name) setError(prev => ({ ...prev, name: '' }));
     }
@@ -91,40 +90,35 @@ export default function AddBrand() {
 
   return (
     <div className="page-content">
-      <div className="page-header d-flex align-items-center gap-3">
-        <Link to="/brands" className="btn-ghost" style={{ width: 40, height: 40, borderRadius: 10, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+      <div className="page-header d-flex align-items-center gap-3 brand-form-page-header">
+        <Link to="/brands" className="btn-ghost brand-form-back" style={{ width: 40, height: 40, borderRadius: 10, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
           <i className="bi bi-arrow-left" style={{ fontSize: 20 }} />
         </Link>
-        <div>
+        <div className="min-w-0">
           <h1 className="page-title">Add New Brand</h1>
           <p className="page-subtitle">Define a new brand category</p>
         </div>
       </div>
 
-      <div className="row justify-content-center">
-        <div className="col-lg-6">
-          <div className="dash-card">
-            <div className="dash-card-body p-4">
+      <div className="row justify-content-center g-0 g-sm-3">
+        <div className="col-12 col-lg-6">
+          <div className="dash-card brand-form-card">
+            <div className="dash-card-body p-4 brand-form-body">
               <form onSubmit={handleSubmit}>
                 <div className="mb-4">
                   <label className="form-label fw-600 small text-uppercase text-muted">
                     Company <span className="text-danger">*</span>
                   </label>
-                  <select
-                    className={`form-select custom-input-field ${error.companyId ? 'is-invalid' : ''}`}
-                    name="companyId"
-                    required
-                    value={companyId}
-                    onChange={handleChange}
-                    onBlur={(e) => handleBlur('companyId', e.target.value)}
-                    style={{ borderRadius: 12 }}
-                  >
-                    <option value="">-- Choose Company --</option>
-                    {companies.filter(c => c.status).map(c => (
-                      <option key={c._id} value={c._id}>{c.name}</option>
-                    ))}
-                  </select>
-                  {error.companyId && <div className="invalid-feedback">{error.companyId}</div>}
+                  <div className="brand-select-field">
+                    <SearchableSelect
+                      options={companies.filter(c => c.status).map(c => ({ value: c._id, label: c.name }))}
+                      value={companyId}
+                      onChange={handleCompanyChange}
+                      placeholder="-- Choose Company --"
+                      isInvalid={!!error.companyId}
+                    />
+                  </div>
+                  {error.companyId && <div className="text-danger" style={{ fontSize: '0.875em', marginTop: 4 }}>{error.companyId}</div>}
                 </div>
 
                 <div className="mb-4">
@@ -158,15 +152,15 @@ export default function AddBrand() {
                   </select>
                 </div>
 
-                <div className="d-flex gap-2 mt-4">
-                  <button type="submit" className="btn-accent px-5 py-3 flex-grow-1" disabled={loading}>
+                <div className="d-flex gap-2 mt-4 brand-form-actions">
+                  <button type="submit" className="btn-accent py-3 flex-grow-1" disabled={loading}>
                     {loading ? (
                       <><span className="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>Saving...</>
                     ) : (
                       <><i className="bi bi-check2-circle me-2" /> Save Brand</>
                     )}
                   </button>
-                  <button type="button" onClick={() => navigate('/brands')} className="btn-ghost px-5 py-3">
+                  <button type="button" onClick={() => navigate('/brands')} className="btn-ghost py-3">
                     Cancel
                   </button>
                 </div>

@@ -96,11 +96,20 @@ export default function Users() {
   const totalPages = Math.ceil(filteredAndSorted.length / entries);
   const paginatedData = filteredAndSorted.slice((currentPage - 1) * entries, currentPage * entries);
 
+  const roleBadgeStyle = (roleName) => ({
+    padding: '3px 10px',
+    borderRadius: 20,
+    fontSize: 11.5,
+    fontWeight: 600,
+    background: roleName === 'Admin' ? 'rgba(0,174,239,0.1)' : roleName === 'Manager' ? 'rgba(0,114,54,0.08)' : 'rgba(233,30,99,0.08)',
+    color: roleName === 'Admin' ? '#00aeef' : roleName === 'Manager' ? '#007236' : '#e91e63',
+  });
+
   if (loading && users.length === 0) return <div className="p-5 text-center"><div className="spinner-border text-primary"></div></div>;
 
   return (
     <div className="page-content">
-      <div className="page-header d-flex align-items-center justify-content-between">
+      <div className="page-header d-flex align-items-center justify-content-between users-page-header">
         <div>
           <h1 className="page-title">Users</h1>
           <p className="page-subtitle">Manage team members and permissions</p>
@@ -130,7 +139,7 @@ export default function Users() {
       </div>
 
       <div className="dash-card">
-        <div className="dash-card-header d-flex align-items-center justify-content-between flex-wrap gap-3">
+        <div className="dash-card-header d-flex align-items-center justify-content-between flex-wrap gap-3 users-dash-toolbar">
           <div className="d-flex align-items-center gap-2">
             <span style={{ fontSize: 13, color: 'var(--text-secondary)' }}>Show</span>
             <select
@@ -172,7 +181,63 @@ export default function Users() {
           </div>
         </div>
 
-        <div style={{ overflowX: 'auto' }}>
+        <div className="users-list-mobile">
+          {paginatedData.map((u, i) => (
+            <div key={u._id} className="users-mobile-card">
+              <div className="d-flex align-items-start gap-3">
+                <div
+                  className="users-mobile-avatar"
+                  style={{ background: avatarColors[i % avatarColors.length] }}
+                >
+                  {u.name?.charAt(0).toUpperCase() || 'U'}
+                </div>
+                <div className="flex-grow-1 min-w-0">
+                  <div className="fw-semibold text-truncate">{u.name}</div>
+                  <div className="small text-muted text-truncate">{u.email}</div>
+                  <div className="d-flex flex-wrap align-items-center gap-2 mt-2">
+                    {u.role ? (
+                      <span style={roleBadgeStyle(u.role.name)}>{u.role.name}</span>
+                    ) : (
+                      <span className="text-muted small">No Role</span>
+                    )}
+                    <span className={`badge-status badge-${u.status || 'pending'}`}>
+                      {(u.status || 'pending').charAt(0).toUpperCase() + (u.status || 'pending').slice(1)}
+                    </span>
+                  </div>
+                  <div className="small text-muted mt-1">
+                    Joined {u.createdAt ? new Date(u.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : 'N/A'}
+                  </div>
+                </div>
+              </div>
+              <div className="users-mobile-actions">
+                <Link to={`/users/view/${u._id}`} className="topbar-btn users-mobile-action-btn" title="View Details">
+                  <i className="bi bi-eye" />
+                </Link>
+                <Can I="manage" a="User">
+                  <Link to={`/users/edit/${u._id}`} className="topbar-btn users-mobile-action-btn" title="Edit">
+                    <i className="bi bi-pencil-square" />
+                  </Link>
+                  <button
+                    type="button"
+                    onClick={() => handleDelete(u._id, u.name)}
+                    className="topbar-btn users-mobile-action-btn users-mobile-action-danger"
+                    title="Delete"
+                  >
+                    <i className="bi bi-trash" />
+                  </button>
+                </Can>
+              </div>
+            </div>
+          ))}
+          {paginatedData.length === 0 && !loading && (
+            <div className="users-mobile-empty">
+              <i className="bi bi-search" />
+              No matching users found
+            </div>
+          )}
+        </div>
+
+        <div className="users-list-desktop" style={{ overflowX: 'auto' }}>
           <table className="data-table">
             <thead>
               <tr>
@@ -210,11 +275,7 @@ export default function Users() {
                   </td>
                   <td>
                     {u.role ? (
-                      <span style={{
-                        padding: '3px 10px', borderRadius: 20, fontSize: 11.5, fontWeight: 600,
-                        background: u.role.name === 'Admin' ? 'rgba(0,174,239,0.1)' : u.role.name === 'Manager' ? 'rgba(0,114,54,0.08)' : 'rgba(233,30,99,0.08)',
-                        color: u.role.name === 'Admin' ? '#00aeef' : u.role.name === 'Manager' ? '#007236' : '#e91e63',
-                      }}>{u.role.name}</span>
+                      <span style={roleBadgeStyle(u.role.name)}>{u.role.name}</span>
                     ) : (
                       <span className="text-muted small">No Role</span>
                     )}
@@ -261,7 +322,7 @@ export default function Users() {
           </table>
         </div>
 
-        <div className="d-flex align-items-center justify-content-between px-4 py-3 bg-light-subtle" style={{ borderTop: '1px solid var(--card-border)' }}>
+        <div className="d-flex align-items-center justify-content-between px-4 py-3 bg-light-subtle users-dash-footer" style={{ borderTop: '1px solid var(--card-border)' }}>
           <span style={{ fontSize: 13, color: 'var(--text-secondary)' }}>
             Showing <strong>{filteredAndSorted.length > 0 ? (currentPage - 1) * entries + 1 : 0}</strong> to <strong>{Math.min(currentPage * entries, filteredAndSorted.length)}</strong> of <strong>{filteredAndSorted.length}</strong> entries
           </span>

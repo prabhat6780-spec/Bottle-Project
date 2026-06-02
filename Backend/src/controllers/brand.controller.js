@@ -30,7 +30,7 @@ exports.createBrand = async (req, res) => {
 // ✅ GET
 exports.getBrands = async (req, res) => {
   try {
-    const brands = await Brand.find().populate("companyId", "name status");
+    const brands = await Brand.find({ isDeleted: { $ne: true } }).populate("companyId", "name status");
     res.json(brands);
   } catch (err) {
     res.status(500).json(err.message);
@@ -75,7 +75,7 @@ exports.updateBrand = async (req, res) => {
 // ✅ DELETE
 exports.deleteBrand = async (req, res) => {
   try {
-    await Brand.findByIdAndDelete(req.params.id);
+    await Brand.findByIdAndUpdate(req.params.id, { isDeleted: true }, { new: true });
     res.json({ msg: "Brand Deleted" });
   } catch (err) {
     res.status(500).json(err.message);

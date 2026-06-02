@@ -35,10 +35,6 @@ export default function EditPrintingColor() {
     let msg = '';
     if (!value || value.trim() === '') {
       msg = `${fieldLabel} is mandatory`;
-    } else if (/\s/.test(value)) {
-      msg = 'Whitespace is not allowed';
-    } else if (!/^[a-zA-Z0-9_-]+$/.test(value)) {
-      msg = `${fieldLabel} should only contain characters, numbers, underscores, or hyphens`;
     } else if (printingTypeId) {
       const isDuplicate = items.some(c => 
         c._id !== id &&
@@ -71,8 +67,7 @@ export default function EditPrintingColor() {
   const handleChange = (e) => {
     const { name: fieldName, value } = e.target;
     if (fieldName === 'name') {
-      const cleanValue = value.replace(/\s/g, '');
-      setName(cleanValue);
+      setName(value);
       if (errors.name) setErrors(prev => ({ ...prev, name: '' }));
     } else {
       setPrintingTypeId(value);
@@ -101,7 +96,7 @@ export default function EditPrintingColor() {
 
   return (
     <div className="page-content">
-      <div className="page-header d-flex align-items-center gap-3">
+      <div className="page-header d-flex align-items-center gap-3 user-form-page-header">
         <Link to="/printing-colors" className="btn-ghost" style={{ width: 40, height: 40, borderRadius: 10, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
           <i className="bi bi-arrow-left" style={{ fontSize: 20 }} />
         </Link>
@@ -165,7 +160,7 @@ export default function EditPrintingColor() {
                   </select>
                 </div>
 
-                <div className="d-flex gap-2 mt-4">
+                <div className="d-flex gap-2 mt-4 user-form-actions">
                   <button type="submit" className="btn-accent px-5 py-3 flex-grow-1" disabled={loading}>
                     {loading ? 'Saving...' : 'Update Printing Color'}
                   </button>

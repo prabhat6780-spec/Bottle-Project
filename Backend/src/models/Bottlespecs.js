@@ -14,7 +14,6 @@ const bottleSpecSchema = new mongoose.Schema({
 
   code: {
     type: String,   // e.g. Q20
-    required: true
   },
 
   printingTypeId: {
@@ -32,6 +31,10 @@ const bottleSpecSchema = new mongoose.Schema({
   status: {
     type: Boolean,
     default: true
+  },
+  isDeleted: {
+    type: Boolean,
+    default: false
   }
 
 }, { timestamps: true });

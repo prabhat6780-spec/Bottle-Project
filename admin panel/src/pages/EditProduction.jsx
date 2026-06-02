@@ -6,6 +6,7 @@ import { fetchBottleSpecs } from '../redux/slices/bottleSpecSlice';
 import { fetchVariants } from '../redux/slices/variantSlice';
 import { fetchProductions, updateProduction } from '../redux/slices/productionSlice';
 import Swal from 'sweetalert2';
+import SearchableSelect from '../components/SearchableSelect';
 
 export default function EditProduction() {
   const { id } = useParams();
@@ -17,13 +18,18 @@ export default function EditProduction() {
   const { variants } = useSelector((state) => state.variants);
   const { productions, loading } = useSelector((state) => state.productions);
 
-  // Calculate min and max dates (Today, Yesterday, Day before yesterday)
+  // Calculate min and max dates (Yesterday, Today, Tomorrow)
   const today = new Date();
-  const maxDate = today.toISOString().split('T')[0];
+  
+  const tomorrow = new Date(today);
+  tomorrow.setDate(today.getDate() + 1);
+  const maxDate = tomorrow.toISOString().split('T')[0];
 
-  const twoDaysAgo = new Date(today);
-  twoDaysAgo.setDate(today.getDate() - 2);
-  const minDate = twoDaysAgo.toISOString().split('T')[0];
+  const yesterday = new Date(today);
+  yesterday.setDate(today.getDate() - 1);
+  const minDate = yesterday.toISOString().split('T')[0];
+
+  const [isLocked, setIsLocked] = useState(false);
 
   const [formData, setFormData] = useState({
     brandId: '',
@@ -110,14 +116,20 @@ export default function EditProduction() {
   useEffect(() => {
     const record = productions.find(p => p._id === id);
     if (record) {
+      const recordDate = record.date ? new Date(record.date).toISOString().split('T')[0] : '';
       setFormData({
         brandId: record.brandId?._id || record.brandId || '',
         bottleSpecId: record.bottleSpecId?._id || record.bottleSpecId || '',
         variantId: record.variantId?._id || record.variantId || '',
-        date: record.date ? new Date(record.date).toISOString().split('T')[0] : '',
+        date: recordDate,
         totalPrinted: record.totalPrinted || '',
         bottlePerBox: record.bottlePerBox || 50,
       });
+      if (recordDate && recordDate < minDate) {
+        setIsLocked(true);
+      } else {
+        setIsLocked(false);
+      }
     }
   }, [id, productions]);
 
@@ -174,7 +186,7 @@ export default function EditProduction() {
 
   return (
     <div className="page-content">
-      <div className="page-header d-flex align-items-center gap-3">
+      <div className="page-header d-flex align-items-center gap-3 user-form-page-header">
         <Link to="/productions" className="btn-ghost" style={{ width: 40, height: 40, borderRadius: 10, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
           <i className="bi bi-arrow-left" style={{ fontSize: 20 }} />
         </Link>
@@ -188,75 +200,75 @@ export default function EditProduction() {
         <div className="col-lg-10">
           <div className="dash-card">
             <div className="dash-card-body p-4">
+              {isLocked && (
+                <div className="alert alert-warning d-flex align-items-center mb-4" style={{ borderRadius: 12 }}>
+                  <i className="bi bi-lock-fill me-3 fs-4" />
+                  <div>
+                    <h6 className="mb-1 fw-bold">Record Locked</h6>
+                    <span className="small">This production record is older than yesterday and can no longer be edited.</span>
+                  </div>
+                </div>
+              )}
               <form onSubmit={handleSubmit}>
-                <div className="row g-4">
+                <fieldset disabled={isLocked}>
+                  <div className="row g-4">
                   <div className="col-md-6">
                     <label className="form-label fw-600 small text-uppercase text-muted">
                       1. Brand <span className="text-danger">*</span>
                     </label>
-                    <select
-                      className={`form-select custom-input-field ${errors.brandId ? 'is-invalid' : ''}`}
-                      name="brandId"
-                      required
+                    <SearchableSelect
+                      options={brands.filter(b => b.status || b._id === formData.brandId).map(b => ({ value: b._id, label: b.name }))}
                       value={formData.brandId}
-                      onChange={handleChange}
-                      onBlur={handleBlur}
-                      style={{ borderRadius: 12 }}
-                    >
-                      <option value="">-- Choose Brand --</option>
-                      {brands.filter(b => b.status || b._id === formData.brandId).map(b => (
-                        <option key={b._id} value={b._id}>{b.name}</option>
-                      ))}
-                    </select>
-                    {errors.brandId && <div className="invalid-feedback">{errors.brandId}</div>}
+                      onChange={(val) => {
+                        setFormData({ ...formData, brandId: val, bottleSpecId: '', variantId: '' });
+                        if (errors.brandId) setErrors(prev => ({ ...prev, brandId: '' }));
+                      }}
+                      placeholder="-- Choose Brand --"
+                      isInvalid={!!errors.brandId}
+                    />
+                    {errors.brandId && <div className="text-danger" style={{ fontSize: '0.875em', marginTop: 4 }}>{errors.brandId}</div>}
                   </div>
 
                   <div className="col-md-6">
                     <label className="form-label fw-600 small text-uppercase text-muted">
                       2. Bottle Spec <span className="text-danger">*</span>
                     </label>
-                    <select
-                      className={`form-select custom-input-field ${errors.bottleSpecId ? 'is-invalid' : ''}`}
-                      name="bottleSpecId"
-                      required
-                      disabled={!formData.brandId}
+                    <SearchableSelect
+                      options={availableSpecs.map(s => ({
+                        value: s._id,
+                        label: `${s.bottleName} — ${s.code} (${s.printingTypeId?.name || 'N/A'} / ${s.printingColorId?.name || 'No Color'})`
+                      }))}
                       value={formData.bottleSpecId}
-                      onChange={handleChange}
-                      onBlur={handleBlur}
-                      style={{ borderRadius: 12 }}
-                    >
-                      <option value="">-- Choose Specification --</option>
-                      {availableSpecs.map(s => (
-                        <option key={s._id} value={s._id}>
-                          {s.bottleName} — {s.code} ({s.printingTypeId?.name || 'N/A'} / {s.printingColorId?.name || 'No Color'})
-                        </option>
-                      ))}
-                    </select>
-                    {errors.bottleSpecId && <div className="invalid-feedback">{errors.bottleSpecId}</div>}
+                      onChange={(val) => {
+                        setFormData({ ...formData, bottleSpecId: val, variantId: '' });
+                        if (errors.bottleSpecId) setErrors(prev => ({ ...prev, bottleSpecId: '' }));
+                      }}
+                      placeholder="-- Choose Specification --"
+                      disabled={!formData.brandId}
+                      isInvalid={!!errors.bottleSpecId}
+                    />
+                    {errors.bottleSpecId && <div className="text-danger" style={{ fontSize: '0.875em', marginTop: 4 }}>{errors.bottleSpecId}</div>}
                   </div>
 
                   <div className="col-md-4">
                     <label className="form-label fw-600 small text-uppercase text-muted">
                       3. Variant <span className="text-danger">*</span>
                     </label>
-                    <select
-                      className={`form-select custom-input-field ${errors.variantId ? 'is-invalid' : ''}`}
-                      name="variantId"
-                      required
-                      disabled={!formData.bottleSpecId}
+                    <SearchableSelect
+                      options={filteredVariants.map(v => ({
+                        value: v._id,
+                        label: `${v.variantName} — ${v.variantSize || 'N/A'}`
+                      }))}
                       value={formData.variantId}
-                      onChange={handleChange}
-                      onBlur={handleBlur}
-                      style={{ borderRadius: 12 }}
-                    >
-                      <option value="">-- Choose Variant --</option>
-                      {filteredVariants.map(v => (
-                        <option key={v._id} value={v._id}>
-                          {v.variantName} — {v.variantSize || 'N/A'}
-                        </option>
-                      ))}
-                    </select>
-                    {errors.variantId && <div className="invalid-feedback">{errors.variantId}</div>}
+                      onChange={(val) => {
+                        setFormData({ ...formData, variantId: val });
+                        if (errors.variantId) setErrors(prev => ({ ...prev, variantId: '' }));
+                      }}
+                      placeholder="-- Choose Variant --"
+                      disabled={!formData.bottleSpecId}
+                      isInvalid={!!errors.variantId}
+                    />
+                    {errors.variantId && <div className="text-danger" style={{ fontSize: '0.875em', marginTop: 4 }}>{errors.variantId}</div>}
                   </div>
 
                   <div className="col-md-4">
@@ -345,16 +357,19 @@ export default function EditProduction() {
                   </div>
                 </div>
 
-                <div className="d-flex gap-2 mt-5">
-                  <button type="submit" className="btn-accent px-5 py-3 flex-grow-1" disabled={loading}>
-                    {loading ? (
-                      <><span className="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>Updating...</>
-                    ) : (
-                      <><i className="bi bi-check2-circle me-2" /> Update Printing Production Log</>
-                    )}
-                  </button>
+                </fieldset>
+                <div className="d-flex gap-2 mt-5 user-form-actions">
+                  {!isLocked && (
+                    <button type="submit" className="btn-accent px-5 py-3 flex-grow-1" disabled={loading}>
+                      {loading ? (
+                        <><span className="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>Updating...</>
+                      ) : (
+                        <><i className="bi bi-check2-circle me-2" /> Update Printing Production Log</>
+                      )}
+                    </button>
+                  )}
                   <button type="button" onClick={() => navigate('/productions')} className="btn-ghost px-5 py-3">
-                    Cancel
+                    {isLocked ? 'Back' : 'Cancel'}
                   </button>
                 </div>
               </form>

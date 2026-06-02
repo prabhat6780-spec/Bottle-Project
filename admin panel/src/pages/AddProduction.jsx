@@ -8,6 +8,7 @@ import { createProduction } from '../redux/slices/productionSlice';
 import { matchBottle, clearMatchResult } from '../redux/slices/visionSlice';
 import API from '../services/api';
 import Swal from 'sweetalert2';
+import SearchableSelect from '../components/SearchableSelect';
 
 export default function AddProduction() {
   const navigate = useNavigate();
@@ -19,13 +20,16 @@ export default function AddProduction() {
   const { loading: saving } = useSelector((state) => state.productions);
   const { loading: matching, matchResult } = useSelector((state) => state.vision);
 
-  // Calculate min and max dates (Today, Yesterday, Day before yesterday)
+  // Calculate min and max dates (Yesterday, Today, Tomorrow)
   const today = new Date();
-  const maxDate = today.toISOString().split('T')[0];
+  
+  const tomorrow = new Date(today);
+  tomorrow.setDate(today.getDate() + 1);
+  const maxDate = tomorrow.toISOString().split('T')[0];
 
-  const twoDaysAgo = new Date(today);
-  twoDaysAgo.setDate(today.getDate() - 2);
-  const minDate = twoDaysAgo.toISOString().split('T')[0];
+  const yesterday = new Date(today);
+  yesterday.setDate(today.getDate() - 1);
+  const minDate = yesterday.toISOString().split('T')[0];
 
   const [formData, setFormData] = useState({
     brandId: '',
@@ -176,23 +180,40 @@ export default function AddProduction() {
     return () => stopCamera();
   }, []);
 
+  const applyVisionMatchToForm = (data) => {
+    setFormData((prev) => ({
+      ...prev,
+      brandId: data.brandId || '',
+      bottleSpecId: data.bottleSpecId || '',
+      variantId: data.variantId || ''
+    }));
+  };
+
+  const handleSizeOptionChange = (variantId) => {
+    const option = matchResult?.sizeOptions?.find((o) => o.variantId === variantId);
+    if (!option) return;
+    setFormData((prev) => ({ ...prev, variantId: option.variantId }));
+  };
+
   const handleMatch = () => {
     if (!image) return Swal.fire('Error', 'Please provide an image first', 'error');
 
     dispatch(matchBottle(image)).then((res) => {
       if (res.payload?.match) {
         const data = res.payload;
-        setFormData({
-          ...formData,
-          brandId: data.brandId || '',
-          bottleSpecId: data.bottleSpecId || '',
-          variantId: data.variantId || ''
-        });
-        setMode('manual'); // Switch to manual to show the result
+        applyVisionMatchToForm(data);
+        setMode('manual');
+
+        const sizeNote = data.sizeSelectionRequired
+          ? `<br/><small class="text-muted">Size not on label — default <b>${data.variantSize || data.sizeOptions?.[0]?.variantSize}</b>. Change size from the dropdown if needed.</small>`
+          : data.detectedSizeOnBottle
+            ? `<br/><small class="text-muted">Size on bottle: <b>${data.detectedSizeOnBottle}</b></small>`
+            : '';
+
         Swal.fire({
           icon: 'success',
           title: 'Match Found!',
-          html: `<b>Detected:</b> ${data.brandName} - ${data.productName}<br/><b>Text Color:</b> <span class="badge bg-dark">${data.detectedTextColor || 'N/A'}</span>`
+          html: `<b>Detected:</b> ${data.brandName} - ${data.variantName}${data.variantSize ? ` (${data.variantSize})` : ''}<br/><b>Text Color:</b> <span class="badge bg-dark">${data.detectedTextColor || 'N/A'}</span>${sizeNote}`
         });
       } else if (res.payload) {
         Swal.fire('No Match', res.payload.message || 'Bottle not recognized', 'warning');
@@ -233,7 +254,7 @@ export default function AddProduction() {
 
   return (
     <div className="page-content">
-      <div className="page-header d-flex align-items-center justify-content-between">
+      <div className="page-header d-flex align-items-center justify-content-between productions-add-header user-form-page-header">
         <div className="d-flex align-items-center gap-3">
           <Link to="/productions" className="btn-ghost" style={{ width: 40, height: 40, borderRadius: 10, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
             <i className="bi bi-arrow-left" style={{ fontSize: 20 }} />
@@ -244,7 +265,7 @@ export default function AddProduction() {
           </div>
         </div>
 
-        <div className="mode-toggle-container p-1 bg-light rounded-4 d-flex" style={{ border: '1px solid #eee' }}>
+        <div className="mode-toggle-container p-1 bg-light rounded-4 d-flex productions-mode-toggle" style={{ border: '1px solid #eee' }}>
           <button
             className={`btn btn-sm py-2 px-4 rounded-3 border-0 transition-all ${mode === 'camera' ? 'btn-accent shadow-sm' : 'btn-ghost'}`}
             onClick={() => setMode('camera')}
@@ -377,12 +398,44 @@ export default function AddProduction() {
               <div className="dash-card-body p-4 p-md-5">
                 
                 {matchResult?.match && (
-                  <div className="alert alert-success d-flex align-items-center mb-4" style={{ borderRadius: 12 }}>
-                    <i className="bi bi-check-circle-fill me-3 fs-4" />
-                    <div>
-                      <h6 className="mb-1 fw-bold">Successfully Matched via Camera</h6>
-                      <span className="small">Brand: {matchResult.brandName} | Variant: {matchResult.variantName} | Text Color: <b className="text-dark">{matchResult.detectedTextColor}</b></span>
+                  <div className="alert alert-success mb-4" style={{ borderRadius: 12 }}>
+                    <div className="d-flex align-items-start">
+                      <i className="bi bi-check-circle-fill me-3 fs-4" />
+                      <div className="flex-grow-1">
+                        <h6 className="mb-1 fw-bold">Successfully Matched via Camera</h6>
+                        <span className="small d-block">
+                          Brand: {matchResult.brandName} | Variant: {matchResult.variantName} | Text Color:{' '}
+                          <b className="text-dark">{matchResult.detectedTextColor}</b>
+                        </span>
+                        {matchResult.detectedSizeOnBottle && (
+                          <span className="small d-block mt-1 text-muted">
+                            Size read from bottle: <b>{matchResult.detectedSizeOnBottle}</b>
+                          </span>
+                        )}
+                      </div>
                     </div>
+                    {matchResult.sizeSelectionRequired && matchResult.sizeOptions?.length > 1 && (
+                      <div className="mt-3 pt-3 border-top border-success-subtle">
+                        <label className="form-label fw-600 small text-uppercase text-muted mb-2">
+                          Select bottle size (ml)
+                        </label>
+                        <select
+                          className="form-select custom-input-field"
+                          value={formData.variantId}
+                          onChange={(e) => handleSizeOptionChange(e.target.value)}
+                          style={{ borderRadius: 12, maxWidth: 320 }}
+                        >
+                          {matchResult.sizeOptions.map((opt) => (
+                            <option key={opt.variantId} value={opt.variantId}>
+                              {opt.variantSize}
+                            </option>
+                          ))}
+                        </select>
+                        <div className="form-text small text-muted mt-1">
+                          Smallest size ({matchResult.sizeOptions[0]?.variantSize}) selected automatically. Choose 50 ml, 100 ml, etc. if this bottle is a different size.
+                        </div>
+                      </div>
+                    )}
                   </div>
                 )}
 
@@ -392,69 +445,62 @@ export default function AddProduction() {
                       <label className="form-label fw-600 small text-uppercase text-muted">
                         1. Brand <span className="text-danger">*</span>
                       </label>
-                      <select
-                        className={`form-select custom-input-field ${errors.brandId ? 'is-invalid' : ''}`}
-                        name="brandId"
-                        required
+                      <SearchableSelect
+                        options={brands.filter(b => b.status).map(b => ({
+                          value: b._id,
+                          label: `${b.name}${b.companyId?.name ? ` (${b.companyId.name})` : ''}`
+                        }))}
                         value={formData.brandId}
-                        onChange={handleChange}
-                        onBlur={handleBlur}
-                        style={{ borderRadius: 12 }}
-                      >
-                        <option value="">-- Choose Brand --</option>
-                        {brands.filter(b => b.status).map(b => (
-                          <option key={b._id} value={b._id}>{b.name} {b.companyId?.name ? `(${b.companyId.name})` : ''}</option>
-                        ))}
-                      </select>
-                      {errors.brandId && <div className="invalid-feedback">{errors.brandId}</div>}
+                        onChange={(val) => {
+                          setFormData({ ...formData, brandId: val, bottleSpecId: '', variantId: '' });
+                          if (errors.brandId) setErrors(prev => ({ ...prev, brandId: '' }));
+                        }}
+                        placeholder="-- Choose Brand --"
+                        isInvalid={!!errors.brandId}
+                      />
+                      {errors.brandId && <div className="text-danger" style={{ fontSize: '0.875em', marginTop: 4 }}>{errors.brandId}</div>}
                     </div>
 
                     <div className="col-md-6">
                       <label className="form-label fw-600 small text-uppercase text-muted">
                         2. Bottle Spec <span className="text-danger">*</span>
                       </label>
-                      <select
-                        className={`form-select custom-input-field ${errors.bottleSpecId ? 'is-invalid' : ''}`}
-                        name="bottleSpecId"
-                        required
-                        disabled={!formData.brandId}
+                      <SearchableSelect
+                        options={availableSpecs.map(s => ({
+                          value: s._id,
+                          label: `${s.bottleName} — ${s.code} (${s.printingTypeId?.name || 'N/A'} / ${s.printingColorId?.name || 'No Color'})`
+                        }))}
                         value={formData.bottleSpecId}
-                        onChange={handleChange}
-                        onBlur={handleBlur}
-                        style={{ borderRadius: 12 }}
-                      >
-                        <option value="">-- Choose Specification --</option>
-                        {availableSpecs.map(s => (
-                          <option key={s._id} value={s._id}>
-                            {s.bottleName} — {s.code} ({s.printingTypeId?.name || 'N/A'} / {s.printingColorId?.name || 'No Color'})
-                          </option>
-                        ))}
-                      </select>
-                      {errors.bottleSpecId && <div className="invalid-feedback">{errors.bottleSpecId}</div>}
+                        onChange={(val) => {
+                          setFormData({ ...formData, bottleSpecId: val, variantId: '' });
+                          if (errors.bottleSpecId) setErrors(prev => ({ ...prev, bottleSpecId: '' }));
+                        }}
+                        placeholder="-- Choose Specification --"
+                        disabled={!formData.brandId}
+                        isInvalid={!!errors.bottleSpecId}
+                      />
+                      {errors.bottleSpecId && <div className="text-danger" style={{ fontSize: '0.875em', marginTop: 4 }}>{errors.bottleSpecId}</div>}
                     </div>
 
                     <div className="col-md-4">
                       <label className="form-label fw-600 small text-uppercase text-muted">
                         3. Variant <span className="text-danger">*</span>
                       </label>
-                      <select
-                        className={`form-select custom-input-field ${errors.variantId ? 'is-invalid' : ''}`}
-                        name="variantId"
-                        required
-                        disabled={!formData.bottleSpecId}
+                      <SearchableSelect
+                        options={filteredVariants.map(v => ({
+                          value: v._id,
+                          label: `${v.variantName} — ${v.variantSize || 'N/A'}`
+                        }))}
                         value={formData.variantId}
-                        onChange={handleChange}
-                        onBlur={handleBlur}
-                        style={{ borderRadius: 12 }}
-                      >
-                        <option value="">-- Choose Variant --</option>
-                        {filteredVariants.map(v => (
-                          <option key={v._id} value={v._id}>
-                            {v.variantName} — {v.variantSize || 'N/A'}
-                          </option>
-                        ))}
-                      </select>
-                      {errors.variantId && <div className="invalid-feedback">{errors.variantId}</div>}
+                        onChange={(val) => {
+                          setFormData({ ...formData, variantId: val });
+                          if (errors.variantId) setErrors(prev => ({ ...prev, variantId: '' }));
+                        }}
+                        placeholder="-- Choose Variant --"
+                        disabled={!formData.bottleSpecId}
+                        isInvalid={!!errors.variantId}
+                      />
+                      {errors.variantId && <div className="text-danger" style={{ fontSize: '0.875em', marginTop: 4 }}>{errors.variantId}</div>}
                     </div>
 
                     <div className="col-md-4">
@@ -543,7 +589,7 @@ export default function AddProduction() {
                     </div>
                   </div>
 
-                  <div className="d-flex gap-3 mt-5">
+                  <div className="d-flex gap-3 mt-5 user-form-actions">
                     <button type="submit" className="btn-accent px-5 py-3 flex-grow-1 rounded-4 shadow-sm" disabled={saving}>
                       {saving ? (
                         <><span className="spinner-border spinner-border-sm me-2" /> Saving...</>

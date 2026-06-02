@@ -33,14 +33,19 @@ const navItems = [
   },
 ];
 
-export default function Sidebar({ collapsed }) {
+export default function Sidebar({ collapsed, onClose }) {
   const ability = useContext(AbilityContext);
 
   return (
     <aside className={`sidebar ${collapsed ? 'collapsed' : ''}`}>
       {/* Brand */}
-      <div className="sidebar-brand" style={{ justifyContent: 'center' }}>
-        <img src={logo} alt="Logo" style={{ height: '60px', maxWidth: '100%', objectFit: 'contain' }} />
+      <div className="sidebar-brand" style={{ justifyContent: 'space-between', position: 'relative' }}>
+        <div style={{ flex: 1, display: 'flex', justifyContent: 'center' }}>
+          <img src={logo} alt="Logo" style={{ height: '60px', maxWidth: '100%', objectFit: 'contain' }} />
+        </div>
+        <button className="mobile-close-btn btn btn-sm btn-link text-white shadow-none p-0" onClick={onClose} style={{ position: 'absolute', right: '15px' }}>
+          <i className="bi bi-x-lg fs-5"></i>
+        </button>
       </div>
 
       {/* Nav */}
@@ -60,6 +65,7 @@ export default function Sidebar({ collapsed }) {
                   key={link.to}
                   to={link.to}
                   end={link.to === '/'}
+                  onClick={onClose}
                   className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}
                 >
                   <i className={`bi ${link.icon} nav-icon`} />

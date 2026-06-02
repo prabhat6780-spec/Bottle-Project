@@ -44,14 +44,47 @@ export default function UserDetail() {
 
   return (
     <div className="page-content">
-      <div className="page-header d-flex align-items-center gap-3">
+      <div className="page-header d-flex align-items-center gap-3 user-detail-page-header">
         <Link to="/users" className="btn-ghost" style={{ width: 40, height: 40, borderRadius: 10, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
           <i className="bi bi-arrow-left" style={{ fontSize: 20 }} />
         </Link>
         <h1 className="page-title">User Detailed</h1>
       </div>
 
-      <div className="dash-card mt-4">
+      <div className="user-detail-mobile dash-card mt-4">
+        <div className="dash-card-body p-4">
+          <div className="user-detail-mobile-profile text-center mb-4">
+            <div className="user-detail-mobile-avatar">
+              {user.name?.charAt(0).toUpperCase() || 'U'}
+            </div>
+            <h2 className="h5 mb-1 mt-3">{user.name}</h2>
+            <p className="text-muted small mb-0">{user.email}</p>
+          </div>
+          <div className="user-detail-mobile-grid">
+            <div className="user-detail-mobile-field">
+              <span className="user-detail-mobile-label">Role</span>
+              <span>{typeof user.role === 'object' ? user.role.name : (user.role || 'N/A')}</span>
+            </div>
+            <div className="user-detail-mobile-field">
+              <span className="user-detail-mobile-label">Status</span>
+              <span className={`badge-status badge-${user.status || 'pending'}`} style={{ fontSize: 11, borderRadius: 4 }}>
+                {(user.status || 'pending').toUpperCase()}
+              </span>
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={toggleStatus}
+            disabled={loading}
+            className={`btn w-100 mt-4 ${user.status === 'active' ? 'btn-danger' : 'btn-success'} py-2 fw-bold text-uppercase`}
+            style={{ fontSize: 12, borderRadius: 6, boxShadow: '0 4px 6px rgba(0,0,0,0.1)' }}
+          >
+            {loading ? 'Processing...' : (user.status === 'active' ? 'MAKE INACTIVE' : 'MAKE ACTIVE')}
+          </button>
+        </div>
+      </div>
+
+      <div className="user-detail-desktop dash-card mt-4">
         <div className="dash-card-body p-0">
           <div className="table-responsive">
             <table className="table mb-0 align-middle">

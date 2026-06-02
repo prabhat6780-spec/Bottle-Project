@@ -55,9 +55,12 @@ export default function BottleSpecs() {
     setCurrentPage(1);
   }, [search, itemsPerPage]);
 
+  const isItemActive = (s) =>
+    s.status === true || s.status === 'active' || s.status === undefined;
+
   return (
     <div className="page-content">
-      <div className="page-header d-flex align-items-center justify-content-between mb-4">
+      <div className="page-header d-flex align-items-center justify-content-between mb-4 companies-page-header">
         <div>
           <h1 className="page-title mb-1">Bottle Specifications</h1>
           <p className="page-subtitle mb-0">Manage technical designs and printing requirements</p>
@@ -70,7 +73,7 @@ export default function BottleSpecs() {
       </div>
 
       <div className="dash-card border-0 shadow-sm overflow-hidden" style={{ borderRadius: 20 }}>
-        <div className="dash-card-header d-flex align-items-center justify-content-between p-3 border-bottom bg-white">
+        <div className="dash-card-header d-flex align-items-center justify-content-between p-3 border-bottom bg-white companies-dash-toolbar">
           <div className="d-flex align-items-center gap-2 text-muted small fw-500">
             <span>Show</span>
             <select 
@@ -98,7 +101,51 @@ export default function BottleSpecs() {
           </div>
         </div>
 
-        <div className="table-responsive">
+        <div className="companies-list-mobile">
+          {paginatedItems.map((s, index) => (
+            <div key={s._id} className="companies-mobile-card">
+              <div className="d-flex align-items-start gap-3 flex-grow-1 min-w-0">
+                <div className="companies-mobile-avatar bg-light text-accent d-flex align-items-center justify-content-center">
+                  <i className="bi bi-droplet-fill" />
+                </div>
+                <div className="flex-grow-1 min-w-0">
+                  <div className="d-flex align-items-center gap-2 mb-1 flex-wrap">
+                    <span className="text-muted small fw-bold">#{String((currentPage - 1) * itemsPerPage + index + 1).padStart(2, '0')}</span>
+                    <span className="fw-semibold text-truncate">{s.bottleName}</span>
+                    <span className="badge bg-light text-dark border fw-normal small">{s.code}</span>
+                  </div>
+                  <div className="small text-muted">{s.brandId?.companyId?.name || 'N/A'} · {s.brandId?.name || 'N/A'}</div>
+                  <div className="small text-muted mt-1">
+                    {s.printingTypeId?.name || 'N/A'} — {s.printingColorId?.name || 'No Color'}
+                  </div>
+                  <span className={`badge-status badge-${isItemActive(s) ? 'active' : 'inactive'} mt-1`}>
+                    {isItemActive(s) ? 'Active' : 'Inactive'}
+                  </span>
+                </div>
+              </div>
+              <div className="companies-mobile-actions">
+                <Link to={`/bottle-specs/view/${s._id}`} className="btn btn-sm btn-outline-info border-0 rounded-3 shadow-none companies-mobile-action-btn" title="View">
+                  <i className="bi bi-eye fs-6" />
+                </Link>
+                <Can I="edit" a="bottlespec">
+                  <Link to={`/bottle-specs/edit/${s._id}`} className="btn btn-sm btn-outline-primary border-0 rounded-3 shadow-none companies-mobile-action-btn" title="Edit">
+                    <i className="bi bi-pencil-square fs-6" />
+                  </Link>
+                </Can>
+                <Can I="delete" a="bottlespec">
+                  <button type="button" onClick={() => handleDelete(s._id, s.bottleName)} className="btn btn-sm btn-outline-danger border-0 rounded-3 shadow-none companies-mobile-action-btn" title="Delete">
+                    <i className="bi bi-trash fs-6" />
+                  </button>
+                </Can>
+              </div>
+            </div>
+          ))}
+          {paginatedItems.length === 0 && !loading && (
+            <div className="companies-mobile-empty">No specifications found</div>
+          )}
+        </div>
+
+        <div className="companies-list-desktop table-responsive">
           <table className="data-table mb-0">
             <thead className="bg-light">
               <tr>
@@ -151,16 +198,19 @@ export default function BottleSpecs() {
                       style={{
                         fontSize: 10,
                         letterSpacing: '0.5px',
-                        backgroundColor: (s.status === true || s.status === 'active' || s.status === undefined) ? '#e6fffa' : '#fff5f5',
-                        color: (s.status === true || s.status === 'active' || s.status === undefined) ? '#38a169' : '#e53e3e',
-                        border: `1px solid ${(s.status === true || s.status === 'active' || s.status === undefined) ? '#b2f5ea' : '#fed7d7'}`
+                        backgroundColor: isItemActive(s) ? '#e6fffa' : '#fff5f5',
+                        color: isItemActive(s) ? '#38a169' : '#e53e3e',
+                        border: `1px solid ${isItemActive(s) ? '#b2f5ea' : '#fed7d7'}`
                       }}
                     >
-                      {(s.status === true || s.status === 'active' || s.status === undefined) ? 'Active' : 'Inactive'}
+                      {isItemActive(s) ? 'Active' : 'Inactive'}
                     </span>
                   </td>
                   <td className="py-3 text-center">
                     <div className="d-flex gap-2 justify-content-center">
+                      <Link to={`/bottle-specs/view/${s._id}`} className="btn btn-sm btn-outline-info border-0 rounded-3 shadow-none p-2" title="View">
+                        <i className="bi bi-eye fs-6" />
+                      </Link>
                       <Can I="edit" a="bottlespec">
                         <Link to={`/bottle-specs/edit/${s._id}`} className="btn btn-sm btn-outline-primary border-0 rounded-3 shadow-none p-2" title="Edit">
                           <i className="bi bi-pencil-square fs-6" />
@@ -177,7 +227,7 @@ export default function BottleSpecs() {
               ))}
               {paginatedItems.length === 0 && !loading && (
                 <tr>
-                  <td colSpan={6} className="text-center py-5">
+                  <td colSpan={7} className="text-center py-5">
                     <div className="py-4">
                       <i className="bi bi-search text-muted mb-3 d-block" style={{ fontSize: 48 }} />
                       <h5 className="text-dark fw-bold">No results found</h5>
@@ -190,7 +240,7 @@ export default function BottleSpecs() {
           </table>
         </div>
 
-        <div className="dash-card-footer d-flex align-items-center justify-content-between p-3 border-top bg-white">
+        <div className="dash-card-footer d-flex align-items-center justify-content-between p-3 border-top bg-white companies-dash-footer">
           <div className="text-muted small fw-500">
             Showing <b>{filteredSpecs.length > 0 ? (currentPage - 1) * itemsPerPage + 1 : 0}</b> to <b>{Math.min(currentPage * itemsPerPage, filteredSpecs.length)}</b> of <b>{filteredSpecs.length}</b> entries
           </div>

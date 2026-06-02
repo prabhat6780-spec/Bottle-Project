@@ -14,6 +14,10 @@ const roleSchema = new mongoose.Schema(
         ref: "Permission",
       },
     ],
+    isDeleted: {
+      type: Boolean,
+      default: false
+    }
   },
   {
     timestamps: true,

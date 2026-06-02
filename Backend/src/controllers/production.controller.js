@@ -4,7 +4,7 @@ const Production = require("../models/Production");
 // ✅ CREATE (with duplicate prevention)
 const addProduction = async (req, res) => {
   try {
-    const { variantId, brandId, bottleSpecId, totalPrinted, bottlePerBox } = req.body;
+    const { variantId, brandId, bottleSpecId, totalPrinted, bottlePerBox, date: reqDate } = req.body;
 
     if (!variantId || !brandId || !bottleSpecId || !totalPrinted || !bottlePerBox) {
       return res.status(400).json({
@@ -12,7 +12,7 @@ const addProduction = async (req, res) => {
       });
     }
 
-    const date = new Date().toISOString().split("T")[0];
+    const date = reqDate || new Date().toISOString().split("T")[0];
 
     // 🚫 Prevent duplicate entry for same variant + date
     const exists = await Production.findOne({ variantId, date });
@@ -61,7 +61,7 @@ const getAllProduction = async (req, res) => {
   try {
     const { variantId, date } = req.query;
 
-    let filter = {};
+    let filter = { isDeleted: { $ne: true } };
 
     if (variantId) filter.variantId = variantId;
     if (date) filter.date = date;
@@ -116,7 +116,7 @@ const getProductionById = async (req, res) => {
 // ✅ UPDATE (recalculate values)
 const updateProduction = async (req, res) => {
   try {
-    const { totalPrinted, bottlePerBox } = req.body;
+    const { totalPrinted, bottlePerBox, date, brandId, bottleSpecId, variantId } = req.body;
 
     if (!totalPrinted || !bottlePerBox) {
       return res.status(400).json({
@@ -127,14 +127,21 @@ const updateProduction = async (req, res) => {
     const totalBoxes = Math.floor(totalPrinted / bottlePerBox);
     const remainingBottles = totalPrinted % bottlePerBox;
 
+    const updateFields = {
+      totalPrinted,
+      bottlePerBox,
+      totalBoxes,
+      remainingBottles,
+    };
+
+    if (date) updateFields.date = date;
+    if (brandId) updateFields.brandId = brandId;
+    if (bottleSpecId) updateFields.bottleSpecId = bottleSpecId;
+    if (variantId) updateFields.variantId = variantId;
+
     const updated = await Production.findByIdAndUpdate(
       req.params.id,
-      {
-        totalPrinted,
-        bottlePerBox,
-        totalBoxes,
-        remainingBottles,
-      },
+      updateFields,
       { returnDocument: 'after' }
     ).populate("variantId")
       .populate({
@@ -162,7 +169,7 @@ const updateProduction = async (req, res) => {
 // ✅ DELETE
 const deleteProduction = async (req, res) => {
   try {
-    const deleted = await Production.findByIdAndDelete(req.params.id);
+    const deleted = await Production.findByIdAndUpdate(req.params.id, { isDeleted: true }, { new: true });
 
     if (!deleted) {
       return res.status(404).json({ message: "Production not found" });

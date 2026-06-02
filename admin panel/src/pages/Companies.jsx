@@ -48,9 +48,19 @@ export default function Companies() {
     setCurrentPage(1);
   }, [search, itemsPerPage]);
 
+  const isCompanyActive = (b) =>
+    b.status === true || b.status === 'active' || b.status === undefined;
+
+  const companyAvatarColors = [
+    'linear-gradient(135deg,#00aeef,#008ecc)',
+    'linear-gradient(135deg,#007236,#008b45)',
+    'linear-gradient(135deg,#6366f1,#8b5cf6)',
+    'linear-gradient(135deg,#ffcc00,#ffb300)',
+  ];
+
   return (
     <div className="page-content">
-      <div className="page-header d-flex align-items-center justify-content-between">
+      <div className="page-header d-flex align-items-center justify-content-between companies-page-header">
         <div>
           <h1 className="page-title">Companies</h1>
           <p className="page-subtitle">Manage your company portfolio</p>
@@ -63,7 +73,7 @@ export default function Companies() {
       </div>
 
       <div className="dash-card">
-        <div className="dash-card-header d-flex align-items-center justify-content-between p-3 border-bottom bg-white">
+        <div className="dash-card-header d-flex align-items-center justify-content-between p-3 border-bottom bg-white companies-dash-toolbar">
           <div className="d-flex align-items-center gap-2 text-muted small fw-500">
             <span>Show</span>
             <select 
@@ -91,7 +101,58 @@ export default function Companies() {
           </div>
         </div>
 
-        <div style={{ overflowX: 'auto' }}>
+        <div className="companies-list-mobile">
+          {paginatedItems.map((b, index) => (
+            <div key={b._id} className="companies-mobile-card">
+              <div className="d-flex align-items-start gap-3 flex-grow-1 min-w-0">
+                <div
+                  className="companies-mobile-avatar"
+                  style={{ background: companyAvatarColors[index % companyAvatarColors.length] }}
+                >
+                  {b.name?.charAt(0).toUpperCase() || 'C'}
+                </div>
+                <div className="flex-grow-1 min-w-0">
+                  <div className="d-flex align-items-center gap-2 mb-1">
+                    <span className="text-muted small fw-bold">#{String((currentPage - 1) * itemsPerPage + index + 1).padStart(2, '0')}</span>
+                    <span className="fw-semibold text-truncate">{b.name}</span>
+                  </div>
+                  <span className={`badge-status badge-${isCompanyActive(b) ? 'active' : 'inactive'}`}>
+                    {isCompanyActive(b) ? 'ACTIVE' : 'INACTIVE'}
+                  </span>
+                  <div className="small text-muted mt-1">
+                    Created {b.createdAt ? new Date(b.createdAt).toLocaleDateString() : 'N/A'}
+                  </div>
+                </div>
+              </div>
+              <div className="companies-mobile-actions">
+                <Can I="edit" a="company">
+                  <Link
+                    to={`/companies/edit/${b._id}`}
+                    className="btn btn-sm btn-outline-primary border-0 rounded-3 shadow-none companies-mobile-action-btn"
+                    title="Edit"
+                  >
+                    <i className="bi bi-pencil-square fs-6" />
+                  </Link>
+                </Can>
+                <Can I="delete" a="company">
+                  <button
+                    type="button"
+                    onClick={() => handledeleteCompany(b._id, b.name)}
+                    className="btn btn-sm btn-outline-danger border-0 rounded-3 shadow-none companies-mobile-action-btn"
+                    title="Delete"
+                  >
+                    <i className="bi bi-trash fs-6" />
+                  </button>
+                </Can>
+              </div>
+            </div>
+          ))}
+          {paginatedItems.length === 0 && !loading && (
+            <div className="companies-mobile-empty">No companies found</div>
+          )}
+        </div>
+
+        <div className="companies-list-desktop" style={{ overflowX: 'auto' }}>
           <table className="data-table mb-0">
             <thead>
               <tr>
@@ -110,8 +171,8 @@ export default function Companies() {
                   </td>
                   <td className="py-3 text-center fw-600">{b.name}</td>
                   <td className="py-3 text-center">
-                    <span className={`badge-status badge-${(b.status === true || b.status === 'active' || b.status === undefined) ? 'active' : 'inactive'}`}>
-                      {(b.status === true || b.status === 'active' || b.status === undefined) ? 'ACTIVE' : 'INACTIVE'}
+                    <span className={`badge-status badge-${isCompanyActive(b) ? 'active' : 'inactive'}`}>
+                      {isCompanyActive(b) ? 'ACTIVE' : 'INACTIVE'}
                     </span>
                   </td>
                   <td className="py-3 text-center text-muted">
@@ -140,7 +201,7 @@ export default function Companies() {
           </table>
         </div>
 
-        <div className="dash-card-footer d-flex align-items-center justify-content-between p-3 border-top bg-white">
+        <div className="dash-card-footer d-flex align-items-center justify-content-between p-3 border-top bg-white companies-dash-footer">
           <div className="text-muted small fw-500">
             Showing <b>{filteredcompanies.length > 0 ? (currentPage - 1) * itemsPerPage + 1 : 0}</b> to <b>{Math.min(currentPage * itemsPerPage, filteredcompanies.length)}</b> of <b>{filteredcompanies.length}</b> entries
           </div>

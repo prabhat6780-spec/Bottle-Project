@@ -59,7 +59,7 @@ exports.createPrintingColor = async (req, res) => {
 // ✅ GET
 exports.getPrintingColors = async (req, res) => {
   try {
-    const printingColors = await PrintingColor.find().populate("printingTypeId");
+    const printingColors = await PrintingColor.find({ isDeleted: { $ne: true } }).populate("printingTypeId");
     res.json(printingColors);
   } catch (err) {
     res.status(500).json(err.message);
@@ -99,7 +99,7 @@ exports.updatePrintingColor = async (req, res) => {
 // ✅ DELETE
 exports.deletePrintingColor = async (req, res) => {
   try {
-    await PrintingColor.findByIdAndDelete(req.params.id);
+    await PrintingColor.findByIdAndUpdate(req.params.id, { isDeleted: true }, { new: true });
     res.json({ msg: "Printing Color Deleted" });
   } catch (err) {
     res.status(500).json(err.message);

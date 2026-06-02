@@ -4,6 +4,7 @@ import { useDispatch, useSelector } from 'react-redux';
 import { createPrintingColor, fetchPrintingColors } from '../redux/slices/printingColorSlice';
 import { fetchPrintingTypes } from '../redux/slices/printingTypeSlice';
 import Swal from 'sweetalert2';
+import SearchableSelect from '../components/SearchableSelect';
 
 export default function AddPrintingColor() {
   const navigate = useNavigate();
@@ -39,10 +40,6 @@ export default function AddPrintingColor() {
     let msg = '';
     if (!value || value.trim() === '') {
       msg = `${fieldLabel} is mandatory`;
-    } else if (/\s/.test(value)) {
-      msg = 'Whitespace is not allowed';
-    } else if (!/^[a-zA-Z0-9_-]+$/.test(value)) {
-      msg = `${fieldLabel} should only contain characters, numbers, underscores, or hyphens`;
     } else if (printingTypeId) {
       const isDuplicate = printingColors.some(c => 
         (c.printingTypeId?._id === printingTypeId || c.printingTypeId === printingTypeId) &&
@@ -56,9 +53,8 @@ export default function AddPrintingColor() {
   };
 
   const handleRowChange = (index, field, value) => {
-    const cleanValue = field === 'name' ? value.replace(/\s/g, '') : value;
     const newRows = [...colorRows];
-    newRows[index][field] = cleanValue;
+    newRows[index][field] = value;
     setColorRows(newRows);
     if (errors[`name_${index}`]) {
       const newErrors = { ...errors };
@@ -128,7 +124,7 @@ export default function AddPrintingColor() {
 
   return (
     <div className="page-content">
-      <div className="page-header d-flex align-items-center gap-3">
+      <div className="page-header d-flex align-items-center gap-3 user-form-page-header">
         <Link to="/printing-colors" className="btn-ghost" style={{ width: 40, height: 40, borderRadius: 10, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
           <i className="bi bi-arrow-left" style={{ fontSize: 20 }} />
         </Link>
@@ -147,18 +143,17 @@ export default function AddPrintingColor() {
                   <label className="form-label fw-600 small text-uppercase text-muted">
                     Printing Type <span className="text-danger">*</span>
                   </label>
-                  <select
-                    className={`form-select custom-input-field ${errors.printingTypeId ? 'is-invalid' : ''}`}
+                  <SearchableSelect
+                    options={printingTypes.filter(t => t.status).map(t => ({ value: t._id, label: t.name }))}
                     value={printingTypeId}
-                    onChange={(e) => setPrintingTypeId(e.target.value)}
-                    style={{ borderRadius: 12 }}
-                  >
-                    <option value="">Select Printing Type</option>
-                    {printingTypes.filter(t => t.status).map(t => (
-                      <option key={t._id} value={t._id}>{t.name}</option>
-                    ))}
-                  </select>
-                  {errors.printingTypeId && <div className="invalid-feedback">{errors.printingTypeId}</div>}
+                    onChange={(val) => {
+                      setPrintingTypeId(val);
+                      if (errors.printingTypeId) setErrors(prev => ({ ...prev, printingTypeId: '' }));
+                    }}
+                    placeholder="Select Printing Type"
+                    isInvalid={!!errors.printingTypeId}
+                  />
+                  {errors.printingTypeId && <div className="text-danger" style={{ fontSize: '0.875em', marginTop: 4 }}>{errors.printingTypeId}</div>}
                 </div>
 
                 <hr className="my-4 text-muted opacity-25" />
@@ -219,7 +214,7 @@ export default function AddPrintingColor() {
                   </button>
                 </div>
 
-                <div className="d-flex gap-2 mt-5">
+                <div className="d-flex gap-2 mt-5 user-form-actions">
                   <button type="submit" className="btn-accent px-5 py-3 flex-grow-1" disabled={loading}>
                     {loading ? (
                       <><span className="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>Saving...</>

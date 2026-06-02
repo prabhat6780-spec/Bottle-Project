@@ -30,7 +30,7 @@ exports.updateRole = async (req, res) => {
 // Delete Role
 exports.deleteRole = async (req, res) => {
   try {
-    const role = await Role.findByIdAndDelete(req.params.id);
+    const role = await Role.findByIdAndUpdate(req.params.id, { isDeleted: true }, { new: true });
     if (!role) {
       return res.status(404).json({ success: false, message: "Role not found" });
     }
@@ -43,7 +43,7 @@ exports.deleteRole = async (req, res) => {
 // Get All Roles
 exports.getAllRoles = async (req, res) => {
   try {
-    const roles = await Role.find().populate("permissions");
+    const roles = await Role.find({ isDeleted: { $ne: true } }).populate("permissions");
     res.status(200).json({ success: true, data: roles });
   } catch (error) {
     res.status(400).json({ success: false, message: error.message });

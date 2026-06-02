@@ -30,6 +30,7 @@ import Productions from './pages/Productions';
 import Production from './pages/Production';
 import AddProduction from './pages/AddProduction';
 import EditProduction from './pages/EditProduction';
+import ProductionDetail from './pages/ProductionDetail';
 import Settings from './pages/Settings';
 import ChangePassword from './pages/ChangePassword';
 import Placeholder from './pages/Placeholder';
@@ -65,7 +66,7 @@ export default function App() {
   return (
     <AbilityContext.Provider value={ability}>
       <div className="admin-layout">
-        <Sidebar collapsed={collapsed} />
+        <Sidebar collapsed={collapsed} onClose={() => setCollapsed(false)} />
         <div className={`main-content ${collapsed ? 'expanded' : ''}`}>
           <Topbar
             collapsed={collapsed}
@@ -97,6 +98,7 @@ export default function App() {
               <Route path="/production" element={<Production />} />
               <Route path="/productions/add" element={<AddProduction />} />
               <Route path="/productions/edit/:id" element={<EditProduction />} />
+              <Route path="/productions/view/:id" element={<ProductionDetail />} />
               <Route path="/printing-types" element={<PrintingTypes />} />
               <Route path="/printing-types/add" element={<AddPrintingType />} />
               <Route path="/printing-types/edit/:id" element={<EditPrintingType />} />

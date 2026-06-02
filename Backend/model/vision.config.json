@@ -1,0 +1,23 @@
+{
+  "languageHints": ["hi", "en"],
+  "visionFeatures": ["TEXT_DETECTION", "LOGO_DETECTION"],
+  "thresholds": {
+    "textMatchMinScore": 400,
+    "visualOnlyMinScore": 110,
+    "fuzzyPhraseMin": 0.7,
+    "fuzzyWordMin": 0.75,
+    "wordMatchRatioMin": 0.6
+  },
+  "weights": {
+    "brandMatch": 500,
+    "variantMatch": 500,
+    "companyMatch": 100,
+    "sizeMatch": 200,
+    "wordBonus": 150,
+    "wordPenalty": 150,
+    "visualMultiplier": 50,
+    "visualOnlyMultiplier": 150
+  },
+  "sizeRegex": "\\d+\\s*(ml|l|g|kg|pcs)",
+  "globalOcrCorrections": {}
+}

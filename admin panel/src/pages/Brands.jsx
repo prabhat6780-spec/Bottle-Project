@@ -51,22 +51,32 @@ export default function Brands() {
     setCurrentPage(1);
   }, [search, itemsPerPage]);
 
+  const isItemActive = (b) =>
+    b.status === true || b.status === 'active' || b.status === undefined;
+
+  const avatarColors = [
+    'linear-gradient(135deg,#00aeef,#008ecc)',
+    'linear-gradient(135deg,#007236,#008b45)',
+    'linear-gradient(135deg,#6366f1,#8b5cf6)',
+    'linear-gradient(135deg,#ffcc00,#ffb300)',
+  ];
+
   return (
     <div className="page-content">
-      <div className="page-header d-flex align-items-center justify-content-between">
+      <div className="page-header d-flex align-items-center justify-content-between companies-page-header">
         <div>
           <h1 className="page-title">Brands</h1>
           <p className="page-subtitle">Manage your brand portfolio</p>
         </div>
         <Can I="create" a="brand">
-          <Link to="/brands/add" className="btn-accent">
+          <Link to="/brands/add" className="btn-accent companies-header-action">
             <i className="bi bi-plus-circle-fill me-2" /> Add Brand
           </Link>
         </Can>
       </div>
 
       <div className="dash-card">
-        <div className="dash-card-header d-flex align-items-center justify-content-between p-3 border-bottom bg-white">
+        <div className="dash-card-header d-flex align-items-center justify-content-between p-3 border-bottom bg-white companies-dash-toolbar">
           <div className="d-flex align-items-center gap-2 text-muted small fw-500">
             <span>Show</span>
             <select 
@@ -81,7 +91,7 @@ export default function Brands() {
             </select>
             <span>entries</span>
           </div>
-          <div className="search-input-wrapper position-relative" style={{ width: 320 }}>
+          <div className="search-input-wrapper position-relative companies-search-wrap">
             <i className="bi bi-search text-muted position-absolute top-50 start-0 translate-middle-y ms-3" style={{ pointerEvents: 'none' }} />
             <input
               type="text"
@@ -94,7 +104,63 @@ export default function Brands() {
           </div>
         </div>
 
-        <div style={{ overflowX: 'auto' }}>
+        <div className="companies-list-mobile">
+          {paginatedItems.map((b, index) => (
+            <div key={b._id} className="companies-mobile-card brands-mobile-card">
+              <div className="d-flex align-items-start gap-3 w-100 min-w-0">
+                <div
+                  className="companies-mobile-avatar"
+                  style={{ background: avatarColors[index % avatarColors.length] }}
+                >
+                  {b.name?.charAt(0).toUpperCase() || 'B'}
+                </div>
+                <div className="flex-grow-1 min-w-0">
+                  <div className="text-muted small fw-bold mb-1">
+                    #{String((currentPage - 1) * itemsPerPage + index + 1).padStart(2, '0')}
+                  </div>
+                  <div className="fw-semibold mb-1" style={{ wordBreak: 'break-word' }}>{b.name}</div>
+                  <div className="small text-muted mb-2" style={{ wordBreak: 'break-word' }}>
+                    {b.companyId?.name || 'N/A'}
+                  </div>
+                  <div className="d-flex flex-wrap align-items-center gap-2">
+                    <span className={`badge-status badge-${isItemActive(b) ? 'active' : 'inactive'}`}>
+                      {isItemActive(b) ? 'ACTIVE' : 'INACTIVE'}
+                    </span>
+                    <span className="small text-muted">
+                      {b.createdAt ? new Date(b.createdAt).toLocaleDateString() : 'N/A'}
+                    </span>
+                  </div>
+                </div>
+              </div>
+              <div className="companies-mobile-actions brands-mobile-actions">
+                <Can I="edit" a="brand">
+                  <Link
+                    to={`/brands/edit/${b._id}`}
+                    className="btn btn-sm btn-outline-primary border-0 rounded-3 shadow-none companies-mobile-action-btn"
+                    title="Edit"
+                  >
+                    <i className="bi bi-pencil-square fs-6" />
+                  </Link>
+                </Can>
+                <Can I="delete" a="brand">
+                  <button
+                    type="button"
+                    onClick={() => handleDeleteBrand(b._id, b.name)}
+                    className="btn btn-sm btn-outline-danger border-0 rounded-3 shadow-none companies-mobile-action-btn"
+                    title="Delete"
+                  >
+                    <i className="bi bi-trash fs-6" />
+                  </button>
+                </Can>
+              </div>
+            </div>
+          ))}
+          {paginatedItems.length === 0 && !loading && (
+            <div className="companies-mobile-empty">No brands found</div>
+          )}
+        </div>
+
+        <div className="companies-list-desktop" style={{ overflowX: 'auto' }}>
           <table className="data-table mb-0">
             <thead>
               <tr>
@@ -115,8 +181,8 @@ export default function Brands() {
                   <td className="py-3 text-center text-muted">{b.companyId?.name || 'N/A'}</td>
                   <td className="py-3 text-center fw-600">{b.name}</td>
                   <td className="py-3 text-center">
-                    <span className={`badge-status badge-${(b.status === true || b.status === 'active' || b.status === undefined) ? 'active' : 'inactive'}`}>
-                      {(b.status === true || b.status === 'active' || b.status === undefined) ? 'ACTIVE' : 'INACTIVE'}
+                    <span className={`badge-status badge-${isItemActive(b) ? 'active' : 'inactive'}`}>
+                      {isItemActive(b) ? 'ACTIVE' : 'INACTIVE'}
                     </span>
                   </td>
                   <td className="py-3 text-center text-muted">
@@ -139,13 +205,13 @@ export default function Brands() {
                 </tr>
               ))}
               {paginatedItems.length === 0 && !loading && (
-                <tr><td colSpan={5} className="text-center py-5 text-muted">No brands found</td></tr>
+                <tr><td colSpan={6} className="text-center py-5 text-muted">No brands found</td></tr>
               )}
             </tbody>
           </table>
         </div>
 
-        <div className="dash-card-footer d-flex align-items-center justify-content-between p-3 border-top bg-white">
+        <div className="dash-card-footer d-flex align-items-center justify-content-between p-3 border-top bg-white companies-dash-footer">
           <div className="text-muted small fw-500">
             Showing <b>{filteredBrands.length > 0 ? (currentPage - 1) * itemsPerPage + 1 : 0}</b> to <b>{Math.min(currentPage * itemsPerPage, filteredBrands.length)}</b> of <b>{filteredBrands.length}</b> entries
           </div>

@@ -124,7 +124,7 @@ export default function EditUser() {
 
   return (
     <div className="page-content">
-      <div className="page-header d-flex align-items-center gap-3">
+      <div className="page-header d-flex align-items-center gap-3 user-form-page-header">
         <Link to="/users" className="btn-ghost" style={{ width: 40, height: 40, padding: 0, borderRadius: 10, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
           <i className="bi bi-arrow-left" style={{ fontSize: 20 }} />
         </Link>
@@ -236,9 +236,9 @@ export default function EditUser() {
 
                   <div className="col-md-12">
                     <label className="form-label fw-600 small text-uppercase text-muted">User Role</label>
-                    <div className="d-flex flex-wrap gap-3">
+                    <div className="d-flex flex-wrap gap-3 user-role-picker">
                       {roles.map((role) => (
-                        <div key={role._id} style={{ minWidth: '140px' }} className="flex-fill">
+                        <div key={role._id} style={{ minWidth: '140px' }} className="flex-fill user-role-option">
                           <input
                             type="radio"
                             className="btn-check"
@@ -270,7 +270,7 @@ export default function EditUser() {
                   </div>
                 </div>
 
-                <div className="d-flex gap-2 mt-5">
+                <div className="d-flex gap-2 mt-5 user-form-actions">
                   <button type="submit" className="btn-accent px-5 py-3 flex-grow-1" disabled={loading}>
                     {loading ? (
                       <>

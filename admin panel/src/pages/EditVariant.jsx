@@ -5,6 +5,7 @@ import { useDispatch, useSelector } from 'react-redux';
 import { fetchBottleSpecs } from '../redux/slices/bottleSpecSlice';
 import { updateVariant } from '../redux/slices/variantSlice';
 import Swal from 'sweetalert2';
+import SearchableSelect from '../components/SearchableSelect';
 
 export default function EditVariant() {
   const { id } = useParams();
@@ -14,7 +15,6 @@ export default function EditVariant() {
   const { variants, loading } = useSelector((state) => state.variants);
 
   const [formData, setFormData] = useState({
-    productName: '',
     variantName: '',
     variantSize: '',
     coatingShade: '',
@@ -27,7 +27,6 @@ export default function EditVariant() {
   const [analyzingColor, setAnalyzingColor] = useState(false);
 
   const [errors, setErrors] = useState({
-    productName: '',
     variantName: '',
     bottleSpecId: ''
   });
@@ -35,12 +34,10 @@ export default function EditVariant() {
   const validateField = (name, value) => {
     let msg = '';
     const fieldNames = {
-      productName: 'Product Name',
-      variantName: 'Variant Name',
       bottleSpecId: 'Bottle Specification'
     };
 
-    if (!value || value.trim() === '') {
+    if (name === 'bottleSpecId' && (!value || value.trim() === '')) {
       msg = `${fieldNames[name] || name} is mandatory`;
     }
     setErrors(prev => ({ ...prev, [name]: msg }));
@@ -107,7 +104,6 @@ export default function EditVariant() {
     const variant = variants.find(v => v._id === id);
     if (variant) {
       setFormData({
-        productName: variant.productName || '',
         variantName: variant.variantName || '',
         variantSize: variant.variantSize || '',
         coatingShade: variant.coatingShade || '',
@@ -125,11 +121,7 @@ export default function EditVariant() {
 
     // Validate all mandatory fields
     const specError = validateField('bottleSpecId', formData.bottleSpecId);
-    const prodError = validateField('productName', formData.productName);
-    const varNameError = validateField('variantName', formData.variantName);
     if (specError) return Swal.fire('Validation Error', specError, 'error');
-    if (prodError) return Swal.fire('Validation Error', prodError, 'error');
-    if (varNameError) return Swal.fire('Validation Error', varNameError, 'error');
 
     const submitData = new FormData();
     for (const key in formData) {
@@ -153,7 +145,7 @@ export default function EditVariant() {
 
   return (
     <div className="page-content">
-      <div className="page-header d-flex align-items-center gap-3">
+      <div className="page-header d-flex align-items-center gap-3 user-form-page-header">
         <Link to="/variants" className="btn-ghost" style={{ width: 40, height: 40, borderRadius: 10, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
           <i className="bi bi-arrow-left" style={{ fontSize: 20 }} />
         </Link>
@@ -173,23 +165,20 @@ export default function EditVariant() {
                     <label className="form-label fw-600 small text-uppercase text-muted">
                       Bottle Specification <span className="text-danger">*</span>
                     </label>
-                    <select 
-                      className={`form-select custom-input-field ${errors.bottleSpecId ? 'is-invalid' : ''}`}
-                      name="bottleSpecId"
-                      required
-                      value={formData.bottleSpecId} 
-                      onChange={handleChange}
-                      onBlur={handleBlur}
-                      style={{ borderRadius: 12 }}
-                    >
-                      <option value="">-- Choose Spec --</option>
-                      {bottleSpecs.filter(s => (s.status && s.brandId?.status) || s._id === formData.bottleSpecId).map(s => (
-                        <option key={s._id} value={s._id}>
-                          {s.bottleName} ({s.brandId?.name || 'N/A'}) - {s.printingTypeId?.name || 'N/A'} [{s.printingColorId?.name || 'N/A'}]
-                        </option>
-                      ))}
-                    </select>
-                    {errors.bottleSpecId && <div className="invalid-feedback">{errors.bottleSpecId}</div>}
+                    <SearchableSelect
+                      options={bottleSpecs.filter(s => (s.status && s.brandId?.status) || s._id === formData.bottleSpecId).map(s => ({
+                        value: s._id,
+                        label: `${s.bottleName} (${s.brandId?.name || 'N/A'}) - ${s.printingTypeId?.name || 'N/A'} [${s.printingColorId?.name || 'N/A'}]`
+                      }))}
+                      value={formData.bottleSpecId}
+                      onChange={(val) => {
+                        setFormData(prev => ({ ...prev, bottleSpecId: val }));
+                        if (errors.bottleSpecId) setErrors(prev => ({ ...prev, bottleSpecId: '' }));
+                      }}
+                      placeholder="-- Choose Spec --"
+                      isInvalid={!!errors.bottleSpecId}
+                    />
+                    {errors.bottleSpecId && <div className="text-danger" style={{ fontSize: '0.875em', marginTop: 4 }}>{errors.bottleSpecId}</div>}
                   </div>
 
                   {selectedSpec && (
@@ -217,32 +206,16 @@ export default function EditVariant() {
                     </div>
                   )}
 
-                  <div className="col-md-6">
-                    <label className="form-label fw-600 small text-uppercase text-muted">
-                      Product Name <span className="text-danger">*</span>
-                    </label>
-                    <input
-                      type="text"
-                      name="productName"
-                      className={`form-control custom-input-field ${errors.productName ? 'is-invalid' : ''}`}
-                      required
-                      value={formData.productName}
-                      onChange={handleChange}
-                      onBlur={handleBlur}
-                      style={{ borderRadius: 12 }}
-                    />
-                    {errors.productName && <div className="invalid-feedback">{errors.productName}</div>}
-                  </div>
+
 
                   <div className="col-md-6">
                     <label className="form-label fw-600 small text-uppercase text-muted">
-                      Variant Name <span className="text-danger">*</span>
+                      Variant Name
                     </label>
                     <input
                       type="text"
                       name="variantName"
                       className={`form-control custom-input-field ${errors.variantName ? 'is-invalid' : ''}`}
-                      required
                       value={formData.variantName}
                       onChange={handleChange}
                       onBlur={handleBlur}
@@ -304,7 +277,7 @@ export default function EditVariant() {
                         </div>
                       ) : formData.existingImage ? (
                         <div className="position-relative shadow-sm rounded-3 overflow-hidden border border-light-subtle" style={{ width: '80px', height: '80px', flexShrink: 0 }}>
-                          <img src={`http://localhost:5000${formData.existingImage}`} alt="Variant" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                          <img src={`${import.meta.env.VITE_BACKEND_URL || "https://application.shayonaglass.com"}${formData.existingImage}`} alt="Variant" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                         </div>
                       ) : null}
                       <div className="flex-grow-1">
@@ -351,7 +324,7 @@ export default function EditVariant() {
                   </div>
                 </div>
 
-                <div className="d-flex gap-2 mt-5">
+                <div className="d-flex gap-2 mt-5 user-form-actions">
                   <button type="submit" className="btn-accent px-5 py-3 flex-grow-1" disabled={loading}>
                     {loading ? (
                       <><span className="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>Updating...</>

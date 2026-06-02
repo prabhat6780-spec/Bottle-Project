@@ -59,7 +59,7 @@ export default function VariantDetail() {
             <div className="dash-card-body text-center d-flex flex-column align-items-center justify-content-center p-4">
               {variant.image ? (
                 <img 
-                  src={`http://localhost:5000${variant.image}`} 
+                  src={`${import.meta.env.VITE_BACKEND_URL || "https://application.shayonaglass.com"}${variant.image}`} 
                   alt={variant.variantName} 
                   className="img-fluid rounded-4 shadow-sm mb-3"
                   style={{ maxHeight: 250, objectFit: 'contain' }}
@@ -69,7 +69,7 @@ export default function VariantDetail() {
                   <i className="bi bi-image text-muted" style={{ fontSize: 40 }} />
                 </div>
               )}
-              <h5 className="fw-bold mb-1">{variant.productName}</h5>
+
               <p className="text-muted mb-0">{variant.variantName}</p>
               
               <div className="mt-3 d-flex gap-2 justify-content-center">

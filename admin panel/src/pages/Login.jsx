@@ -29,8 +29,8 @@ export default function Login() {
     <div className="login-page-wrapper" style={{ backgroundImage: `url(${bgImage})` }}>
       <div className="techerp-card fade-in-up">
         <div className="techerp-content">
-          <div className="techerp-logo" style={{ margin: '-40px auto -15px', width: 'fit-content' }}>
-            <img src={logo} alt="Shayona Glass" style={{ height: '200px', width: 'auto', display: 'block' }} />
+          <div className="techerp-logo-container">
+            <img src={logo} alt="Shayona Glass" className="login-logo-img" />
           </div>
 
           <h2 className="techerp-welcome text-center" style={{ textTransform: 'uppercase', letterSpacing: '2px' }}>Login</h2>
@@ -66,8 +66,8 @@ export default function Login() {
                   onChange={(e) => setPassword(e.target.value)}
                   required
                 />
-                <div 
-                  className="techerp-icon-box" 
+                <div
+                  className="techerp-icon-box"
                   onClick={() => setShowPassword(!showPassword)}
                 >
                   <i className={`bi bi-eye${showPassword ? '-slash' : ''}`}></i>

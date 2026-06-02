@@ -73,13 +73,8 @@ export default function Production() {
     const data = uniqueVariants.map((v, i) => ({
       'Sr No': i + 1,
       'Brand Name': v.bottleSpecId?.brandId?.name || 'N/A',
-      'Printing Type': v.bottleSpecId?.printingTypeId?.name || 'N/A',
-      'Printing Color': v.bottleSpecId?.printingColorId?.name || 'N/A',
       'Bottle Name': v.bottleSpecId?.bottleName || 'N/A',
-      'Bottle Code': v.bottleSpecId?.code || 'N/A',
-      'Product Name': v.productName || 'N/A',
       'Variant Name': v.variantName || 'N/A',
-      'Variant Size': v.variantSize || 'N/A',
       'Coating Shade': v.coatingShade || 'N/A',
     }));
 

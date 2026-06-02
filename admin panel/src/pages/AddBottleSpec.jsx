@@ -7,6 +7,7 @@ import { fetchCompanies } from '../redux/slices/companySlice';
 import { fetchPrintingTypes } from '../redux/slices/printingTypeSlice';
 import { fetchPrintingColors } from '../redux/slices/printingColorSlice';
 import Swal from 'sweetalert2';
+import SearchableSelect from '../components/SearchableSelect';
 
 export default function AddBottleSpec() {
   const navigate = useNavigate();
@@ -31,9 +32,7 @@ export default function AddBottleSpec() {
     companyId: '',
     brandId: '',
     bottleName: '',
-    code: '',
-    printingTypeId: '',
-    printingColorId: ''
+    printingTypeId: ''
   });
 
   const [filteredColors, setFilteredColors] = useState([]);
@@ -65,9 +64,7 @@ export default function AddBottleSpec() {
       companyId: 'Company',
       brandId: 'Brand',
       bottleName: 'Bottle Name',
-      code: 'Bottle Code',
-      printingTypeId: 'Printing Type',
-      printingColorId: 'Printing Color'
+      printingTypeId: 'Printing Type'
     };
 
     if (!value) {
@@ -93,13 +90,18 @@ export default function AddBottleSpec() {
     }
   };
 
-  const handleChange = (e) => {
-    const { name, value } = e.target;
-    if (name === 'companyId') {
+  const handleSelectChange = (field, value) => {
+    if (field === 'companyId') {
       setFormData(prev => ({ ...prev, companyId: value, brandId: '' }));
     } else {
-      setFormData(prev => ({ ...prev, [name]: value }));
+      setFormData(prev => ({ ...prev, [field]: value }));
     }
+    if (errors[field]) setErrors(prev => ({ ...prev, [field]: '' }));
+  };
+
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+    setFormData(prev => ({ ...prev, [name]: value }));
     if (errors[name]) setErrors(prev => ({ ...prev, [name]: '' }));
   };
 
@@ -110,11 +112,9 @@ export default function AddBottleSpec() {
     const companyError = validateField('companyId', formData.companyId);
     const brandError = validateField('brandId', formData.brandId);
     const nameError = validateField('bottleName', formData.bottleName);
-    const codeError = validateField('code', formData.code);
     const typeError = validateField('printingTypeId', formData.printingTypeId);
-    const colorError = validateField('printingColorId', formData.printingColorId);
 
-    if (companyError || brandError || nameError || codeError || typeError || colorError) {
+    if (companyError || brandError || nameError || typeError) {
       return Swal.fire('Validation Error', 'Please fix the errors before submitting.', 'error');
     }
 
@@ -130,7 +130,7 @@ export default function AddBottleSpec() {
 
   return (
     <div className="page-content">
-      <div className="page-header d-flex align-items-center gap-3">
+      <div className="page-header d-flex align-items-center gap-3 user-form-page-header">
         <Link to="/bottle-specs" className="btn-ghost" style={{ width: 40, height: 40, borderRadius: 10, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
           <i className="bi bi-arrow-left" style={{ fontSize: 20 }} />
         </Link>
@@ -150,43 +150,29 @@ export default function AddBottleSpec() {
                     <label className="form-label fw-600 small text-uppercase text-muted">
                       Select Company <span className="text-danger">*</span>
                     </label>
-                    <select 
-                      className={`form-select custom-input-field ${errors.companyId ? 'is-invalid' : ''}`}
-                      name="companyId"
-                      required
-                      value={formData.companyId} 
-                      onChange={handleChange}
-                      onBlur={handleBlur}
-                      style={{ borderRadius: 12 }}
-                    >
-                      <option value="">-- Choose Company --</option>
-                      {companies.filter(c => c.status).map(c => (
-                        <option key={c._id} value={c._id}>{c.name}</option>
-                      ))}
-                    </select>
-                    {errors.companyId && <div className="invalid-feedback">{errors.companyId}</div>}
+                    <SearchableSelect
+                      options={companies.filter(c => c.status).map(c => ({ value: c._id, label: c.name }))}
+                      value={formData.companyId}
+                      onChange={(val) => handleSelectChange('companyId', val)}
+                      placeholder="-- Choose Company --"
+                      isInvalid={!!errors.companyId}
+                    />
+                    {errors.companyId && <div className="text-danger" style={{ fontSize: '0.875em', marginTop: 4 }}>{errors.companyId}</div>}
                   </div>
 
                   <div className="col-md-6">
                     <label className="form-label fw-600 small text-uppercase text-muted">
                       Select Brand <span className="text-danger">*</span>
                     </label>
-                    <select 
-                      className={`form-select custom-input-field ${errors.brandId ? 'is-invalid' : ''}`}
-                      name="brandId"
-                      required
+                    <SearchableSelect
+                      options={brands.filter(b => b.status && (b.companyId?._id === formData.companyId || b.companyId === formData.companyId)).map(b => ({ value: b._id, label: b.name }))}
+                      value={formData.brandId}
+                      onChange={(val) => handleSelectChange('brandId', val)}
+                      placeholder="-- Choose Brand --"
                       disabled={!formData.companyId}
-                      value={formData.brandId} 
-                      onChange={handleChange}
-                      onBlur={handleBlur}
-                      style={{ borderRadius: 12 }}
-                    >
-                      <option value="">-- Choose Brand --</option>
-                      {brands.filter(b => b.status && (b.companyId?._id === formData.companyId || b.companyId === formData.companyId)).map(b => (
-                        <option key={b._id} value={b._id}>{b.name}</option>
-                      ))}
-                    </select>
-                    {errors.brandId && <div className="invalid-feedback">{errors.brandId}</div>}
+                      isInvalid={!!errors.brandId}
+                    />
+                    {errors.brandId && <div className="text-danger" style={{ fontSize: '0.875em', marginTop: 4 }}>{errors.brandId}</div>}
                   </div>
 
                   <div className="col-md-6">
@@ -208,19 +194,16 @@ export default function AddBottleSpec() {
 
                   <div className="col-md-6">
                     <label className="form-label fw-600 small text-uppercase text-muted">
-                      Bottle Code <span className="text-danger">*</span>
+                      Bottle Code
                     </label>
                     <input
                       type="text"
                       name="code"
-                      className={`form-control custom-input-field ${errors.code ? 'is-invalid' : ''}`}
-                      required
+                      className="form-control custom-input-field"
                       value={formData.code}
                       onChange={handleChange}
-                      onBlur={handleBlur}
                       style={{ borderRadius: 12 }}
                     />
-                    {errors.code && <div className="invalid-feedback">{errors.code}</div>}
                   </div>
 
                   <div className="col-md-6">
@@ -246,16 +229,14 @@ export default function AddBottleSpec() {
 
                   <div className="col-md-6">
                     <label className="form-label fw-600 small text-uppercase text-muted">
-                      Printing Color <span className="text-danger">*</span>
+                      Printing Color
                     </label>
                     <select
-                      className={`form-select custom-input-field ${errors.printingColorId ? 'is-invalid' : ''}`}
+                      className="form-select custom-input-field"
                       name="printingColorId"
-                      required
                       disabled={!formData.printingTypeId}
                       value={formData.printingColorId}
                       onChange={handleChange}
-                      onBlur={handleBlur}
                       style={{ borderRadius: 12 }}
                     >
                       <option value="">Select Color</option>
@@ -263,7 +244,6 @@ export default function AddBottleSpec() {
                         <option key={c._id} value={c._id}>{c.name}</option>
                       ))}
                     </select>
-                    {errors.printingColorId && <div className="invalid-feedback">{errors.printingColorId}</div>}
                   </div>
 
                   <div className="col-md-12">
@@ -280,7 +260,7 @@ export default function AddBottleSpec() {
                   </div>
                 </div>
 
-                <div className="d-flex gap-2 mt-5">
+                <div className="d-flex gap-2 mt-5 user-form-actions">
                   <button type="submit" className="btn-accent px-5 py-3 flex-grow-1" disabled={loading}>
                     {loading ? (
                       <><span className="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>Saving...</>

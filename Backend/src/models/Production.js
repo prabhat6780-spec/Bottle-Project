@@ -36,6 +36,10 @@ const productionSchema = new mongoose.Schema({
 
   totalBoxes: Number,
   remainingBottles: Number,
+  isDeleted: {
+    type: Boolean,
+    default: false
+  }
 }, { timestamps: true });
 
 

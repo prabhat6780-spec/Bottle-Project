@@ -67,7 +67,7 @@ export default function CreateRole() {
 
   if (permissionsLoading || (id && rolesLoading)) {
     return (
-      <div className="page-content bg-white d-flex align-items-center justify-content-center" style={{ minHeight: '80vh' }}>
+      <div className="page-content rbac-role-page d-flex align-items-center justify-content-center" style={{ minHeight: '60vh' }}>
         <div className="text-center">
           <div className="spinner-border text-primary mb-3" />
           <p className="text-muted">Loading data...</p>
@@ -77,40 +77,41 @@ export default function CreateRole() {
   }
 
   return (
-    <div className="page-content bg-white" style={{ minHeight: '100vh' }}>
-      <div className="container-fluid">
-        <div className="d-flex align-items-center gap-3 mb-4">
-          <Link to="/roles" className="btn btn-light border-light-subtle d-flex align-items-center justify-content-center p-0" style={{ width: '40px', height: '40px', borderRadius: '12px', backgroundColor: '#fff' }}>
-            <i className="bi bi-arrow-left text-muted" style={{ fontSize: '18px' }} />
-          </Link>
-          <h1 className="page-title mb-0" style={{ fontSize: '20px', fontWeight: '600', color: '#1e293b' }}>
-            {id ? 'Edit Role' : 'Create Role'}
-          </h1>
+    <div className="page-content rbac-role-page">
+      <div className="page-header d-flex align-items-center gap-3 brand-form-page-header mb-4">
+        <Link to="/roles" className="btn-ghost brand-form-back" style={{ width: 40, height: 40, borderRadius: 10, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+          <i className="bi bi-arrow-left" style={{ fontSize: 20 }} />
+        </Link>
+        <div className="min-w-0">
+          <h1 className="page-title mb-0">{id ? 'Edit Role' : 'Create Role'}</h1>
+          <p className="page-subtitle mb-0">Assign permissions to this role</p>
         </div>
+      </div>
 
-        <div className="dash-card border-0 shadow-none p-0">
+      <div className="dash-card border-0 shadow-sm brand-form-card rbac-role-form-card">
+        <div className="dash-card-body p-4 brand-form-body">
           <div className="mb-4">
             <label className="form-label small fw-500 text-muted mb-2">Role<span className="text-danger">*</span></label>
             <input
               type="text"
-              className="form-control form-control-sm border-light-subtle shadow-none"
+              className="form-control custom-input-field rbac-role-name-input"
               placeholder="e.g. Staff"
               value={roleName}
               onChange={(e) => setRoleName(e.target.value)}
-              style={{ borderRadius: '4px', maxWidth: '500px', height: '35px' }}
+              style={{ borderRadius: 12, height: 42 }}
             />
           </div>
 
-          <div className="mb-3 mt-5">
+          <div className="mb-3 mt-4">
             <label className="form-label small fw-500 text-muted">Permissions:</label>
           </div>
 
-          <div className="row g-3 row-cols-1 row-cols-sm-2 row-cols-md-3 row-cols-lg-6">
+          <div className="row g-2 g-sm-3 rbac-permissions-grid">
             {permissions.map((p) => (
-              <div className="col" key={p._id}>
-                <div className="form-check form-switch d-flex align-items-center gap-2">
+              <div className="col-12 col-sm-6 col-md-4 col-lg-2" key={p._id}>
+                <div className="rbac-permission-item form-check form-switch d-flex align-items-start gap-2 p-2 rounded-3">
                   <input
-                    className="form-check-input shadow-none cursor-pointer"
+                    className="form-check-input shadow-none cursor-pointer flex-shrink-0 mt-1"
                     type="checkbox"
                     role="switch"
                     id={`switch-${p._id}`}
@@ -118,7 +119,7 @@ export default function CreateRole() {
                     onChange={() => handleTogglePermission(p._id)}
                     style={{ cursor: 'pointer' }}
                   />
-                  <label className="form-check-label small text-muted cursor-pointer text-nowrap" htmlFor={`switch-${p._id}`} style={{ fontSize: '12px' }}>
+                  <label className="form-check-label small text-muted cursor-pointer rbac-permission-label mb-0" htmlFor={`switch-${p._id}`}>
                     {p.name}
                   </label>
                 </div>
@@ -126,11 +127,11 @@ export default function CreateRole() {
             ))}
           </div>
 
-          <div className="mt-5 pt-4 d-flex gap-2">
-            <button className="btn btn-success px-4 py-2 border-0 shadow-sm" style={{ borderRadius: '4px', fontSize: '13px', fontWeight: '500', backgroundColor: '#4caf50' }} onClick={handleSubmit}>
+          <div className="mt-5 pt-2 d-flex gap-2 brand-form-actions rbac-form-actions">
+            <button type="button" className="btn rbac-btn-submit py-3 flex-grow-1 border-0 shadow-sm" onClick={handleSubmit}>
               Submit
             </button>
-            <button className="btn btn-danger px-4 py-2 border-0 shadow-sm" style={{ borderRadius: '4px', fontSize: '13px', fontWeight: '500', backgroundColor: '#f44336' }} onClick={() => navigate('/roles')}>
+            <button type="button" className="btn rbac-btn-cancel py-3 border-0 shadow-sm" onClick={() => navigate('/roles')}>
               Cancel
             </button>
           </div>

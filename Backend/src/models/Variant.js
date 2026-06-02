@@ -7,16 +7,9 @@ const variantSchema = new mongoose.Schema({
     required: true
   },
 
-  productName: {
-    type: String,
-    required: true
-  },
-
   variantName: {
-    type: String,
-    required: true
+    type: String
   },
-
 
 
   variantSize: {
@@ -40,6 +33,10 @@ const variantSchema = new mongoose.Schema({
   detectedTextColor: {
     type: String,
     default: "Not Detected"
+  },
+  isDeleted: {
+    type: Boolean,
+    default: false
   }
 
 }, { timestamps: true });

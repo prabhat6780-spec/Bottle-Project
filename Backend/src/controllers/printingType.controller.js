@@ -28,7 +28,7 @@ exports.createPrintingType = async (req, res) => {
 // ✅ GET
 exports.getPrintingTypes = async (req, res) => {
   try {
-    const printingTypes = await PrintingType.find();
+    const printingTypes = await PrintingType.find({ isDeleted: { $ne: true } });
     res.json(printingTypes);
   } catch (err) {
     res.status(500).json(err.message);
@@ -67,7 +67,7 @@ exports.updatePrintingType = async (req, res) => {
 // ✅ DELETE
 exports.deletePrintingType = async (req, res) => {
   try {
-    await PrintingType.findByIdAndDelete(req.params.id);
+    await PrintingType.findByIdAndUpdate(req.params.id, { isDeleted: true }, { new: true });
     res.json({ msg: "Printing Type Deleted" });
   } catch (err) {
     res.status(500).json(err.message);

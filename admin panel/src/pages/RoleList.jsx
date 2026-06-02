@@ -57,21 +57,28 @@ export default function RoleList() {
     setCurrentPage(1);
   }, [search, itemsPerPage]);
 
+  const avatarColors = [
+    'linear-gradient(135deg,#6366f1,#8b5cf6)',
+    'linear-gradient(135deg,#00aeef,#008ecc)',
+    'linear-gradient(135deg,#007236,#008b45)',
+    'linear-gradient(135deg,#ffcc00,#ffb300)',
+  ];
+
   return (
     <div className="page-content">
-      <div className="page-header d-flex align-items-center justify-content-between mb-4">
+      <div className="page-header d-flex align-items-center justify-content-between mb-4 companies-page-header">
         <div>
           <h1 className="page-title mb-1">Role Management</h1>
         </div>
           <Can I="create" a="role">
-            <Link to="/roles/create" className="btn-accent shadow-sm px-4 py-2 rounded-3">
+            <Link to="/roles/create" className="btn-accent shadow-sm px-4 py-2 rounded-3 companies-header-action">
               <i className="bi bi-plus-lg me-2" /> Add Role
             </Link>
           </Can>
       </div>
 
       <div className="dash-card border-0 shadow-sm overflow-hidden" style={{ borderRadius: 20 }}>
-        <div className="dash-card-header d-flex align-items-center justify-content-between p-3 border-bottom bg-white">
+        <div className="dash-card-header d-flex align-items-center justify-content-between p-3 border-bottom bg-white companies-dash-toolbar">
           <div className="d-flex align-items-center gap-2 text-muted small fw-500">
             <span>Show</span>
             <select 
@@ -86,7 +93,7 @@ export default function RoleList() {
             </select>
             <span>entries</span>
           </div>
-          <div className="search-input-wrapper position-relative" style={{ width: 320 }}>
+          <div className="search-input-wrapper position-relative companies-search-wrap">
             <i className="bi bi-search text-muted position-absolute top-50 start-0 translate-middle-y ms-3" style={{ pointerEvents: 'none' }} />
             <input
               type="text"
@@ -99,7 +106,58 @@ export default function RoleList() {
           </div>
         </div>
 
-        <div className="table-responsive">
+        <div className="companies-list-mobile">
+          {!loading && paginatedItems.map((role, index) => (
+            <div key={role._id} className="companies-mobile-card rbac-mobile-card">
+              <div className="d-flex align-items-start gap-3 w-100 min-w-0">
+                <div
+                  className="companies-mobile-avatar"
+                  style={{ background: avatarColors[index % avatarColors.length] }}
+                >
+                  <i className="bi bi-shield-lock-fill" />
+                </div>
+                <div className="flex-grow-1 min-w-0">
+                  <div className="text-muted small fw-bold mb-1">
+                    #{String((currentPage - 1) * itemsPerPage + index + 1).padStart(2, '0')}
+                  </div>
+                  <div className="fw-semibold" style={{ wordBreak: 'break-word' }}>{role.name}</div>
+                </div>
+              </div>
+              <div className="companies-mobile-actions rbac-mobile-actions">
+                <Can I="edit" a="role">
+                  <Link
+                    to={`/roles/edit/${role._id}`}
+                    className="btn btn-sm btn-outline-primary border-0 rounded-3 shadow-none companies-mobile-action-btn"
+                    title="Edit Role"
+                  >
+                    <i className="bi bi-pencil-square fs-6" />
+                  </Link>
+                </Can>
+                <Can I="delete" a="role">
+                  <button
+                    type="button"
+                    onClick={() => handleDelete(role._id, role.name)}
+                    className="btn btn-sm btn-outline-danger border-0 rounded-3 shadow-none companies-mobile-action-btn"
+                    title="Delete Role"
+                  >
+                    <i className="bi bi-trash fs-6" />
+                  </button>
+                </Can>
+              </div>
+            </div>
+          ))}
+          {loading && (
+            <div className="companies-mobile-empty">
+              <div className="spinner-border spinner-border-sm text-primary me-2" />
+              Loading roles...
+            </div>
+          )}
+          {!loading && paginatedItems.length === 0 && (
+            <div className="companies-mobile-empty">No roles found</div>
+          )}
+        </div>
+
+        <div className="companies-list-desktop table-responsive">
           <table className="data-table mb-0">
             <thead className="bg-light">
               <tr>
@@ -149,7 +207,7 @@ export default function RoleList() {
           </table>
         </div>
 
-        <div className="dash-card-footer d-flex align-items-center justify-content-between p-3 border-top bg-white">
+        <div className="dash-card-footer d-flex align-items-center justify-content-between p-3 border-top bg-white companies-dash-footer">
           <div className="text-muted small fw-500">
             Showing <b>{filteredRoles.length > 0 ? (currentPage - 1) * itemsPerPage + 1 : 0}</b> to <b>{Math.min(currentPage * itemsPerPage, filteredRoles.length)}</b> of <b>{filteredRoles.length}</b> entries
           </div>

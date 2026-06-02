@@ -24,7 +24,7 @@ exports.createSpec = async (req, res) => {
 // GET
 exports.getSpecs = async (req, res) => {
   try {
-    const specs = await BottleSpec.find()
+    const specs = await BottleSpec.find({ isDeleted: { $ne: true } })
       .populate({
         path: "brandId",
         populate: { path: "companyId" }
@@ -61,7 +61,7 @@ exports.updateSpec = async (req, res) => {
 // DELETE
 exports.deleteSpec = async (req, res) => {
   try {
-    await BottleSpec.findByIdAndDelete(req.params.id);
+    await BottleSpec.findByIdAndUpdate(req.params.id, { isDeleted: true }, { new: true });
     res.json({ msg: "Deleted" });
   } catch (err) {
     res.status(500).json(err.message);
