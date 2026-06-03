@@ -28,7 +28,7 @@ exports.createPrintingType = async (req, res) => {
 // ✅ GET
 exports.getPrintingTypes = async (req, res) => {
   try {
-    const printingTypes = await PrintingType.find({ isDeleted: { $ne: true } });
+    const printingTypes = await PrintingType.find({ isDeleted: { $ne: true } }).sort({ createdAt: -1 });
     res.json(printingTypes);
   } catch (err) {
     res.status(500).json(err.message);
@@ -43,7 +43,7 @@ exports.updatePrintingType = async (req, res) => {
       body.status = body.status === 'active';
     }
     if (body.name) {
-      const existing = await PrintingType.findOne({ 
+      const existing = await PrintingType.findOne({
         name: { $regex: new RegExp("^" + body.name.trim() + "$", "i") },
         _id: { $ne: req.params.id }
       });

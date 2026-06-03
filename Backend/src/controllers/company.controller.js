@@ -28,7 +28,7 @@ exports.createCompany = async (req, res) => {
 // ✅ GET
 exports.getCompanies = async (req, res) => {
   try {
-    const companies = await Company.find({ isDeleted: { $ne: true } });
+    const companies = await Company.find({ isDeleted: { $ne: true } }).sort({ createdAt: -1 });
     res.json(companies);
   } catch (err) {
     res.status(500).json(err.message);
@@ -43,7 +43,7 @@ exports.updateCompany = async (req, res) => {
       body.status = body.status === 'active';
     }
     if (body.name) {
-      const existing = await Company.findOne({ 
+      const existing = await Company.findOne({
         name: { $regex: new RegExp("^" + body.name.trim() + "$", "i") },
         _id: { $ne: req.params.id }
       });

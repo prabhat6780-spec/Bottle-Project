@@ -30,7 +30,7 @@ exports.createBrand = async (req, res) => {
 // ✅ GET
 exports.getBrands = async (req, res) => {
   try {
-    const brands = await Brand.find({ isDeleted: { $ne: true } }).populate("companyId", "name status");
+    const brands = await Brand.find({ isDeleted: { $ne: true } }).sort({ createdAt: -1 }).populate("companyId", "name status");
     res.json(brands);
   } catch (err) {
     res.status(500).json(err.message);
@@ -50,7 +50,7 @@ exports.updateBrand = async (req, res) => {
       const targetName = body.name ? body.name.trim() : brandToUpdate.name;
       const targetCompanyId = body.companyId || brandToUpdate.companyId;
 
-      const existing = await Brand.findOne({ 
+      const existing = await Brand.findOne({
         companyId: targetCompanyId,
         name: { $regex: new RegExp("^" + targetName + "$", "i") },
         _id: { $ne: req.params.id }

@@ -4,19 +4,19 @@ const PrintingColor = require("../models/PrintingColor");
 exports.createPrintingColor = async (req, res) => {
   try {
     const data = req.body;
-    
+
     if (Array.isArray(data)) {
       // Bulk create
       const results = [];
       for (const item of data) {
-        const existing = await PrintingColor.findOne({ 
+        const existing = await PrintingColor.findOne({
           printingTypeId: item.printingTypeId,
-          name: { $regex: new RegExp("^" + item.name.trim() + "$", "i") } 
+          name: { $regex: new RegExp("^" + item.name.trim() + "$", "i") }
         });
         if (existing) {
-           // Skip or error? The user said "if beardo is created then Beardo should cant created".
-           // I'll error out to be safe.
-           return res.status(400).json(`Color "${item.name}" already exists for this printing type.`);
+          // Skip or error? The user said "if beardo is created then Beardo should cant created".
+          // I'll error out to be safe.
+          return res.status(400).json(`Color "${item.name}" already exists for this printing type.`);
         }
         results.push({
           printingTypeId: item.printingTypeId,
@@ -28,9 +28,9 @@ exports.createPrintingColor = async (req, res) => {
       return res.json(colors);
     } else {
       // Single create
-      const existing = await PrintingColor.findOne({ 
+      const existing = await PrintingColor.findOne({
         printingTypeId: data.printingTypeId,
-        name: { $regex: new RegExp("^" + data.name.trim() + "$", "i") } 
+        name: { $regex: new RegExp("^" + data.name.trim() + "$", "i") }
       });
       if (existing) {
         return res.status(400).json(`Color "${data.name}" already exists for this printing type.`);
@@ -46,7 +46,7 @@ exports.createPrintingColor = async (req, res) => {
         name: data.name.trim(),
         status
       });
-      
+
       const populatedColor = await PrintingColor.findById(printingColor._id).populate("printingTypeId");
       return res.json(populatedColor);
     }
@@ -59,7 +59,7 @@ exports.createPrintingColor = async (req, res) => {
 // ✅ GET
 exports.getPrintingColors = async (req, res) => {
   try {
-    const printingColors = await PrintingColor.find({ isDeleted: { $ne: true } }).populate("printingTypeId");
+    const printingColors = await PrintingColor.find({ isDeleted: { $ne: true } }).sort({ createdAt: -1 }).populate("printingTypeId");
     res.json(printingColors);
   } catch (err) {
     res.status(500).json(err.message);
@@ -74,7 +74,7 @@ exports.updatePrintingColor = async (req, res) => {
       body.status = body.status === 'active';
     }
     if (body.name) {
-      const existing = await PrintingColor.findOne({ 
+      const existing = await PrintingColor.findOne({
         printingTypeId: body.printingTypeId, // assuming it's passed or unchanged
         name: { $regex: new RegExp("^" + body.name.trim() + "$", "i") },
         _id: { $ne: req.params.id }

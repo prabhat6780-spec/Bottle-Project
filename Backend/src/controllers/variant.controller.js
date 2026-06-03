@@ -62,6 +62,7 @@ exports.getVariants = async (req, res) => {
   try {
 
     const variants = await Variant.find({ isDeleted: { $ne: true } })
+      .sort({ createdAt: -1 })
       .populate({
         path: "bottleSpecId",
         populate: [

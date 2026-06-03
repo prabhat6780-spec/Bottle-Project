@@ -25,6 +25,7 @@ exports.createSpec = async (req, res) => {
 exports.getSpecs = async (req, res) => {
   try {
     const specs = await BottleSpec.find({ isDeleted: { $ne: true } })
+      .sort({ createdAt: -1 })
       .populate({
         path: "brandId",
         populate: { path: "companyId" }
