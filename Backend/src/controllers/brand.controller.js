@@ -28,13 +28,113 @@ exports.createBrand = async (req, res) => {
 };
 
 // ✅ GET
+// ✅ GET BRANDS (Backend Pagination + Search)
+
 exports.getBrands = async (req, res) => {
+
   try {
-    const brands = await Brand.find({ isDeleted: { $ne: true } }).sort({ createdAt: -1 }).populate("companyId", "name status");
-    res.json(brands);
+
+    const {
+
+      page = 1,
+
+      limit = 10,
+
+      search = "",
+
+    } = req.query;
+
+    const parsedPage =
+      parseInt(page);
+
+    const parsedLimit =
+      parseInt(limit);
+
+    const skip =
+      (parsedPage - 1) * parsedLimit;
+
+    let filter = {
+
+      isDeleted: {
+        $ne: true,
+      },
+
+    };
+
+    let brands =
+      await Brand.find(filter)
+
+        .populate(
+          "companyId",
+          "name status"
+        )
+
+        .sort({
+          createdAt: -1,
+        })
+
+        .lean();
+
+    if (search) {
+
+      const searchText =
+        search.toLowerCase();
+
+      brands =
+        brands.filter((b) =>
+
+          b.name
+            ?.toLowerCase()
+            .includes(searchText)
+
+          ||
+
+          b.companyId?.name
+            ?.toLowerCase()
+            .includes(searchText)
+
+        );
+
+    }
+
+    const total =
+      brands.length;
+
+    const paginatedBrands =
+      brands.slice(
+        skip,
+        skip + parsedLimit
+      );
+
+    res.json({
+
+      success: true,
+
+      data: paginatedBrands,
+
+      page: parsedPage,
+
+      totalPages:
+        Math.ceil(
+          total / parsedLimit
+        ),
+
+      total,
+
+    });
+
   } catch (err) {
-    res.status(500).json(err.message);
+
+    res.status(500).json({
+
+      success: false,
+
+      message: err.message,
+
+    });
+
   }
+
 };
 
 // ✅ UPDATE

@@ -22,19 +22,152 @@ exports.createUser = async (req, res) => {
   }
 };
 
-// ✅ GET ALL USERS
+// ✅ GET ALL USERS (Backend Pagination + Search + Filter)
+
 exports.getUsers = async (req, res) => {
+
   try {
-    const users = await User.find({ isDeleted: { $ne: true } }).select("-password").populate({
-      path: "role",
-      populate: {
-        path: "permissions"
-      }
+
+    const {
+
+      page = 1,
+
+      limit = 10,
+
+      search = "",
+
+      status = "all",
+
+      sortKey = "name",
+
+      sortDirection = "asc",
+
+    } = req.query;
+
+    const parsedPage =
+      parseInt(page);
+
+    const parsedLimit =
+      parseInt(limit);
+
+    const skip =
+      (parsedPage - 1) * parsedLimit;
+
+    let filter = {
+
+      isDeleted: {
+        $ne: true,
+      },
+
+    };
+
+    // STATUS FILTER
+    if (
+      status &&
+      status !== "all"
+    ) {
+
+      filter.status = status;
+
+    }
+
+    // SEARCH
+    if (search) {
+
+      filter.$or = [
+
+        {
+          name: {
+            $regex: search,
+            $options: "i",
+          },
+        },
+
+        {
+          email: {
+            $regex: search,
+            $options: "i",
+          },
+        },
+
+      ];
+
+    }
+
+    // SORT
+    let sort = {};
+
+    if (sortKey === "role") {
+
+      sort["role.name"] =
+        sortDirection === "asc"
+          ? 1
+          : -1;
+
+    } else {
+
+      sort[sortKey] =
+        sortDirection === "asc"
+          ? 1
+          : -1;
+
+    }
+
+    const users =
+      await User.find(filter)
+
+        .select("-password")
+
+        .populate({
+
+          path: "role",
+
+          populate: {
+            path: "permissions",
+          },
+
+        })
+
+        .sort(sort)
+
+        .skip(skip)
+
+        .limit(parsedLimit);
+
+    const total =
+      await User.countDocuments(
+        filter
+      );
+
+    res.json({
+
+      success: true,
+
+      data: users,
+
+      page: parsedPage,
+
+      totalPages:
+        Math.ceil(
+          total / parsedLimit
+        ),
+
+      total,
+
     });
-    res.json(users);
+
   } catch (err) {
-    res.status(500).json(err.message);
+
+    res.status(500).json({
+
+      success: false,
+
+      message: err.message,
+
+    });
+
   }
+
 };
 
 // ✅ UPDATE USER

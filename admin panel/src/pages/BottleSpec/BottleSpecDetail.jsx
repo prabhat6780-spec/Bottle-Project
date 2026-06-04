@@ -46,14 +46,14 @@ export default function BottleSpecDetail() {
 
   return (
     <div className="page-content">
-      <div className="page-header d-flex align-items-center justify-content-between">
+      <div className="page-header d-flex flex-column flex-md-row align-items-start align-items-md-center justify-content-between gap-3">
         <div className="d-flex align-items-center gap-3">
           <Link to="/bottle-specs" className="btn-ghost" style={{ width: 40, height: 40, borderRadius: 10, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
             <i className="bi bi-arrow-left" style={{ fontSize: 20 }} />
           </Link>
           <h1 className="page-title mb-0">Bottle Specification Detailed</h1>
         </div>
-        <div className="bg-light px-3 py-2 rounded-pill fw-bold d-flex align-items-center gap-2" style={{ fontSize: 13, color: '#333' }}>
+        <div className="bg-light px-3 py-2 rounded-pill fw-bold d-flex align-items-center gap-2 align-self-start align-self-md-auto" style={{ fontSize: 13, color: '#333' }}>
           <i className="bi bi-calendar-event"></i>
           <span>Date: {spec.createdAt ? new Date(spec.createdAt).toLocaleDateString() : 'N/A'}</span>
         </div>

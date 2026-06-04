@@ -1,4 +1,4 @@
-import { createSlice, createAsyncThunk,} from "@reduxjs/toolkit";
+import { createSlice, createAsyncThunk, } from "@reduxjs/toolkit";
 
 import API from "../../services/api";
 
@@ -8,12 +8,14 @@ export const fetchCompanies =
 
     "companies/fetchCompanies",
 
-    async (_, { rejectWithValue }) => {
+    async (params, { rejectWithValue }) => {
 
       try {
 
         const response =
-          await API.get("/company");
+          await API.get("/company", {
+            params,
+          });
 
         return response.data;
 
@@ -153,6 +155,12 @@ const companySlice = createSlice({
 
     error: null,
 
+    page: 1,
+
+    totalPages: 1,
+
+    total: 0,
+
   },
 
   reducers: {},
@@ -178,7 +186,16 @@ const companySlice = createSlice({
           state.loading = false;
 
           state.companies =
-            action.payload;
+            action.payload.data || [];
+
+          state.page =
+            action.payload.page || 1;
+
+          state.totalPages =
+            action.payload.totalPages || 1;
+
+          state.total =
+            action.payload.total || 0;
 
         }
       )
@@ -251,7 +268,7 @@ const companySlice = createSlice({
               (company) =>
 
                 company._id ===
-                action.payload._id
+                  action.payload._id
 
                   ? action.payload
 

@@ -105,7 +105,7 @@ export default function Production() {
   ];
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', height: '100%', minWidth: 0 }}>
 
       {/* ── Page Header (always visible, not scrollable) ── */}
       <div className="page-header d-flex align-items-center justify-content-between mb-3">
@@ -124,7 +124,7 @@ export default function Production() {
       </div>
 
       {/* ── Search Bar (always visible) ── */}
-      <div className="dash-card border-0 shadow-sm mb-3" style={{ borderRadius: 16 }}>
+      <div className="dash-card mb-3">
         <div className="p-3">
           <div className="position-relative">
             <i

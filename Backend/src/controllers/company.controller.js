@@ -26,12 +26,65 @@ exports.createCompany = async (req, res) => {
 };
 
 // ✅ GET
+// ✅ GET COMPANIES (Backend Pagination + Search)
+
 exports.getCompanies = async (req, res) => {
   try {
-    const companies = await Company.find({ isDeleted: { $ne: true } }).sort({ createdAt: -1 });
-    res.json(companies);
+
+    const {
+      page = 1,
+      limit = 10,
+      search = "",
+    } = req.query;
+
+    const parsedPage = parseInt(page);
+    const parsedLimit = parseInt(limit);
+
+    const skip =
+      (parsedPage - 1) * parsedLimit;
+
+    let filter = {
+      isDeleted: { $ne: true }
+    };
+
+    if (search) {
+      filter.name = {
+        $regex: search,
+        $options: "i"
+      };
+    }
+
+    const companies =
+      await Company.find(filter)
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(parsedLimit);
+
+    const total =
+      await Company.countDocuments(filter);
+
+    res.json({
+
+      success: true,
+
+      data: companies,
+
+      page: parsedPage,
+
+      totalPages:
+        Math.ceil(total / parsedLimit),
+
+      total,
+
+    });
+
   } catch (err) {
-    res.status(500).json(err.message);
+
+    res.status(500).json({
+      success: false,
+      message: err.message,
+    });
+
   }
 };
 

@@ -1,8 +1,8 @@
 import { useState, useEffect, useMemo } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import { Can } from '../../context/AbilityContext.js';
 import { useDispatch, useSelector } from 'react-redux';
-import { fetchProductions, deleteProduction } from '../../redux/slices/productionSlice.js';
+import { fetchProductions, deleteProduction, clearProductions } from '../../redux/slices/productionSlice.js';
 import { fetchBrands } from '../../redux/slices/brandSlice.js';
 import { fetchBottleSpecs } from '../../redux/slices/bottleSpecSlice.js';
 import { fetchCompanies } from '../../redux/slices/companySlice.js';
@@ -56,7 +56,17 @@ const matchesDateRange = (dateStr, startIso, endIso) => {
 
 export default function Productions() {
   const dispatch = useDispatch();
-  const { productions, loading } = useSelector((state) => state.productions);
+  const [searchParams, setSearchParams] =
+    useSearchParams();
+  const {
+    productions,
+    loading,
+    page,
+    totalPages,
+    total,
+  } = useSelector(
+    (state) => state.productions
+  );
   const { brands } = useSelector((state) => state.brands);
   const { companies } = useSelector((state) => state.companies);
   const { bottleSpecs } = useSelector((state) => state.bottleSpecs);
@@ -68,22 +78,72 @@ export default function Productions() {
   const [selectedBrand, setSelectedBrand] = useState('');
   const [selectedSpec, setSelectedSpec] = useState('');
   const [selectedVariant, setSelectedVariant] = useState('');
-  const [currentPage, setCurrentPage] = useState(1);
-  const [itemsPerPage, setItemsPerPage] = useState(10);
+  const [limit, setLimit] = useState(10);
+  const currentPage =
+    Number(searchParams.get("page")) || 1;
 
   const maxFilterDate = toIsoDate(new Date());
-  const minFilterDate = (() => {
-    const d = new Date();
-    d.setDate(d.getDate() - 2);
-    return toIsoDate(d);
-  })();
+
 
   useEffect(() => {
-    dispatch(fetchProductions());
+
+    dispatch(clearProductions());
+
+    dispatch(fetchProductions({
+
+      page: currentPage,
+
+      limit,
+
+      companyId: selectedCompany,
+
+      brandId: selectedBrand,
+
+      bottleSpecId: selectedSpec,
+
+      variantId: selectedVariant,
+
+      search,
+
+      startDate,
+
+      endDate,
+
+    }));
+
+  }, [
+
+    dispatch,
+
+    currentPage,
+
+    limit,
+
+    search,
+
+    startDate,
+
+    endDate,
+
+    selectedCompany,
+
+    selectedBrand,
+
+    selectedSpec,
+
+    selectedVariant,
+
+  ]);
+  useEffect(() => {
+
     dispatch(fetchBrands());
+
     dispatch(fetchBottleSpecs());
+
     dispatch(fetchCompanies());
+
     dispatch(fetchVariants());
+
   }, [dispatch]);
 
   const handleDelete = (id) => {
@@ -104,117 +164,114 @@ export default function Productions() {
     });
   };
 
-  const productionsByDate = useMemo(() => {
-    if (!startDate && !endDate) return productions;
-    return productions.filter(p => matchesDateRange(p.date, startDate, endDate));
-  }, [productions, startDate, endDate]);
-
   const filteredCompanies = useMemo(() => {
-    const ids = new Set();
-    productionsByDate.forEach(p => {
-      const id = p.brandId?.companyId?._id || p.brandId?.companyId ||
-        p.bottleSpecId?.brandId?.companyId?._id || p.bottleSpecId?.brandId?.companyId;
-      if (id) ids.add(String(id));
-    });
-    return companies.filter(c => ids.has(String(c._id)));
-  }, [companies, productionsByDate]);
+
+    return companies;
+
+  }, [companies]);
 
   const filteredBrands = useMemo(() => {
-    const ids = new Set();
-    productionsByDate.forEach(p => {
-      const id = p.brandId?._id || p.brandId || p.bottleSpecId?.brandId?._id || p.bottleSpecId?.brandId;
-      if (id) ids.add(String(id));
-    });
-    return brands.filter(b => {
-      const inDateRange = ids.has(String(b._id));
-      const matchesCompany = !selectedCompany ||
-        b.companyId?._id === selectedCompany || b.companyId === selectedCompany;
-      return inDateRange && matchesCompany;
-    });
-  }, [brands, productionsByDate, selectedCompany]);
 
-  const filteredBottleSpecs = useMemo(() => {
-    const ids = new Set();
-    productionsByDate.forEach(p => {
-      const id = p.bottleSpecId?._id || p.bottleSpecId;
-      if (id) ids.add(String(id));
-    });
-    return bottleSpecs.filter(s => {
-      const inDateRange = ids.has(String(s._id));
-      const matchesBrand = !selectedBrand || s.brandId?._id === selectedBrand || s.brandId === selectedBrand;
-      const matchesCompany = !selectedCompany ||
-        s.brandId?.companyId?._id === selectedCompany || s.brandId?.companyId === selectedCompany;
-      return inDateRange && matchesBrand && matchesCompany;
-    });
-  }, [bottleSpecs, productionsByDate, selectedBrand, selectedCompany]);
+    return brands.filter((b) => {
 
-  const filteredVariants = useMemo(() => {
-    const ids = new Set();
-    productionsByDate.forEach(p => {
-      const id = p.variantId?._id || p.variantId;
-      if (id) ids.add(String(id));
-    });
-    return variants.filter(v => {
-      const inDateRange = ids.has(String(v._id));
-      const matchesSpec = !selectedSpec || v.bottleSpecId?._id === selectedSpec || v.bottleSpecId === selectedSpec;
-      const matchesBrand = !selectedBrand || v.bottleSpecId?.brandId?._id === selectedBrand || v.bottleSpecId?.brandId === selectedBrand;
-      const matchesCompany = !selectedCompany ||
-        v.bottleSpecId?.brandId?.companyId?._id === selectedCompany || v.bottleSpecId?.brandId?.companyId === selectedCompany;
-      return inDateRange && matchesSpec && matchesBrand && matchesCompany;
-    });
-  }, [variants, productionsByDate, selectedSpec, selectedBrand, selectedCompany]);
+      if (!selectedCompany) return true;
 
-  const filteredProductions = useMemo(() => {
-    return productions.filter(p => {
-      const brandName = p.brandId?.name || p.bottleSpecId?.brandId?.name || '';
-      const companyName = p.brandId?.companyId?.name || p.bottleSpecId?.brandId?.companyId?.name || '';
-      const variantName = p.variantId?.variantName || '';
-      const productName = p.variantId?.productName || '';
-      const specName = p.bottleSpecId?.bottleName || '';
-
-      const matchesSearch = (
-        brandName.toLowerCase().includes(search.toLowerCase()) ||
-        companyName.toLowerCase().includes(search.toLowerCase()) ||
-        variantName.toLowerCase().includes(search.toLowerCase()) ||
-        productName.toLowerCase().includes(search.toLowerCase()) ||
-        specName.toLowerCase().includes(search.toLowerCase())
+      return (
+        b.companyId?._id === selectedCompany ||
+        b.companyId === selectedCompany
       );
 
-      const matchesDate = matchesDateRange(p.date, startDate, endDate);
-
-      const matchesCompany = !selectedCompany ||
-        p.brandId?.companyId?._id === selectedCompany ||
-        p.brandId?.companyId === selectedCompany ||
-        p.bottleSpecId?.brandId?.companyId?._id === selectedCompany ||
-        p.bottleSpecId?.brandId?.companyId === selectedCompany;
-
-      const matchesBrand = !selectedBrand ||
-        p.brandId?._id === selectedBrand ||
-        p.brandId === selectedBrand ||
-        p.bottleSpecId?.brandId?._id === selectedBrand ||
-        p.bottleSpecId?.brandId === selectedBrand;
-
-      const matchesSpec = !selectedSpec || p.bottleSpecId?._id === selectedSpec;
-
-      const matchesVariant = !selectedVariant || p.variantId?._id === selectedVariant;
-
-      return matchesSearch && matchesDate && matchesCompany && matchesBrand && matchesSpec && matchesVariant;
-    }).sort((a, b) => {
-      const dateA = parseProductionDate(a.date)?.getTime() ?? 0;
-      const dateB = parseProductionDate(b.date)?.getTime() ?? 0;
-      if (dateB !== dateA) return dateB - dateA;
-      return new Date(b.createdAt) - new Date(a.createdAt);
     });
-  }, [productions, search, startDate, endDate, selectedCompany, selectedBrand, selectedSpec, selectedVariant]);
 
-  useEffect(() => {
-    if (selectedCompany && !filteredCompanies.some(c => c._id === selectedCompany)) {
-      setSelectedCompany('');
-      setSelectedBrand('');
-      setSelectedSpec('');
-      setSelectedVariant('');
-    }
-  }, [filteredCompanies, selectedCompany]);
+  }, [brands, selectedCompany]);
+
+  const filteredBottleSpecs = useMemo(() => {
+
+    return bottleSpecs.filter((s) => {
+
+      const matchesBrand =
+
+        !selectedBrand ||
+
+        s.brandId?._id === selectedBrand ||
+
+        s.brandId === selectedBrand;
+
+      const matchesCompany =
+
+        !selectedCompany ||
+
+        s.brandId?.companyId?._id === selectedCompany ||
+
+        s.brandId?.companyId === selectedCompany;
+
+      return (
+        matchesBrand &&
+        matchesCompany
+      );
+
+    });
+
+  }, [
+
+    bottleSpecs,
+
+    selectedBrand,
+
+    selectedCompany,
+
+  ]);
+
+  const filteredVariants = useMemo(() => {
+
+    return variants.filter((v) => {
+
+      const matchesSpec =
+
+        !selectedSpec ||
+
+        v.bottleSpecId?._id === selectedSpec ||
+
+        v.bottleSpecId === selectedSpec;
+
+      const matchesBrand =
+
+        !selectedBrand ||
+
+        v.bottleSpecId?.brandId?._id === selectedBrand ||
+
+        v.bottleSpecId?.brandId === selectedBrand;
+
+      const matchesCompany =
+
+        !selectedCompany ||
+
+        v.bottleSpecId?.brandId?.companyId?._id === selectedCompany ||
+
+        v.bottleSpecId?.brandId?.companyId === selectedCompany;
+
+      return (
+
+        matchesSpec &&
+        matchesBrand &&
+        matchesCompany
+
+      );
+
+    });
+
+  }, [
+
+    variants,
+
+    selectedSpec,
+
+    selectedBrand,
+
+    selectedCompany,
+
+  ]);
+
 
   useEffect(() => {
     if (selectedBrand && !filteredBrands.some(b => b._id === selectedBrand)) {
@@ -237,13 +294,15 @@ export default function Productions() {
     }
   }, [filteredVariants, selectedVariant]);
 
+
+
   const handleExport = () => {
-    if (filteredProductions.length === 0) {
+    if (productions.length === 0) {
       Swal.fire('No Data', 'There is no data to export for the selected filters.', 'info');
       return;
     }
 
-    const data = filteredProductions.map((p, index) => ({
+    const data = productions.map((p, index) => ({
       'Sr No': index + 1,
       'Date': parseProductionDate(p.date)?.toLocaleDateString() || 'N/A',
       'Company': p.brandId?.companyId?.name || 'N/A',
@@ -274,15 +333,6 @@ export default function Productions() {
     XLSX.writeFile(workbook, filename);
   };
 
-  const totalPages = Math.ceil(filteredProductions.length / itemsPerPage);
-  const paginatedItems = useMemo(() => {
-    const start = (currentPage - 1) * itemsPerPage;
-    return filteredProductions.slice(start, start + itemsPerPage);
-  }, [filteredProductions, currentPage, itemsPerPage]);
-
-  useEffect(() => {
-    setCurrentPage(1);
-  }, [search, itemsPerPage, startDate, endDate, selectedCompany, selectedBrand, selectedSpec, selectedVariant]);
 
   return (
     <div className="page-content">
@@ -303,7 +353,7 @@ export default function Productions() {
         </div>
       </div>
 
-      <div className="dash-card border-0 shadow-sm mb-4" style={{ borderRadius: 20 }}>
+      <div className="dash-card mb-4">
         <div className="dash-card-body p-3">
           <div className="row g-3 align-items-end productions-filters-panel">
             <div className="col-6 col-md-4 col-lg">
@@ -312,10 +362,14 @@ export default function Productions() {
                 type="date"
                 className="form-control form-control-sm border-light-subtle bg-light shadow-none w-100"
                 style={{ borderRadius: 10, height: 38 }}
-                min={minFilterDate}
-                max={maxFilterDate}
                 value={startDate}
-                onChange={(e) => setStartDate(e.target.value)}
+                onChange={(e) => {
+
+                  setSearchParams({ page: 1 });
+
+                  setStartDate(e.target.value);
+
+                }}
               />
             </div>
             <div className="col-6 col-md-4 col-lg">
@@ -324,10 +378,14 @@ export default function Productions() {
                 type="date"
                 className="form-control form-control-sm border-light-subtle bg-light shadow-none w-100"
                 style={{ borderRadius: 10, height: 38 }}
-                min={minFilterDate}
-                max={maxFilterDate}
                 value={endDate}
-                onChange={(e) => setEndDate(e.target.value)}
+                onChange={(e) => {
+
+                  setSearchParams({ page: 1 });
+
+                  setEndDate(e.target.value);
+
+                }}
               />
             </div>
             <div className="col-6 col-md-4 col-lg">
@@ -337,10 +395,17 @@ export default function Productions() {
                 style={{ borderRadius: 10, height: 38 }}
                 value={selectedCompany}
                 onChange={(e) => {
+
+                  setSearchParams({ page: 1 });
+
                   setSelectedCompany(e.target.value);
+
                   setSelectedBrand('');
+
                   setSelectedSpec('');
+
                   setSelectedVariant('');
+
                 }}
               >
                 <option value="">All Companies</option>
@@ -356,9 +421,15 @@ export default function Productions() {
                 style={{ borderRadius: 10, height: 38 }}
                 value={selectedBrand}
                 onChange={(e) => {
+
+                  setSearchParams({ page: 1 });
+
                   setSelectedBrand(e.target.value);
+
                   setSelectedSpec('');
+
                   setSelectedVariant('');
+
                 }}
               >
                 <option value="">All Brands</option>
@@ -374,8 +445,13 @@ export default function Productions() {
                 style={{ borderRadius: 10, height: 38 }}
                 value={selectedSpec}
                 onChange={(e) => {
+
+                  setSearchParams({ page: 1 });
+
                   setSelectedSpec(e.target.value);
+
                   setSelectedVariant('');
+
                 }}
               >
                 <option value="">All Specs</option>
@@ -390,7 +466,13 @@ export default function Productions() {
                 className="form-select form-select-sm border-light-subtle bg-light shadow-none w-100"
                 style={{ borderRadius: 10, height: 38 }}
                 value={selectedVariant}
-                onChange={(e) => setSelectedVariant(e.target.value)}
+                onChange={(e) => {
+
+                  setSearchParams({ page: 1 });
+
+                  setSelectedVariant(e.target.value);
+
+                }}
               >
                 <option value="">All Variants</option>
                 {filteredVariants.map(v => (
@@ -407,7 +489,13 @@ export default function Productions() {
                   className="form-control form-control-sm border-light-subtle bg-light ps-5 shadow-none w-100"
                   placeholder="Search logs..."
                   value={search}
-                  onChange={e => setSearch(e.target.value)}
+                  onChange={(e) => {
+
+                    setSearchParams({ page: 1 });
+
+                    setSearch(e.target.value);
+
+                  }}
                   style={{ borderRadius: 10, height: 38 }}
                 />
               </div>
@@ -416,13 +504,25 @@ export default function Productions() {
               <button
                 type="button"
                 onClick={() => {
+
                   setSearch('');
+
                   setStartDate('');
+
                   setEndDate('');
+
                   setSelectedCompany('');
+
                   setSelectedBrand('');
+
                   setSelectedSpec('');
+
                   setSelectedVariant('');
+
+                  setSearchParams({
+                    page: 1,
+                  });
+
                 }}
                 className="btn btn-sm btn-light border-light-subtle w-100"
                 style={{ borderRadius: 10, fontWeight: 600, height: 38 }}
@@ -441,8 +541,16 @@ export default function Productions() {
             <select
               className="form-select form-select-sm shadow-none border-light-subtle bg-light"
               style={{ width: 70, borderRadius: 8, cursor: 'pointer' }}
-              value={itemsPerPage}
-              onChange={(e) => setItemsPerPage(Number(e.target.value))}
+              value={limit}
+              onChange={(e) => {
+
+                setSearchParams({ page: 1 });
+
+                dispatch(clearProductions());
+
+                setLimit(Number(e.target.value));
+
+              }}
             >
               <option value="10">10</option>
               <option value="25">25</option>
@@ -453,14 +561,14 @@ export default function Productions() {
         </div>
 
         <div className="companies-list-mobile">
-          {paginatedItems.map((p, index) => {
+          {productions.map((p, index) => {
             const variantId = p.variantId?._id || p.variantId;
             const variantImage =
               p.variantId?.image ||
               variants.find(v => v._id === variantId)?.image;
             return (
-              <div key={p._id} className="companies-mobile-card">
-                <div className="d-flex align-items-start gap-3 flex-grow-1 min-w-0">
+              <div key={p._id} className="companies-mobile-card brands-mobile-card">
+                <div className="d-flex align-items-start gap-3 w-100 min-w-0">
                   {variantImage ? (
                     <img
                       src={`${V_URL}${variantImage}`}
@@ -475,7 +583,7 @@ export default function Productions() {
                   )}
                   <div className="flex-grow-1 min-w-0">
                     <div className="d-flex align-items-center gap-2 mb-1 flex-wrap">
-                      <span className="text-muted small fw-bold">#{String((currentPage - 1) * itemsPerPage + index + 1).padStart(2, '0')}</span>
+                      <span className="text-muted small fw-bold">#{String((currentPage - 1) * limit + index + 1).padStart(2, '0')}</span>
                       <span className="fw-semibold">{formatProductionDate(p.date)}</span>
                     </div>
                     <div className="small text-muted">
@@ -494,10 +602,12 @@ export default function Productions() {
                     </div>
                   </div>
                 </div>
-                <div className="companies-mobile-actions">
-                  <Link to={`/productions/view/${p._id}`} className="btn btn-sm btn-outline-info border-0 rounded-3 shadow-none companies-mobile-action-btn" title="View">
-                    <i className="bi bi-eye fs-6" />
-                  </Link>
+                <div className="companies-mobile-actions brands-mobile-actions">
+                  <Can I="read" a="productiondetail">
+                    <Link to={`/productions/view/${p._id}`} className="btn btn-sm btn-outline-info border-0 rounded-3 shadow-none companies-mobile-action-btn" title="View">
+                      <i className="bi bi-eye fs-6" />
+                    </Link>
+                  </Can>
                   <Can I="edit" a="production">
                     <Link to={`/productions/edit/${p._id}`} className="btn btn-sm btn-outline-primary border-0 rounded-3 shadow-none companies-mobile-action-btn" title="Edit">
                       <i className="bi bi-pencil-square fs-6" />
@@ -512,7 +622,7 @@ export default function Productions() {
               </div>
             );
           })}
-          {paginatedItems.length === 0 && !loading && (
+          {productions.length === 0 && !loading && (
             <div className="companies-mobile-empty">No production logs found</div>
           )}
         </div>
@@ -531,7 +641,7 @@ export default function Productions() {
               </tr>
             </thead>
             <tbody>
-              {paginatedItems.map((p, index) => {
+              {productions.map((p, index) => {
                 const variantId = p.variantId?._id || p.variantId;
                 const variantImage =
                   p.variantId?.image ||
@@ -539,7 +649,7 @@ export default function Productions() {
                 return (
                   <tr key={p._id} className="align-middle border-bottom transition-all hover-bg-light">
                     <td className="py-3 ps-5 text-start">
-                      <span className="text-muted fw-bold" style={{ fontSize: 13 }}>{String((currentPage - 1) * itemsPerPage + index + 1).padStart(2, '0')}</span>
+                      <span className="text-muted fw-bold" style={{ fontSize: 13 }}>{String((currentPage - 1) * limit + index + 1).padStart(2, '0')}</span>
                     </td>
                     <td className="py-3 text-center">
                       <div className="fw-600 text-dark">{formatProductionDate(p.date)}</div>
@@ -604,9 +714,11 @@ export default function Productions() {
                     </td>
                     <td className="py-3 text-center">
                       <div className="d-flex gap-2 justify-content-center">
-                        <Link to={`/productions/view/${p._id}`} className="btn btn-sm btn-outline-info border-0 rounded-3 shadow-none p-2" title="View">
-                          <i className="bi bi-eye fs-6" />
-                        </Link>
+                        <Can I="read" a="productiondetail">
+                          <Link to={`/productions/view/${p._id}`} className="btn btn-sm btn-outline-info border-0 rounded-3 shadow-none p-2" title="View">
+                            <i className="bi bi-eye fs-6" />
+                          </Link>
+                        </Can>
                         <Can I="edit" a="production">
                           <Link to={`/productions/edit/${p._id}`} className="btn btn-sm btn-outline-primary border-0 rounded-3 shadow-none p-2" title="Edit">
                             <i className="bi bi-pencil-square fs-6" />
@@ -622,7 +734,7 @@ export default function Productions() {
                   </tr>
                 );
               })}
-              {paginatedItems.length === 0 && !loading && (
+              {productions.length === 0 && !loading && (
                 <tr>
                   <td colSpan={7} className="text-center py-5 text-muted">No production logs found</td>
                 </tr>
@@ -632,42 +744,85 @@ export default function Productions() {
         </div>
 
         <div className="dash-card-footer d-flex align-items-center justify-content-between p-3 border-top bg-white companies-dash-footer">
+
           <div className="text-muted small fw-500">
-            Showing <b>{filteredProductions.length > 0 ? (currentPage - 1) * itemsPerPage + 1 : 0}</b> to <b>{Math.min(currentPage * itemsPerPage, filteredProductions.length)}</b> of <b>{filteredProductions.length}</b> entries
+
+            Showing page <b>{page}</b> of <b>{totalPages}</b>
+
+            {" "}(
+            <b>{total}</b> total entries
+            )
+
           </div>
-          <nav aria-label="Page navigation">
-            <ul className="pagination pagination-sm mb-0 gap-2">
-              <li className={`page-item ${currentPage === 1 ? 'disabled' : ''}`}>
-                <button
-                  className="page-link border-0 bg-light text-muted px-3"
-                  style={{ borderRadius: 8 }}
-                  onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
-                >
-                  Previous
-                </button>
-              </li>
-              {[...Array(totalPages)].map((_, i) => (
-                <li key={i} className={`page-item ${currentPage === i + 1 ? 'active' : ''}`}>
-                  <button
-                    className="page-link border-0 px-3"
-                    style={{ borderRadius: 8, backgroundColor: currentPage === i + 1 ? 'var(--accent)' : 'transparent' }}
-                    onClick={() => setCurrentPage(i + 1)}
-                  >
-                    {i + 1}
-                  </button>
-                </li>
-              ))}
-              <li className={`page-item ${currentPage === totalPages || totalPages === 0 ? 'disabled' : ''}`}>
-                <button
-                  className="page-link border-0 bg-light text-muted px-3"
-                  style={{ borderRadius: 8 }}
-                  onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
-                >
-                  Next
-                </button>
-              </li>
-            </ul>
-          </nav>
+
+          <div className="d-flex align-items-center gap-2">
+
+            <button
+
+              className="btn btn-sm btn-light"
+
+              disabled={currentPage === 1}
+
+              onClick={() => {
+
+                if (currentPage > 1) {
+
+                  setSearchParams({
+
+                    page: currentPage - 1,
+
+                  });
+
+                }
+
+              }}
+
+            >
+
+              Previous
+
+            </button>
+
+            <button
+              className="btn btn-sm btn-primary"
+            >
+
+              {currentPage}
+
+            </button>
+
+            <button
+
+              className="btn btn-sm btn-light"
+
+              disabled={
+                currentPage === totalPages
+              }
+
+              onClick={() => {
+
+                if (
+                  currentPage < totalPages
+                ) {
+
+                  setSearchParams({
+
+                    page: currentPage + 1,
+
+                  });
+
+                }
+
+              }}
+
+            >
+
+              Next
+
+            </button>
+
+          </div>
+
         </div>
       </div>
     </div>

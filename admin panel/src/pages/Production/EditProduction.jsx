@@ -8,6 +8,12 @@ import { fetchProductions, updateProduction } from '../../redux/slices/productio
 import Swal from 'sweetalert2';
 import SearchableSelect from '../../components/SearchableSelect';
 
+// Derive admin status from the logged-in user's role
+const getIsAdmin = (user) => {
+  const roleName = typeof user?.role === 'object' ? user?.role?.name : user?.role;
+  return roleName?.toLowerCase() === 'admin';
+};
+
 export default function EditProduction() {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -17,8 +23,12 @@ export default function EditProduction() {
   const { bottleSpecs: specs } = useSelector((state) => state.bottleSpecs);
   const { variants } = useSelector((state) => state.variants);
   const { productions, loading } = useSelector((state) => state.productions);
+  const { user: authUser } = useSelector((state) => state.auth);
 
-  // Calculate min and max dates (Yesterday, Today, Tomorrow)
+  // Admins can edit any date; regular users are restricted to yesterday/today/tomorrow
+  const isAdmin = getIsAdmin(authUser);
+
+  // Calculate min and max dates (Yesterday, Today, Tomorrow) — only used for non-admins
   const today = new Date();
   
   const tomorrow = new Date(today);
@@ -125,7 +135,8 @@ export default function EditProduction() {
         totalPrinted: record.totalPrinted || '',
         bottlePerBox: record.bottlePerBox || 50,
       });
-      if (recordDate && recordDate < minDate) {
+      // Admins are never locked out of any record, regardless of date
+      if (!isAdmin && recordDate && recordDate < minDate) {
         setIsLocked(true);
       } else {
         setIsLocked(false);
@@ -300,8 +311,7 @@ export default function EditProduction() {
                       name="date"
                       className={`form-control custom-input-field ${errors.date ? 'is-invalid' : ''}`}
                       required
-                      min={minDate}
-                      max={maxDate}
+                      {...(!isAdmin && { min: minDate, max: maxDate })}
                       value={formData.date}
                       onChange={handleChange}
                       onBlur={handleBlur}

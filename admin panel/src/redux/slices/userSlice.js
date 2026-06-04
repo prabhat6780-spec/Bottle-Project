@@ -1,4 +1,4 @@
-import {createSlice, createAsyncThunk,} from "@reduxjs/toolkit";
+import { createSlice, createAsyncThunk, } from "@reduxjs/toolkit";
 
 import API from "../../services/api";
 
@@ -6,12 +6,15 @@ export const fetchUsers = createAsyncThunk(
 
   "users/fetchUsers",
 
-  async (_, { rejectWithValue }) => {
+  async (params, { rejectWithValue }) => {
 
     try {
 
       const response = await API.get(
-        "/users"
+        "/users",
+        {
+          params,
+        }
       );
 
       return response.data;
@@ -197,176 +200,192 @@ const userSlice = createSlice({
 
   name: "users",
 
-initialState: {
+  initialState: {
 
-  users: [],
+    users: [],
 
-  singleUser: null,
+    singleUser: null,
 
-  loading: false,
+    loading: false,
 
-  error: null,
+    error: null,
 
-},
+    page: 1,
+
+    totalPages: 1,
+
+    total: 0,
+
+  },
 
   reducers: {},
 
   extraReducers: (builder) => {
 
-  builder
+    builder
 
-    // FETCH USERS
-    .addCase(fetchUsers.pending, (state) => {
+      // FETCH USERS
+      .addCase(fetchUsers.pending, (state) => {
 
-      state.loading = true;
+        state.loading = true;
 
-    })
+      })
 
-    .addCase(fetchUsers.fulfilled, (state, action) => {
+      .addCase(fetchUsers.fulfilled, (state, action) => {
 
-      state.loading = false;
+        state.loading = false;
 
-      state.users = action.payload;
+        state.users =
+          action.payload.data || [];
 
-    })
+        state.page =
+          action.payload.page || 1;
 
-    .addCase(fetchUsers.rejected, (state, action) => {
+        state.totalPages =
+          action.payload.totalPages || 1;
 
-      state.loading = false;
+        state.total =
+          action.payload.total || 0;
 
-      state.error = action.payload;
+      })
 
-    })
+      .addCase(fetchUsers.rejected, (state, action) => {
 
-    // DELETE USER
-    .addCase(deleteUser.fulfilled, (state, action) => {
+        state.loading = false;
 
-      state.users = state.users.filter(
-        (user) => user._id !== action.payload
-      );
+        state.error = action.payload;
 
-    })
+      })
 
-    // FETCH SINGLE USER
-    .addCase(fetchSingleUser.pending, (state) => {
+      // DELETE USER
+      .addCase(deleteUser.fulfilled, (state, action) => {
 
-      state.loading = true;
+        state.users = state.users.filter(
+          (user) => user._id !== action.payload
+        );
 
-    })
+      })
 
-    .addCase(fetchSingleUser.fulfilled, (state, action) => {
+      // FETCH SINGLE USER
+      .addCase(fetchSingleUser.pending, (state) => {
 
-      state.loading = false;
+        state.loading = true;
 
-      state.singleUser = action.payload;
+      })
 
-    })
+      .addCase(fetchSingleUser.fulfilled, (state, action) => {
 
-    .addCase(fetchSingleUser.rejected, (state, action) => {
+        state.loading = false;
 
-      state.loading = false;
+        state.singleUser = action.payload;
 
-      state.error = action.payload;
+      })
 
-    })
+      .addCase(fetchSingleUser.rejected, (state, action) => {
 
-    // UPDATE STATUS
-    .addCase(updateUserStatus.pending, (state) => {
+        state.loading = false;
 
-      state.loading = true;
+        state.error = action.payload;
 
-    })
+      })
 
-    .addCase(updateUserStatus.fulfilled, (state, action) => {
+      // UPDATE STATUS
+      .addCase(updateUserStatus.pending, (state) => {
 
-      state.loading = false;
+        state.loading = true;
 
-      state.singleUser = action.payload;
+      })
 
-    })
+      .addCase(updateUserStatus.fulfilled, (state, action) => {
 
-    .addCase(updateUserStatus.rejected, (state, action) => {
+        state.loading = false;
 
-      state.loading = false;
+        state.singleUser = action.payload;
 
-      state.error = action.payload;
+      })
 
-    })
+      .addCase(updateUserStatus.rejected, (state, action) => {
 
-    // ADD USER
-.addCase(addUser.pending,
-  (state) => {
+        state.loading = false;
 
-    state.loading = true;
+        state.error = action.payload;
 
-  }
-)
+      })
 
-.addCase(addUser.fulfilled,
-  (state, action) => {
+      // ADD USER
+      .addCase(addUser.pending,
+        (state) => {
 
-    state.loading = false;
+          state.loading = true;
 
-    state.users.push(
-      action.payload
-    );
+        }
+      )
 
-  }
-)
+      .addCase(addUser.fulfilled,
+        (state, action) => {
 
-.addCase(addUser.rejected,
-  (state, action) => {
+          state.loading = false;
 
-    state.loading = false;
+          state.users.push(
+            action.payload
+          );
 
-    state.error = action.payload;
+        }
+      )
 
-  }
-)
+      .addCase(addUser.rejected,
+        (state, action) => {
 
-// UPDATE USER
-.addCase(updateUser.pending,
-  (state) => {
+          state.loading = false;
 
-    state.loading = true;
+          state.error = action.payload;
 
-  }
-)
+        }
+      )
 
-.addCase(updateUser.fulfilled,
-  (state, action) => {
+      // UPDATE USER
+      .addCase(updateUser.pending,
+        (state) => {
 
-    state.loading = false;
+          state.loading = true;
 
-    state.singleUser =
-      action.payload;
+        }
+      )
 
-    state.users =
-      state.users.map((user) =>
+      .addCase(updateUser.fulfilled,
+        (state, action) => {
 
-        user._id ===
-        action.payload._id
+          state.loading = false;
 
-          ? action.payload
+          state.singleUser =
+            action.payload;
 
-          : user
+          state.users =
+            state.users.map((user) =>
 
-      );
+              user._id ===
+                action.payload._id
 
-  }
-)
+                ? action.payload
 
-.addCase(updateUser.rejected,
-  (state, action) => {
+                : user
 
-    state.loading = false;
+            );
 
-    state.error = action.payload;
+        }
+      )
 
-  }
-)
+      .addCase(updateUser.rejected,
+        (state, action) => {
 
-},
+          state.loading = false;
+
+          state.error = action.payload;
+
+        }
+      )
+
+  },
 
 });
 

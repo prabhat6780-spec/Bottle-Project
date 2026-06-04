@@ -9,10 +9,10 @@ export default function CreateRole() {
   const { id } = useParams();
   const navigate = useNavigate();
   const dispatch = useDispatch();
-  
+
   const { permissions, loading: permissionsLoading } = useSelector((state) => state.permissions);
   const { roles, loading: rolesLoading } = useSelector((state) => state.roles);
-  
+
   const [roleName, setRoleName] = useState('');
   const [selectedPermissions, setSelectedPermissions] = useState([]);
 
@@ -76,6 +76,41 @@ export default function CreateRole() {
     );
   }
 
+  const groupOrder = [
+    'dashboard', 'user', 'company', 'brand', 'printing-type', 'printing-color',
+    'bottlespec', 'variant', 'production', 'permission', 'role', 'vision', 'all'
+  ];
+
+  const groupedPermissions = permissions.reduce((acc, p) => {
+    let subject = 'other';
+    const parts = p.name.split('-');
+
+    if (p.name === 'manage-all') {
+      subject = 'all';
+    } else if (p.name === 'use-vision') {
+      subject = 'vision';
+    } else if (parts.length > 1) {
+      subject = parts.slice(1).join('-');
+    }
+
+    // Group detail permissions into their parent subject
+    if (subject === 'bottlespecdetail') subject = 'bottlespec';
+    if (subject === 'productiondetail') subject = 'production';
+
+    if (!acc[subject]) acc[subject] = [];
+    acc[subject].push(p);
+    return acc;
+  }, {});
+
+  const sortedSubjects = Object.keys(groupedPermissions).sort((a, b) => {
+    const idxA = groupOrder.indexOf(a);
+    const idxB = groupOrder.indexOf(b);
+    if (idxA === -1 && idxB === -1) return a.localeCompare(b);
+    if (idxA === -1) return 1;
+    if (idxB === -1) return -1;
+    return idxA - idxB;
+  });
+
   return (
     <div className="page-content rbac-role-page">
       <div className="page-header d-flex align-items-center gap-3 brand-form-page-header mb-4">
@@ -102,26 +137,43 @@ export default function CreateRole() {
             />
           </div>
 
-          <div className="mb-3 mt-4">
-            <label className="form-label small fw-500 text-muted">Permissions:</label>
+          <div className="mb-4 mt-5 border-bottom pb-2 d-flex justify-content-between align-items-center">
+            <h5 className="mb-0 fw-bold text-dark">Permissions Assignment</h5>
+            <button
+              type="button"
+              className="btn btn-sm btn-outline-primary rounded-pill px-3"
+              onClick={() => setSelectedPermissions(selectedPermissions.length === permissions.length ? [] : permissions.map(p => p._id))}
+            >
+              {selectedPermissions.length === permissions.length ? 'Deselect All' : 'Select All'}
+            </button>
           </div>
 
-          <div className="row g-2 g-sm-3 rbac-permissions-grid">
-            {permissions.map((p) => (
-              <div className="col-12 col-sm-6 col-md-4 col-lg-2" key={p._id}>
-                <div className="rbac-permission-item form-check form-switch d-flex align-items-start gap-2 p-2 rounded-3">
-                  <input
-                    className="form-check-input shadow-none cursor-pointer flex-shrink-0 mt-1"
-                    type="checkbox"
-                    role="switch"
-                    id={`switch-${p._id}`}
-                    checked={selectedPermissions.includes(p._id)}
-                    onChange={() => handleTogglePermission(p._id)}
-                    style={{ cursor: 'pointer' }}
-                  />
-                  <label className="form-check-label small text-muted cursor-pointer rbac-permission-label mb-0" htmlFor={`switch-${p._id}`}>
-                    {p.name}
-                  </label>
+          <div className="permissions-container">
+            {sortedSubjects.map(subject => (
+              <div key={subject} className="mb-4 bg-light p-3 rounded-4 border border-light-subtle">
+                <h6 className="text-uppercase text-accent fw-bold mb-3 d-flex align-items-center" style={{ fontSize: 13, letterSpacing: 0.5 }}>
+                  <i className="bi bi-shield-check me-2 fs-5"></i>
+                  {subject.replace('-', ' ')} Permissions
+                </h6>
+                <div className="row g-3 rbac-permissions-grid">
+                  {groupedPermissions[subject].map((p) => (
+                    <div className="col-12 col-sm-6 col-md-4 col-lg-3" key={p._id}>
+                      <div className="rbac-permission-item form-check form-switch d-flex align-items-center gap-2 p-3 rounded-3 bg-white border h-100 transition-all hover-shadow-sm">
+                        <input
+                          className="form-check-input shadow-none cursor-pointer flex-shrink-0 m-0"
+                          type="checkbox"
+                          role="switch"
+                          id={`switch-${p._id}`}
+                          checked={selectedPermissions.includes(p._id)}
+                          onChange={() => handleTogglePermission(p._id)}
+                          style={{ cursor: 'pointer', transform: 'scale(1.2)' }}
+                        />
+                        <label className="form-check-label small text-dark cursor-pointer rbac-permission-label mb-0 fw-600 text-truncate ms-1" htmlFor={`switch-${p._id}`} title={p.name}>
+                          {p.name}
+                        </label>
+                      </div>
+                    </div>
+                  ))}
                 </div>
               </div>
             ))}

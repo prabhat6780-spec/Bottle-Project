@@ -1,4 +1,4 @@
-import { createSlice, createAsyncThunk,} from "@reduxjs/toolkit";
+import { createSlice, createAsyncThunk, } from "@reduxjs/toolkit";
 
 import API from "../../services/api";
 
@@ -8,12 +8,17 @@ export const fetchBrands =
 
     "brands/fetchBrands",
 
-    async (_, { rejectWithValue }) => {
+    async (params, { rejectWithValue }) => {
 
       try {
 
         const response =
-          await API.get("/brand");
+          await API.get(
+            "/brand",
+            {
+              params,
+            }
+          );
 
         return response.data;
 
@@ -153,8 +158,13 @@ const brandSlice = createSlice({
 
     error: null,
 
-  },
+    page: 1,
 
+    totalPages: 1,
+
+    total: 0,
+
+  },
   reducers: {},
 
   extraReducers: (builder) => {
@@ -178,7 +188,16 @@ const brandSlice = createSlice({
           state.loading = false;
 
           state.brands =
-            action.payload;
+            action.payload.data || [];
+
+          state.page =
+            action.payload.page || 1;
+
+          state.totalPages =
+            action.payload.totalPages || 1;
+
+          state.total =
+            action.payload.total || 0;
 
         }
       )
@@ -251,7 +270,7 @@ const brandSlice = createSlice({
               (brand) =>
 
                 brand._id ===
-                action.payload._id
+                  action.payload._id
 
                   ? action.payload
 

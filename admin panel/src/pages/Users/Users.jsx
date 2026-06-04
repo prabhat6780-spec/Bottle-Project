@@ -1,5 +1,5 @@
 import { useState, useMemo, useEffect } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams, } from 'react-router-dom';
 import { Can } from '../../context/AbilityContext';
 import { useDispatch, useSelector } from 'react-redux';
 import { fetchUsers, deleteUser } from '../../redux/slices/userSlice';
@@ -15,18 +15,64 @@ const avatarColors = [
 
 export default function Users() {
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const currentPage = Number(searchParams.get("page")) || 1;
   const dispatch = useDispatch();
-  const { users, loading, error } = useSelector((state) => state.users);
+  const {
+
+    users,
+
+    loading,
+
+    error,
+
+    page,
+
+    total, totalPages
+
+  } = useSelector(
+    (state) => state.users
+  );
 
   const [search, setSearch] = useState('');
   const [filter, setFilter] = useState('all');
   const [sortConfig, setSortConfig] = useState({ key: 'name', direction: 'asc' });
   const [entries, setEntries] = useState(10);
-  const [currentPage, setCurrentPage] = useState(1);
 
   useEffect(() => {
-    dispatch(fetchUsers());
-  }, [dispatch]);
+
+    dispatch(fetchUsers({
+
+      page: currentPage,
+
+      limit: entries,
+
+      search,
+
+      status: filter,
+
+      sortKey: sortConfig.key,
+
+      sortDirection:
+        sortConfig.direction,
+
+    }));
+
+  }, [
+
+    dispatch,
+
+    currentPage,
+
+    entries,
+
+    search,
+
+    filter,
+
+    sortConfig,
+
+  ]);
 
   const handleSort = (key) => {
     let direction = 'asc';
@@ -58,43 +104,7 @@ export default function Users() {
     });
   };
 
-  const filteredAndSorted = useMemo(() => {
-    let result = Array.isArray(users) ? [...users] : [];
 
-    result = result.filter(u => {
-      const name = u.name || '';
-      const email = u.email || '';
-      const matchSearch = name.toLowerCase().includes(search.toLowerCase()) ||
-        email.toLowerCase().includes(search.toLowerCase());
-      const matchFilter = filter === 'all' || u.status === filter;
-      return matchSearch && matchFilter;
-    });
-
-    if (sortConfig.key) {
-      result.sort((a, b) => {
-        let valA = a[sortConfig.key];
-        let valB = b[sortConfig.key];
-
-        // Handle role object
-        if (sortConfig.key === 'role') {
-          valA = a.role ? a.role.name : '';
-          valB = b.role ? b.role.name : '';
-        }
-
-        valA = (valA || '').toString().toLowerCase();
-        valB = (valB || '').toString().toLowerCase();
-
-        if (valA < valB) return sortConfig.direction === 'asc' ? -1 : 1;
-        if (valA > valB) return sortConfig.direction === 'asc' ? 1 : -1;
-        return 0;
-      });
-    }
-
-    return result;
-  }, [users, search, filter, sortConfig]);
-
-  const totalPages = Math.ceil(filteredAndSorted.length / entries);
-  const paginatedData = filteredAndSorted.slice((currentPage - 1) * entries, currentPage * entries);
 
   const roleBadgeStyle = (roleName) => ({
     padding: '3px 10px',
@@ -145,7 +155,7 @@ export default function Users() {
             <select
               className="form-select form-select-sm entries-select"
               value={entries}
-              onChange={(e) => { setEntries(Number(e.target.value)); setCurrentPage(1); }}
+              onChange={(e) => { setEntries(Number(e.target.value)); setSearchParams({ page: 1 }); }}
             >
               <option value={5}>5</option>
               <option value={10}>10</option>
@@ -163,14 +173,14 @@ export default function Users() {
                 className="search-input"
                 placeholder="Search users..."
                 value={search}
-                onChange={e => { setSearch(e.target.value); setCurrentPage(1); }}
+                onChange={e => { setSearch(e.target.value); setSearchParams({ page: 1 }); }}
               />
             </div>
             <div className="btn-group">
               {['all', 'active', 'inactive', 'pending'].map(f => (
                 <button
                   key={f}
-                  onClick={() => { setFilter(f); setCurrentPage(1); }}
+                  onClick={() => { setFilter(f); setSearchParams({ page: 1 }); }}
                   className={`btn ${filter === f ? 'btn-accent' : 'btn-ghost'} py-1 px-3`}
                   style={{ fontSize: 12, textTransform: 'capitalize' }}
                 >
@@ -182,7 +192,7 @@ export default function Users() {
         </div>
 
         <div className="users-list-mobile">
-          {paginatedData.map((u, i) => (
+          {users.map((u, i) => (
             <div key={u._id} className="users-mobile-card">
               <div className="d-flex align-items-start gap-3">
                 <div
@@ -229,7 +239,7 @@ export default function Users() {
               </div>
             </div>
           ))}
-          {paginatedData.length === 0 && !loading && (
+          {users.length === 0 && !loading && (
             <div className="users-mobile-empty">
               <i className="bi bi-search" />
               No matching users found
@@ -257,7 +267,7 @@ export default function Users() {
               </tr>
             </thead>
             <tbody>
-              {paginatedData.map((u, i) => (
+              {users.map((u, i) => (
                 <tr key={u._id}>
                   <td>
                     <div className="d-flex align-items-center gap-3">
@@ -310,7 +320,7 @@ export default function Users() {
                   </td>
                 </tr>
               ))}
-              {paginatedData.length === 0 && !loading && (
+              {users.length === 0 && !loading && (
                 <tr>
                   <td colSpan={5} style={{ textAlign: 'center', color: 'var(--text-muted)', padding: '48px 0' }}>
                     <i className="bi bi-search" style={{ fontSize: 32, display: 'block', marginBottom: 12 }} />
@@ -323,32 +333,79 @@ export default function Users() {
         </div>
 
         <div className="d-flex align-items-center justify-content-between px-4 py-3 bg-light-subtle users-dash-footer" style={{ borderTop: '1px solid var(--card-border)' }}>
+
           <span style={{ fontSize: 13, color: 'var(--text-secondary)' }}>
-            Showing <strong>{filteredAndSorted.length > 0 ? (currentPage - 1) * entries + 1 : 0}</strong> to <strong>{Math.min(currentPage * entries, filteredAndSorted.length)}</strong> of <strong>{filteredAndSorted.length}</strong> entries
+
+            Showing page <strong>{page}</strong>
+
+            of <strong>{totalPages}</strong>
+
+            ({total} total users)
+
           </span>
+
           <div className="pagination-container d-flex gap-1">
+
             <button
+
               className={`btn btn-sm btn-ghost ${currentPage === 1 ? 'disabled' : ''}`}
-              onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+
+              onClick={() => {
+
+                if (currentPage > 1) {
+
+                  setSearchParams({
+
+                    page: currentPage - 1,
+
+                  });
+
+                }
+
+              }}
+
             >
+
               Previous
+
             </button>
-            {[...Array(totalPages)].map((_, i) => (
-              <button
-                key={i}
-                onClick={() => setCurrentPage(i + 1)}
-                className={`btn btn-sm ${currentPage === i + 1 ? 'btn-accent' : 'btn-ghost'}`}
-              >
-                {i + 1}
-              </button>
-            ))}
+
             <button
-              className={`btn btn-sm btn-ghost ${currentPage === totalPages || totalPages === 0 ? 'disabled' : ''}`}
-              onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+              className="btn btn-sm btn-accent"
             >
-              Next
+
+              {currentPage}
+
             </button>
+
+            <button
+
+              className={`btn btn-sm btn-ghost ${currentPage === totalPages || totalPages === 0 ? 'disabled' : ''}`}
+
+              onClick={() => {
+
+                if (
+                  currentPage < totalPages
+                ) {
+
+                  setSearchParams({
+
+                    page: currentPage + 1,
+
+                  });
+
+                }
+
+              }}
+
+            >
+
+              Next
+
+            </button>
+
           </div>
+
         </div>
       </div>
     </div>

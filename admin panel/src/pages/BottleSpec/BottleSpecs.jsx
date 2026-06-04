@@ -66,13 +66,13 @@ export default function BottleSpecs() {
           <p className="page-subtitle mb-0">Manage technical designs and printing requirements</p>
         </div>
         <Can I="create" a="bottlespec">
-          <Link to="/bottle-specs/add" className="btn-accent shadow-sm px-4 py-2 rounded-3">
+          <Link to="/bottle-specs/add" className="btn-accent shadow-sm px-4 py-2 rounded-3 companies-header-action">
             <i className="bi bi-plus-lg me-2" /> New Specification
           </Link>
         </Can>
       </div>
 
-      <div className="dash-card border-0 shadow-sm overflow-hidden" style={{ borderRadius: 20 }}>
+      <div className="dash-card">
         <div className="dash-card-header d-flex align-items-center justify-content-between p-3 border-bottom bg-white companies-dash-toolbar">
           <div className="d-flex align-items-center gap-2 text-muted small fw-500">
             <span>Show</span>
@@ -88,7 +88,7 @@ export default function BottleSpecs() {
             </select>
             <span>entries</span>
           </div>
-          <div className="search-input-wrapper position-relative" style={{ width: 320 }}>
+          <div className="search-input-wrapper position-relative companies-search-wrap">
             <i className="bi bi-search text-muted position-absolute top-50 start-0 translate-middle-y ms-3" style={{ pointerEvents: 'none' }} />
             <input
               type="text"
@@ -103,8 +103,8 @@ export default function BottleSpecs() {
 
         <div className="companies-list-mobile">
           {paginatedItems.map((s, index) => (
-            <div key={s._id} className="companies-mobile-card">
-              <div className="d-flex align-items-start gap-3 flex-grow-1 min-w-0">
+            <div key={s._id} className="companies-mobile-card brands-mobile-card">
+              <div className="d-flex align-items-start gap-3 w-100 min-w-0">
                 <div className="flex-grow-1 min-w-0">
                   <div className="d-flex align-items-center gap-2 mb-1 flex-wrap">
                     <span className="text-muted small fw-bold">#{String((currentPage - 1) * itemsPerPage + index + 1).padStart(2, '0')}</span>
@@ -115,15 +115,17 @@ export default function BottleSpecs() {
                   <div className="small text-muted mt-1">
                     {s.printingTypeId?.name || 'N/A'} — {s.printingColorId?.name || 'No Color'}
                   </div>
-                  <span className={`badge-status badge-${isItemActive(s) ? 'active' : 'inactive'} mt-1`}>
+                  <span className={`badge-status badge-${isItemActive(s) ? 'active' : 'inactive'} mt-1 d-inline-block`}>
                     {isItemActive(s) ? 'Active' : 'Inactive'}
                   </span>
                 </div>
               </div>
-              <div className="companies-mobile-actions">
-                <Link to={`/bottle-specs/view/${s._id}`} className="btn btn-sm btn-outline-info border-0 rounded-3 shadow-none companies-mobile-action-btn" title="View">
-                  <i className="bi bi-eye fs-6" />
-                </Link>
+              <div className="companies-mobile-actions brands-mobile-actions">
+                <Can I="read" a="bottlespecdetail">
+                  <Link to={`/bottle-specs/view/${s._id}`} className="btn btn-sm btn-outline-info border-0 rounded-3 shadow-none companies-mobile-action-btn" title="View">
+                    <i className="bi bi-eye fs-6" />
+                  </Link>
+                </Can>
                 <Can I="edit" a="bottlespec">
                   <Link to={`/bottle-specs/edit/${s._id}`} className="btn btn-sm btn-outline-primary border-0 rounded-3 shadow-none companies-mobile-action-btn" title="Edit">
                     <i className="bi bi-pencil-square fs-6" />
@@ -142,7 +144,7 @@ export default function BottleSpecs() {
           )}
         </div>
 
-        <div className="companies-list-desktop table-responsive">
+        <div className="companies-list-desktop" style={{ overflowX: 'auto' }}>
           <table className="data-table mb-0">
             <thead className="bg-light">
               <tr>
@@ -202,9 +204,11 @@ export default function BottleSpecs() {
                   </td>
                   <td className="py-3 text-center">
                     <div className="d-flex gap-2 justify-content-center">
-                      <Link to={`/bottle-specs/view/${s._id}`} className="btn btn-sm btn-outline-info border-0 rounded-3 shadow-none p-2" title="View">
-                        <i className="bi bi-eye fs-6" />
-                      </Link>
+                      <Can I="read" a="bottlespecdetail">
+                        <Link to={`/bottle-specs/view/${s._id}`} className="btn btn-sm btn-outline-info border-0 rounded-3 shadow-none p-2" title="View">
+                          <i className="bi bi-eye fs-6" />
+                        </Link>
+                      </Can>
                       <Can I="edit" a="bottlespec">
                         <Link to={`/bottle-specs/edit/${s._id}`} className="btn btn-sm btn-outline-primary border-0 rounded-3 shadow-none p-2" title="Edit">
                           <i className="bi bi-pencil-square fs-6" />

@@ -92,7 +92,7 @@ export default function Variants() {
           <p className="page-subtitle">Manage specific product versions, types, and sizes</p>
         </div>
         <Can I="create" a="variant">
-          <Link to="/variants/add" className="btn-accent">
+          <Link to="/variants/add" className="btn-accent companies-header-action">
             <i className="bi bi-plus-lg me-2" /> Add Variant
           </Link>
         </Can>
@@ -114,7 +114,7 @@ export default function Variants() {
             </select>
             <span>entries</span>
           </div>
-          <div className="search-input-wrapper position-relative" style={{ width: 320 }}>
+          <div className="search-input-wrapper position-relative companies-search-wrap">
             <i className="bi bi-search text-muted position-absolute top-50 start-0 translate-middle-y ms-3" style={{ pointerEvents: 'none' }} />
             <input
               type="text"
@@ -130,8 +130,8 @@ export default function Variants() {
         {/* ── Mobile list ─────────────────────────────────────────────────────── */}
         <div className="companies-list-mobile">
           {paginatedItems.map((v, index) => (
-            <div key={v._id} className="companies-mobile-card">
-              <div className="d-flex align-items-start gap-3 flex-grow-1 min-w-0">
+            <div key={v._id} className="companies-mobile-card brands-mobile-card">
+              <div className="d-flex align-items-start gap-3 w-100 min-w-0">
                 {v.image ? (
                   <img
                     src={`${V_URL}${v.image}`}
@@ -159,14 +159,14 @@ export default function Variants() {
                     {v.bottleSpecId?.brandId?.companyId?.name || 'N/A'} · {v.bottleSpecId?.brandId?.name || 'N/A'}
                   </div>
                   <div className="d-flex flex-wrap gap-1 mt-1">
-                    <span className={`badge-status badge-${isItemActive(v) ? 'active' : 'inactive'}`}>
+                    <span className={`badge-status badge-${isItemActive(v) ? 'active' : 'inactive'} d-inline-block`}>
                       {isItemActive(v) ? 'ACTIVE' : 'INACTIVE'}
                     </span>
                     <span className="badge bg-light text-dark border small">{v.detectedTextColor || 'Not Detected'}</span>
                   </div>
                 </div>
               </div>
-              <div className="companies-mobile-actions">
+              <div className="companies-mobile-actions brands-mobile-actions">
                 <Link to={`/variants/view/${v._id}`} className="btn btn-sm btn-outline-info border-0 rounded-3 shadow-none companies-mobile-action-btn" title="View">
                   <i className="bi bi-eye fs-6" />
                 </Link>

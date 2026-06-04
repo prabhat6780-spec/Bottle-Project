@@ -1,4 +1,9 @@
-import {createSlice, createAsyncThunk,} from "@reduxjs/toolkit";
+// ================= productionSlice.js =================
+
+import {
+  createSlice,
+  createAsyncThunk,
+} from "@reduxjs/toolkit";
 
 import API from "../../services/api";
 
@@ -8,12 +13,14 @@ export const fetchProductions =
 
     "productions/fetchProductions",
 
-    async (_, { rejectWithValue }) => {
+    async (params, { rejectWithValue }) => {
 
       try {
 
         const response =
-          await API.get("/production");
+          await API.get("/production", {
+            params,
+          });
 
         return response.data;
 
@@ -193,9 +200,30 @@ const productionSlice = createSlice({
 
     error: null,
 
+    page: 1,
+
+    totalPages: 1,
+
+    total: 0,
+
+
   },
 
-  reducers: {},
+  reducers: {
+
+    clearProductions: (state) => {
+
+      state.productions = [];
+
+      state.page = 1;
+
+      state.totalPages = 1;
+
+      state.total = 0;
+
+    },
+
+  },
 
   extraReducers: (builder) => {
 
@@ -208,6 +236,8 @@ const productionSlice = createSlice({
 
           state.loading = true;
 
+          state.error = null;
+
         }
       )
 
@@ -219,6 +249,15 @@ const productionSlice = createSlice({
 
           state.productions =
             action.payload.data || [];
+
+          state.page =
+            action.payload.page || 1;
+
+          state.totalPages =
+            action.payload.totalPages || 1;
+
+          state.total =
+            action.payload.total || 0;
 
         }
       )
@@ -241,6 +280,8 @@ const productionSlice = createSlice({
         (state) => {
 
           state.loading = true;
+
+          state.error = null;
 
         }
       )
@@ -276,6 +317,8 @@ const productionSlice = createSlice({
 
           state.loading = true;
 
+          state.error = null;
+
         }
       )
 
@@ -285,9 +328,13 @@ const productionSlice = createSlice({
 
           state.loading = false;
 
-          state.productions.push(
-            action.payload.data
-          );
+          if (state.page === 1) {
+
+            state.productions.unshift(
+              action.payload.data
+            );
+
+          }
 
         }
       )
@@ -311,6 +358,8 @@ const productionSlice = createSlice({
 
           state.loading = true;
 
+          state.error = null;
+
         }
       )
 
@@ -328,7 +377,7 @@ const productionSlice = createSlice({
               (production) =>
 
                 production._id ===
-                action.payload.data._id
+                  action.payload.data._id
 
                   ? action.payload.data
 
@@ -356,6 +405,8 @@ const productionSlice = createSlice({
         (state) => {
 
           state.loading = true;
+
+          state.error = null;
 
         }
       )
@@ -392,5 +443,9 @@ const productionSlice = createSlice({
   },
 
 });
+
+export const {
+  clearProductions,
+} = productionSlice.actions;
 
 export default productionSlice.reducer;

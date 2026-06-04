@@ -280,7 +280,7 @@ export default function EditBottleSpec() {
                   </div>
                 </div>
 
-                <div className="d-flex gap-2 mt-5 user-form-actions">
+                <div className="d-flex flex-column flex-md-row gap-2 mt-5 user-form-actions">
                   <button type="submit" className="btn-accent px-5 py-3 flex-grow-1" disabled={loading}>
                     {loading ? (
                       <><span className="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>Updating...</>

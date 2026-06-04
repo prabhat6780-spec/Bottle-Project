@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams, } from 'react-router-dom';
 import { Can } from '../../context/AbilityContext';
 import { useDispatch, useSelector } from 'react-redux';
 import { fetchCompanies, deleteCompany } from '../../redux/slices/companySlice';
@@ -7,9 +7,27 @@ import Swal from 'sweetalert2';
 
 export default function Companies() {
   const dispatch = useDispatch();
-  const { companies, loading } = useSelector((state) => state.companies);
+  const {
+
+    companies,
+
+    loading,
+
+    page,
+
+    totalPages,
+
+    total,
+
+  } = useSelector(
+    (state) => state.companies
+  );
   const [search, setSearch] = useState('');
-  const [currentPage, setCurrentPage] = useState(1);
+  const [searchParams, setSearchParams] =
+    useSearchParams();
+
+  const currentPage =
+    Number(searchParams.get("page")) || 1;
   const [itemsPerPage, setItemsPerPage] = useState(10);
 
   useEffect(() => {
@@ -34,19 +52,31 @@ export default function Companies() {
     });
   };
 
-  const filteredcompanies = useMemo(() => {
-    return companies.filter(b => b.name?.toLowerCase().includes(search.toLowerCase()));
-  }, [companies, search]);
 
-  const totalPages = Math.ceil(filteredcompanies.length / itemsPerPage);
-  const paginatedItems = useMemo(() => {
-    const start = (currentPage - 1) * itemsPerPage;
-    return filteredcompanies.slice(start, start + itemsPerPage);
-  }, [filteredcompanies, currentPage, itemsPerPage]);
 
   useEffect(() => {
-    setCurrentPage(1);
-  }, [search, itemsPerPage]);
+
+    dispatch(fetchCompanies({
+
+      page: currentPage,
+
+      limit: itemsPerPage,
+
+      search,
+
+    }));
+
+  }, [
+
+    dispatch,
+
+    currentPage,
+
+    itemsPerPage,
+
+    search,
+
+  ]);
 
   const isCompanyActive = (b) =>
     b.status === true || b.status === 'active' || b.status === undefined;
@@ -76,11 +106,21 @@ export default function Companies() {
         <div className="dash-card-header d-flex align-items-center justify-content-between p-3 border-bottom bg-white companies-dash-toolbar">
           <div className="d-flex align-items-center gap-2 text-muted small fw-500">
             <span>Show</span>
-            <select 
-              className="form-select form-select-sm shadow-none border-light-subtle bg-light" 
+            <select
+              className="form-select form-select-sm shadow-none border-light-subtle bg-light"
               style={{ width: 70, borderRadius: 8, cursor: 'pointer' }}
               value={itemsPerPage}
-              onChange={(e) => setItemsPerPage(Number(e.target.value))}
+              onChange={(e) => {
+
+                setSearchParams({
+                  page: 1,
+                });
+
+                setItemsPerPage(
+                  Number(e.target.value)
+                );
+
+              }}
             >
               <option value="10">10</option>
               <option value="25">25</option>
@@ -95,14 +135,22 @@ export default function Companies() {
               className="form-control form-control-sm border-light-subtle bg-light ps-5 py-2 shadow-none"
               placeholder="Search companies..."
               value={search}
-              onChange={e => setSearch(e.target.value)}
+              onChange={(e) => {
+
+                setSearchParams({
+                  page: 1,
+                });
+
+                setSearch(e.target.value);
+
+              }}
               style={{ borderRadius: 10, fontSize: 13 }}
             />
           </div>
         </div>
 
         <div className="companies-list-mobile">
-          {paginatedItems.map((b, index) => (
+          {companies.map((b, index) => (
             <div key={b._id} className="companies-mobile-card">
               <div className="d-flex align-items-start gap-3 flex-grow-1 min-w-0">
                 <div
@@ -147,7 +195,7 @@ export default function Companies() {
               </div>
             </div>
           ))}
-          {paginatedItems.length === 0 && !loading && (
+          {companies.length === 0 && !loading && (
             <div className="companies-mobile-empty">No companies found</div>
           )}
         </div>
@@ -164,7 +212,7 @@ export default function Companies() {
               </tr>
             </thead>
             <tbody>
-               {paginatedItems.map((b, index) => (
+              {companies.map((b, index) => (
                 <tr key={b._id} className="align-middle border-bottom transition-all hover-bg-light">
                   <td className="py-3 ps-5 text-start">
                     <span className="text-muted fw-bold" style={{ fontSize: 13 }}>{String((currentPage - 1) * itemsPerPage + index + 1).padStart(2, '0')}</span>
@@ -194,7 +242,7 @@ export default function Companies() {
                   </td>
                 </tr>
               ))}
-              {paginatedItems.length === 0 && !loading && (
+              {companies.length === 0 && !loading && (
                 <tr><td colSpan={5} className="text-center py-5 text-muted">No companies found</td></tr>
               )}
             </tbody>
@@ -202,42 +250,81 @@ export default function Companies() {
         </div>
 
         <div className="dash-card-footer d-flex align-items-center justify-content-between p-3 border-top bg-white companies-dash-footer">
+
           <div className="text-muted small fw-500">
-            Showing <b>{filteredcompanies.length > 0 ? (currentPage - 1) * itemsPerPage + 1 : 0}</b> to <b>{Math.min(currentPage * itemsPerPage, filteredcompanies.length)}</b> of <b>{filteredcompanies.length}</b> entries
+
+            Showing page <b>{page}</b>
+
+            of <b>{totalPages}</b>
+
+            ({total} total companies)
+
           </div>
-          <nav aria-label="Page navigation">
-            <ul className="pagination pagination-sm mb-0 gap-2">
-              <li className={`page-item ${currentPage === 1 ? 'disabled' : ''}`}>
-                <button 
-                  className="page-link border-0 bg-light text-muted px-3" 
-                  style={{ borderRadius: 8 }}
-                  onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
-                >
-                  Previous
-                </button>
-              </li>
-              {[...Array(totalPages)].map((_, i) => (
-                <li key={i} className={`page-item ${currentPage === i + 1 ? 'active' : ''}`}>
-                  <button 
-                    className="page-link border-0 px-3" 
-                    style={{ borderRadius: 8, backgroundColor: currentPage === i + 1 ? 'var(--accent)' : 'transparent' }}
-                    onClick={() => setCurrentPage(i + 1)}
-                  >
-                    {i + 1}
-                  </button>
-                </li>
-              ))}
-              <li className={`page-item ${currentPage === totalPages || totalPages === 0 ? 'disabled' : ''}`}>
-                <button 
-                  className="page-link border-0 bg-light text-muted px-3" 
-                  style={{ borderRadius: 8 }}
-                  onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
-                >
-                  Next
-                </button>
-              </li>
-            </ul>
-          </nav>
+
+          <div className="d-flex gap-2">
+
+            <button
+
+              className="btn btn-sm btn-light"
+
+              disabled={currentPage === 1}
+
+              onClick={() => {
+
+                if (currentPage > 1) {
+
+                  setSearchParams({
+                    page: currentPage - 1,
+                  });
+
+                }
+
+              }}
+
+            >
+
+              Previous
+
+            </button>
+
+            <button
+              className="btn btn-sm btn-primary"
+            >
+
+              {currentPage}
+
+            </button>
+
+            <button
+
+              className="btn btn-sm btn-light"
+
+              disabled={
+                currentPage === totalPages
+              }
+
+              onClick={() => {
+
+                if (
+                  currentPage < totalPages
+                ) {
+
+                  setSearchParams({
+                    page: currentPage + 1,
+                  });
+
+                }
+
+              }}
+
+            >
+
+              Next
+
+            </button>
+
+          </div>
+
         </div>
       </div>
     </div>

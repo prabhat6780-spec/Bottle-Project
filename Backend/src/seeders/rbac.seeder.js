@@ -6,9 +6,11 @@ const seedRBAC = async () => {
     // 1. Define Default Permissions
     const permissionsData = [
       "create-user", "edit-user", "delete-user", "show-user", "sidebar-user", "read-user",
+      "sidebar-dashboard", "read-dashboard",
       "create-brand", "edit-brand", "delete-brand", "sidebar-brand", "read-brand",
-      "create-bottlespec", "edit-bottlespec", "delete-bottlespec", "sidebar-bottlespec", "read-bottlespec",
-      "create-production", "edit-production", "delete-production", "sidebar-production", "read-production",
+      "create-bottlespec", "edit-bottlespec", "delete-bottlespec", "sidebar-bottlespec", "read-bottlespec", "read-bottlespecdetail",
+      "create-variant", "edit-variant", "delete-variant", "sidebar-variant", "read-variant",
+      "create-production", "edit-production", "delete-production", "sidebar-production", "read-production", "read-productiondetail",
       "create-role", "edit-role", "delete-role", "sidebar-role", "read-role",
       "create-permission", "edit-permission", "delete-permission", "sidebar-permission", "read-permission",
       "create-printing-type", "edit-printing-type", "delete-printing-type", "sidebar-printing-type", "read-printing-type",
@@ -39,17 +41,23 @@ const seedRBAC = async () => {
       {
         name: "Manager",
         permissionNames: [
+          "sidebar-dashboard", "read-dashboard",
           "show-user", "sidebar-user", "read-user",
-          "create-brand", "edit-brand", "sidebar-brand", "read-brand",
-          "create-bottlespec", "edit-bottlespec", "sidebar-bottlespec", "read-bottlespec",
-          "create-production", "edit-production", "sidebar-production", "read-production", "use-vision"
+          "create-brand", "edit-brand", "sidebar-brand", "read-brand", "read-company",
+          "create-bottlespec", "edit-bottlespec", "sidebar-bottlespec", "read-bottlespec", "read-bottlespecdetail",
+          "read-printing-type", "read-printing-color",
+          "create-variant", "edit-variant", "sidebar-variant", "read-variant",
+          "create-production", "edit-production", "sidebar-production", "read-production", "read-productiondetail", "use-vision"
         ]
       },
       {
         name: "Operator",
         permissionNames: [
-          "sidebar-brand", "read-brand",
+          "sidebar-dashboard", "read-dashboard",
+          "sidebar-brand", "read-brand", "read-company",
           "sidebar-bottlespec", "read-bottlespec",
+          "read-printing-type", "read-printing-color",
+          "sidebar-variant", "read-variant",
           "sidebar-production", "read-production", "create-production", "use-vision",
           "show-user", "read-user"
         ]
@@ -74,12 +82,22 @@ const seedRBAC = async () => {
           { name: "Admin", permissions: rolePermissions },
           { upsert: true, returnDocument: 'after' }
         );
-      } else if (!existingRole) {
-        // Only create other roles if they don't exist
-        await Role.create({
-          name: roleData.name,
-          permissions: rolePermissions
-        });
+      } else {
+        // Update or create the role with default base permissions
+        if (existingRole) {
+          // Merge existing permissions with the required ones to avoid losing UI changes, 
+          // but for simplicity right now, we will just ensure the base ones are added.
+          const existingIds = existingRole.permissions.map(p => p.toString());
+          const newIds = rolePermissions.map(p => p.toString());
+          const mergedIds = [...new Set([...existingIds, ...newIds])];
+          
+          await Role.findByIdAndUpdate(existingRole._id, { permissions: mergedIds });
+        } else {
+          await Role.create({
+            name: roleData.name,
+            permissions: rolePermissions
+          });
+        }
       }
     }
 

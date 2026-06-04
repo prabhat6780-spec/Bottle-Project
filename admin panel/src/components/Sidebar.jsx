@@ -7,7 +7,7 @@ const navItems = [
   {
     section: 'Main',
     links: [
-      { to: '/', icon: 'bi-grid-1x2-fill', label: 'Dashboard' },
+      { to: '/', icon: 'bi-grid-1x2-fill', label: 'Dashboard', action: 'sidebar', subject: 'dashboard' },
     ],
   },
   {

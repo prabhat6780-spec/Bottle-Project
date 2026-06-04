@@ -1,4 +1,5 @@
 const Production = require("../models/Production");
+const mongoose = require("mongoose");
 
 
 // ✅ CREATE (with duplicate prevention)
@@ -54,37 +55,218 @@ const addProduction = async (req, res) => {
   }
 };
 
+// ✅ GET ALL PRODUCTIONS (Backend Pagination + Search + Filters)
 
-
-// ✅ GET ALL (with filters)
 const getAllProduction = async (req, res) => {
+
   try {
-    const { variantId, date } = req.query;
 
-    let filter = { isDeleted: { $ne: true } };
+    const {
 
-    if (variantId) filter.variantId = variantId;
-    if (date) filter.date = date;
+      variantId,
+      companyId,
+      brandId,
+      bottleSpecId,
 
-    const data = await Production.find(filter)
-      .populate("variantId")
-      .populate({
-        path: "brandId",
-        populate: { path: "companyId" }
-      })
-      .populate({
-        path: "bottleSpecId",
-        populate: ["brandId", "printingTypeId", "printingColorId"]
-      });
+      date,
 
-    res.json({ success: true, data });
+      search = "",
+
+      limit = 10,
+
+      page = 1,
+
+      startDate,
+      endDate,
+
+    } = req.query;
+
+    // ================= PAGINATION =================
+
+    const parsedLimit =
+      parseInt(limit);
+
+    const parsedPage =
+      parseInt(page);
+
+    const skip =
+      (parsedPage - 1) * parsedLimit;
+
+    // ================= FILTER =================
+
+    let filter = {
+
+      isDeleted: {
+        $ne: true,
+      },
+
+    };
+
+    // Variant Filter
+    if (variantId) {
+      filter.variantId = variantId;
+    }
+
+    // Brand Filter
+    if (brandId) {
+      filter.brandId = brandId;
+    }
+
+    // Bottle Spec Filter
+    if (bottleSpecId) {
+      filter.bottleSpecId = bottleSpecId;
+    }
+
+    // Single Date Filter
+    if (date) {
+      filter.date = date;
+    }
+
+    // Date Range Filter
+    if (startDate || endDate) {
+
+      filter.date = {};
+
+      if (startDate) {
+        filter.date.$gte = startDate;
+      }
+
+      if (endDate) {
+        filter.date.$lte = endDate;
+      }
+
+    }
+
+    // ================= DATABASE QUERY =================
+
+    let productions =
+      await Production.find(filter)
+
+        .populate("variantId")
+
+        .populate({
+          path: "brandId",
+          populate: {
+            path: "companyId",
+          },
+        })
+
+        .populate({
+          path: "bottleSpecId",
+          populate: [
+            "brandId",
+            "printingTypeId",
+            "printingColorId",
+          ],
+        })
+
+        .sort({ createdAt: -1 })
+
+        .skip(skip)
+
+        .limit(parsedLimit)
+
+        .lean();
+
+    // ================= COMPANY FILTER =================
+
+    if (companyId) {
+
+      productions =
+        productions.filter(
+
+          (p) =>
+
+            p.brandId?.companyId?._id?.toString() ===
+            companyId
+
+        );
+
+    }
+
+    // ================= SEARCH =================
+
+    if (search) {
+
+      const searchText =
+        search.toLowerCase();
+
+      productions =
+        productions.filter((p) => {
+
+          const brandName =
+            p.brandId?.name
+              ?.toLowerCase() || "";
+
+          const companyName =
+            p.brandId?.companyId?.name
+              ?.toLowerCase() || "";
+
+          const variantName =
+            p.variantId?.variantName
+              ?.toLowerCase() || "";
+
+          const productName =
+            p.variantId?.productName
+              ?.toLowerCase() || "";
+
+          const bottleName =
+            p.bottleSpecId?.bottleName
+              ?.toLowerCase() || "";
+
+          return (
+
+            brandName.includes(searchText) ||
+
+            companyName.includes(searchText) ||
+
+            variantName.includes(searchText) ||
+
+            productName.includes(searchText) ||
+
+            bottleName.includes(searchText)
+
+          );
+
+        });
+
+    }
+
+    // ================= TOTAL COUNT =================
+
+    const total =
+      await Production.countDocuments(filter);
+
+    // ================= RESPONSE =================
+
+    res.json({
+
+      success: true,
+
+      data: productions,
+
+      page: parsedPage,
+
+      totalPages:
+        Math.ceil(total / parsedLimit),
+
+      total,
+
+    });
 
   } catch (err) {
-    res.status(500).json({ message: err.message });
+
+    res.status(500).json({
+
+      success: false,
+
+      message: err.message,
+
+    });
+
   }
+
 };
-
-
 
 // ✅ GET SINGLE
 const getProductionById = async (req, res) => {

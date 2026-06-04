@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams, } from 'react-router-dom';
 import { Can } from '../../context/AbilityContext';
 import { useDispatch, useSelector } from 'react-redux';
 import { fetchBrands, deleteBrand } from '../../redux/slices/brandSlice';
@@ -7,14 +7,35 @@ import Swal from 'sweetalert2';
 
 export default function Brands() {
   const dispatch = useDispatch();
-  const { brands, loading } = useSelector((state) => state.brands);
+  const { brands, loading, page, totalPages, total, } = useSelector((state) => state.brands);
   const [search, setSearch] = useState('');
-  const [currentPage, setCurrentPage] = useState(1);
+  const [searchParams, setSearchParams] = useSearchParams();
+  const currentPage = Number(searchParams.get("page")) || 1;
   const [itemsPerPage, setItemsPerPage] = useState(10);
 
   useEffect(() => {
-    dispatch(fetchBrands());
-  }, [dispatch]);
+
+    dispatch(fetchBrands({
+
+      page: currentPage,
+
+      limit: itemsPerPage,
+
+      search,
+
+    }));
+
+  }, [
+
+    dispatch,
+
+    currentPage,
+
+    itemsPerPage,
+
+    search,
+
+  ]);
 
   const handleDeleteBrand = (id, name) => {
     Swal.fire({
@@ -34,22 +55,7 @@ export default function Brands() {
     });
   };
 
-  const filteredBrands = useMemo(() => {
-    return brands.filter(b => 
-      b.name?.toLowerCase().includes(search.toLowerCase()) || 
-      b.companyId?.name?.toLowerCase().includes(search.toLowerCase())
-    );
-  }, [brands, search]);
 
-  const totalPages = Math.ceil(filteredBrands.length / itemsPerPage);
-  const paginatedItems = useMemo(() => {
-    const start = (currentPage - 1) * itemsPerPage;
-    return filteredBrands.slice(start, start + itemsPerPage);
-  }, [filteredBrands, currentPage, itemsPerPage]);
-
-  useEffect(() => {
-    setCurrentPage(1);
-  }, [search, itemsPerPage]);
 
   const isItemActive = (b) =>
     b.status === true || b.status === 'active' || b.status === undefined;
@@ -79,11 +85,21 @@ export default function Brands() {
         <div className="dash-card-header d-flex align-items-center justify-content-between p-3 border-bottom bg-white companies-dash-toolbar">
           <div className="d-flex align-items-center gap-2 text-muted small fw-500">
             <span>Show</span>
-            <select 
-              className="form-select form-select-sm shadow-none border-light-subtle bg-light" 
+            <select
+              className="form-select form-select-sm shadow-none border-light-subtle bg-light"
               style={{ width: 70, borderRadius: 8, cursor: 'pointer' }}
               value={itemsPerPage}
-              onChange={(e) => setItemsPerPage(Number(e.target.value))}
+              onChange={(e) => {
+
+                setSearchParams({
+                  page: 1,
+                });
+
+                setItemsPerPage(
+                  Number(e.target.value)
+                );
+
+              }}
             >
               <option value="10">10</option>
               <option value="25">25</option>
@@ -98,14 +114,24 @@ export default function Brands() {
               className="form-control form-control-sm border-light-subtle bg-light ps-5 py-2 shadow-none"
               placeholder="Search brands..."
               value={search}
-              onChange={e => setSearch(e.target.value)}
+              onChange={(e) => {
+
+                setSearchParams({
+                  page: 1,
+                });
+
+                setSearch(
+                  e.target.value
+                );
+
+              }}
               style={{ borderRadius: 10, fontSize: 13 }}
             />
           </div>
         </div>
 
         <div className="companies-list-mobile">
-          {paginatedItems.map((b, index) => (
+          {brands.map((b, index) => (
             <div key={b._id} className="companies-mobile-card brands-mobile-card">
               <div className="d-flex align-items-start gap-3 w-100 min-w-0">
                 <div
@@ -155,7 +181,7 @@ export default function Brands() {
               </div>
             </div>
           ))}
-          {paginatedItems.length === 0 && !loading && (
+          {brands.length === 0 && !loading && (
             <div className="companies-mobile-empty">No brands found</div>
           )}
         </div>
@@ -173,7 +199,7 @@ export default function Brands() {
               </tr>
             </thead>
             <tbody>
-               {paginatedItems.map((b, index) => (
+              {brands.map((b, index) => (
                 <tr key={b._id} className="align-middle border-bottom transition-all hover-bg-light">
                   <td className="py-3 ps-5 text-start">
                     <span className="text-muted fw-bold" style={{ fontSize: 13 }}>{String((currentPage - 1) * itemsPerPage + index + 1).padStart(2, '0')}</span>
@@ -204,7 +230,7 @@ export default function Brands() {
                   </td>
                 </tr>
               ))}
-              {paginatedItems.length === 0 && !loading && (
+              {brands.length === 0 && !loading && (
                 <tr><td colSpan={6} className="text-center py-5 text-muted">No brands found</td></tr>
               )}
             </tbody>
@@ -212,42 +238,84 @@ export default function Brands() {
         </div>
 
         <div className="dash-card-footer d-flex align-items-center justify-content-between p-3 border-top bg-white companies-dash-footer">
+
           <div className="text-muted small fw-500">
-            Showing <b>{filteredBrands.length > 0 ? (currentPage - 1) * itemsPerPage + 1 : 0}</b> to <b>{Math.min(currentPage * itemsPerPage, filteredBrands.length)}</b> of <b>{filteredBrands.length}</b> entries
+
+            Showing page <b>{page}</b>
+
+            of <b>{totalPages}</b>
+
+            ({total} total brands)
+
           </div>
-          <nav aria-label="Page navigation">
-            <ul className="pagination pagination-sm mb-0 gap-2">
-              <li className={`page-item ${currentPage === 1 ? 'disabled' : ''}`}>
-                <button 
-                  className="page-link border-0 bg-light text-muted px-3" 
-                  style={{ borderRadius: 8 }}
-                  onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
-                >
-                  Previous
-                </button>
-              </li>
-              {[...Array(totalPages)].map((_, i) => (
-                <li key={i} className={`page-item ${currentPage === i + 1 ? 'active' : ''}`}>
-                  <button 
-                    className="page-link border-0 px-3" 
-                    style={{ borderRadius: 8, backgroundColor: currentPage === i + 1 ? 'var(--accent)' : 'transparent' }}
-                    onClick={() => setCurrentPage(i + 1)}
-                  >
-                    {i + 1}
-                  </button>
-                </li>
-              ))}
-              <li className={`page-item ${currentPage === totalPages || totalPages === 0 ? 'disabled' : ''}`}>
-                <button 
-                  className="page-link border-0 bg-light text-muted px-3" 
-                  style={{ borderRadius: 8 }}
-                  onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
-                >
-                  Next
-                </button>
-              </li>
-            </ul>
-          </nav>
+
+          <div className="d-flex gap-2">
+
+            <button
+
+              className="btn btn-sm btn-light"
+
+              disabled={currentPage === 1}
+
+              onClick={() => {
+
+                if (currentPage > 1) {
+
+                  setSearchParams({
+                    page:
+                      currentPage - 1,
+                  });
+
+                }
+
+              }}
+
+            >
+
+              Previous
+
+            </button>
+
+            <button
+              className="btn btn-sm btn-primary"
+            >
+
+              {currentPage}
+
+            </button>
+
+            <button
+
+              className="btn btn-sm btn-light"
+
+              disabled={
+                currentPage === totalPages
+              }
+
+              onClick={() => {
+
+                if (
+                  currentPage <
+                  totalPages
+                ) {
+
+                  setSearchParams({
+                    page:
+                      currentPage + 1,
+                  });
+
+                }
+
+              }}
+
+            >
+
+              Next
+
+            </button>
+
+          </div>
+
         </div>
       </div>
     </div>
