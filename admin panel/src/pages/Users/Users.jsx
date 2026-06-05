@@ -333,79 +333,43 @@ export default function Users() {
         </div>
 
         <div className="d-flex align-items-center justify-content-between px-4 py-3 bg-light-subtle users-dash-footer" style={{ borderTop: '1px solid var(--card-border)' }}>
-
           <span style={{ fontSize: 13, color: 'var(--text-secondary)' }}>
-
-            Showing page <strong>{page}</strong>
-
-            of <strong>{totalPages}</strong>
-
-            ({total} total users)
-
+            Showing <b>{total === 0 ? 0 : (currentPage - 1) * entries + 1}</b> to <b>{Math.min(currentPage * entries, total)}</b> of <b>{total}</b> entries
           </span>
 
-          <div className="pagination-container d-flex gap-1">
-
+          <div className="pagination-container d-flex gap-1 align-items-center">
             <button
-
               className={`btn btn-sm btn-ghost ${currentPage === 1 ? 'disabled' : ''}`}
-
               onClick={() => {
-
                 if (currentPage > 1) {
-
-                  setSearchParams({
-
-                    page: currentPage - 1,
-
-                  });
-
+                  setSearchParams({ page: currentPage - 1 });
                 }
-
               }}
-
             >
-
               Previous
-
             </button>
 
+            {Array.from({ length: totalPages }, (_, i) => i + 1).map((p) => (
+              <button
+                key={p}
+                className={`btn btn-sm ${currentPage === p ? 'btn-accent' : 'btn-ghost'}`}
+                onClick={() => setSearchParams({ page: p })}
+              >
+                {p}
+              </button>
+            ))}
+
             <button
-              className="btn btn-sm btn-accent"
-            >
-
-              {currentPage}
-
-            </button>
-
-            <button
-
               className={`btn btn-sm btn-ghost ${currentPage === totalPages || totalPages === 0 ? 'disabled' : ''}`}
-
               onClick={() => {
-
-                if (
-                  currentPage < totalPages
-                ) {
-
-                  setSearchParams({
-
-                    page: currentPage + 1,
-
-                  });
-
+                if (currentPage < totalPages) {
+                  setSearchParams({ page: currentPage + 1 });
                 }
-
               }}
-
             >
-
               Next
-
             </button>
-
           </div>
-
         </div>
       </div>
     </div>

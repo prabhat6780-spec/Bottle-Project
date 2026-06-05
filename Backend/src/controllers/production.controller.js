@@ -79,6 +79,8 @@ const getAllProduction = async (req, res) => {
       startDate,
       endDate,
 
+      pagination = "true",
+
     } = req.query;
 
     // ================= PAGINATION =================
@@ -159,13 +161,7 @@ const getAllProduction = async (req, res) => {
             "printingColorId",
           ],
         })
-
         .sort({ createdAt: -1 })
-
-        .skip(skip)
-
-        .limit(parsedLimit)
-
         .lean();
 
     // ================= COMPANY FILTER =================
@@ -232,26 +228,29 @@ const getAllProduction = async (req, res) => {
 
     }
 
-    // ================= TOTAL COUNT =================
+    // ================= TOTAL COUNT & PAGINATION =================
 
-    const total =
-      await Production.countDocuments(filter);
+    const total = productions.length;
+
+    // No pagination — return all records
+    if (pagination === "false") {
+      return res.json({
+        success: true,
+        data: productions,
+        total,
+      });
+    }
+
+    const paginatedProductions = productions.slice(skip, skip + parsedLimit);
 
     // ================= RESPONSE =================
 
     res.json({
-
       success: true,
-
-      data: productions,
-
+      data: paginatedProductions,
       page: parsedPage,
-
-      totalPages:
-        Math.ceil(total / parsedLimit),
-
+      totalPages: Math.ceil(total / parsedLimit),
       total,
-
     });
 
   } catch (err) {

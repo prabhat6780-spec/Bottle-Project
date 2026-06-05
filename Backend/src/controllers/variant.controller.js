@@ -60,20 +60,52 @@ exports.createVariant = async (req, res) => {
 // ✅ GET ALL
 exports.getVariants = async (req, res) => {
   try {
+    const { page, limit, search, pagination } = req.query;
 
-    const variants = await Variant.find({ isDeleted: { $ne: true } })
-      .sort({ createdAt: -1 })
-      .populate({
-        path: "bottleSpecId",
-        populate: [
-          { path: "brandId", populate: { path: "companyId" } },
-          "printingTypeId",
-          "printingColorId"
-        ]
-      });
+    const parsedPage = parseInt(page) || 1;
+    const parsedLimit = parseInt(limit) || 10;
+    const skip = (parsedPage - 1) * parsedLimit;
 
-    res.json(variants);
+    let query = { isDeleted: { $ne: true } };
 
+    if (search && search.trim() !== "") {
+      const regex = new RegExp(search.trim(), "i");
+      query.$or = [
+        { variantName: { $regex: regex } },
+        { variantSize: { $regex: regex } }
+      ];
+    }
+
+    const total = await Variant.countDocuments(query);
+
+    const populateOpts = {
+      path: "bottleSpecId",
+      populate: [
+        { path: "brandId", populate: { path: "companyId" } },
+        "printingTypeId",
+        "printingColorId"
+      ]
+    };
+
+    let variants;
+    if (pagination === "false") {
+      variants = await Variant.find(query).sort({ createdAt: -1 }).populate(populateOpts);
+      return res.json({ success: true, data: variants, total });
+    } else {
+      variants = await Variant.find(query)
+        .sort({ createdAt: -1 })
+        .populate(populateOpts)
+        .skip(skip)
+        .limit(parsedLimit);
+    }
+
+    res.json({
+      success: true,
+      data: variants,
+      page: parsedPage,
+      totalPages: Math.ceil(total / parsedLimit),
+      total,
+    });
   } catch (err) {
     console.log("GET VARIANTS ERROR:", err);
     res.status(500).json(err.message);

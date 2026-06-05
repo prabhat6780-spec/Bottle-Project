@@ -12,6 +12,8 @@ import roleReducer from "./slices/roleSlice";
 import permissionReducer from "./slices/permissionSlice";
 import printingTypeReducer from "./slices/printingTypeSlice";
 import printingColorReducer from "./slices/printingColorSlice";
+import coatingTypeReducer from "./slices/coatingTypeSlice";
+import coatingColorReducer from "./slices/coatingColorSlice";
 
 export const store = configureStore({
 
@@ -29,6 +31,8 @@ export const store = configureStore({
     permissions: permissionReducer,
     printingType: printingTypeReducer,
     printingColor: printingColorReducer,
+    coatingType: coatingTypeReducer,
+    coatingColor: coatingColorReducer,
 
   },
 

@@ -35,6 +35,7 @@ exports.getCompanies = async (req, res) => {
       page = 1,
       limit = 10,
       search = "",
+      pagination = "true"
     } = req.query;
 
     const parsedPage = parseInt(page);
@@ -54,28 +55,26 @@ exports.getCompanies = async (req, res) => {
       };
     }
 
-    const companies =
-      await Company.find(filter)
-        .sort({ createdAt: -1 })
-        .skip(skip)
-        .limit(parsedLimit);
+    let query = Company.find(filter).sort({ createdAt: -1 });
 
-    const total =
-      await Company.countDocuments(filter);
+    if (pagination !== "false") {
+      query = query.skip(skip).limit(parsedLimit);
+    }
+
+    const companies = await query;
+
+    if (pagination === "false") {
+      return res.json({ success: true, data: companies, total: companies.length });
+    }
+
+    const total = await Company.countDocuments(filter);
 
     res.json({
-
       success: true,
-
       data: companies,
-
       page: parsedPage,
-
-      totalPages:
-        Math.ceil(total / parsedLimit),
-
+      totalPages: Math.ceil(total / parsedLimit),
       total,
-
     });
 
   } catch (err) {

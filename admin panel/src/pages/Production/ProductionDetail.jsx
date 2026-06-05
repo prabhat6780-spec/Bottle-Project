@@ -20,8 +20,8 @@ export default function ProductionDetail() {
   const [production, setProduction] = useState(null);
 
   useEffect(() => {
-    dispatch(fetchProductions());
-    dispatch(fetchVariants());
+    dispatch(fetchProductions({ pagination: 'false' }));
+    dispatch(fetchVariants({ pagination: 'false' }));
   }, [dispatch]);
 
   useEffect(() => {

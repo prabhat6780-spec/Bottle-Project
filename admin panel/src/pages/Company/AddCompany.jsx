@@ -13,7 +13,7 @@ export default function AddCompany() {
   const [error, setError] = useState('');
 
   useEffect(() => {
-    dispatch(fetchCompanies());
+    dispatch(fetchCompanies({ pagination: 'false' }));
   }, [dispatch]);
 
   const validateField = (value) => {

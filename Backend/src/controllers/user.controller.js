@@ -6,18 +6,40 @@ exports.createUser = async (req, res) => {
   try {
     const { email, password, role, name } = req.body;
 
-    const hashed = await bcrypt.hash(password, 10);
+    const loweremail = email.toLowerCase();
 
-    const user = await User.create({
-      email: email.toLowerCase(),
-      password: hashed,
-      role,
-      name
-    });
+    let user = await User.findOne({ email: loweremail });
 
+    if (user) {
+      if (!user.isDeleted) {
+        return res.status(400).json("User with this email already exists.");
+      } else {
+        // Restore soft-deleted user with new credentials
+        user.isDeleted = false;
+        user.password = await bcrypt.hash(password, 10);
+        user.role = role;
+        user.name = name;
+        user.status = "active";
+        await user.save();
+      }
+    } else {
+      // Create new user
+      const hashed = await bcrypt.hash(password, 10);
+      user = await User.create({
+        email: loweremail,
+        password: hashed,
+        role,
+        name
+      });
+    }
+
+    await user.populate({ path: "role", populate: { path: "permissions" } });
     res.json(user);
 
   } catch (err) {
+    if (err.code === 11000) {
+      return res.status(400).json("User with this email already exists.");
+    }
     res.status(500).json(err.message);
   }
 };
@@ -29,141 +51,77 @@ exports.getUsers = async (req, res) => {
   try {
 
     const {
-
       page = 1,
-
       limit = 10,
-
       search = "",
-
       status = "all",
-
       sortKey = "name",
-
       sortDirection = "asc",
-
+      pagination = "true",
     } = req.query;
 
-    const parsedPage =
-      parseInt(page);
-
-    const parsedLimit =
-      parseInt(limit);
-
-    const skip =
-      (parsedPage - 1) * parsedLimit;
-
     let filter = {
-
-      isDeleted: {
-        $ne: true,
-      },
-
+      isDeleted: { $ne: true },
     };
 
     // STATUS FILTER
-    if (
-      status &&
-      status !== "all"
-    ) {
-
+    if (status && status !== "all") {
       filter.status = status;
-
     }
 
     // SEARCH
     if (search) {
-
       filter.$or = [
-
-        {
-          name: {
-            $regex: search,
-            $options: "i",
-          },
-        },
-
-        {
-          email: {
-            $regex: search,
-            $options: "i",
-          },
-        },
-
+        { name: { $regex: search, $options: "i" } },
+        { email: { $regex: search, $options: "i" } },
       ];
-
     }
 
     // SORT
     let sort = {};
+    sort[sortKey === "role" ? "role.name" : sortKey] = sortDirection === "asc" ? 1 : -1;
 
-    if (sortKey === "role") {
+    const populateOpts = {
+      path: "role",
+      populate: { path: "permissions" },
+    };
 
-      sort["role.name"] =
-        sortDirection === "asc"
-          ? 1
-          : -1;
-
-    } else {
-
-      sort[sortKey] =
-        sortDirection === "asc"
-          ? 1
-          : -1;
-
+    // NO PAGINATION - return all records
+    if (pagination === "false") {
+      const users = await User.find(filter)
+        .select("-password")
+        .populate(populateOpts)
+        .sort(sort);
+      return res.json({ success: true, data: users, total: users.length });
     }
 
-    const users =
-      await User.find(filter)
+    // WITH PAGINATION
+    const parsedPage = parseInt(page);
+    const parsedLimit = parseInt(limit);
+    const skip = (parsedPage - 1) * parsedLimit;
 
-        .select("-password")
+    const users = await User.find(filter)
+      .select("-password")
+      .populate(populateOpts)
+      .sort(sort)
+      .skip(skip)
+      .limit(parsedLimit);
 
-        .populate({
-
-          path: "role",
-
-          populate: {
-            path: "permissions",
-          },
-
-        })
-
-        .sort(sort)
-
-        .skip(skip)
-
-        .limit(parsedLimit);
-
-    const total =
-      await User.countDocuments(
-        filter
-      );
+    const total = await User.countDocuments(filter);
 
     res.json({
-
       success: true,
-
       data: users,
-
       page: parsedPage,
-
-      totalPages:
-        Math.ceil(
-          total / parsedLimit
-        ),
-
+      totalPages: Math.ceil(total / parsedLimit),
       total,
-
     });
 
   } catch (err) {
 
     res.status(500).json({
-
       success: false,
-
       message: err.message,
-
     });
 
   }

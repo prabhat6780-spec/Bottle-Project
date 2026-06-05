@@ -78,6 +78,7 @@ export default function CreateRole() {
 
   const groupOrder = [
     'dashboard', 'user', 'company', 'brand', 'printing-type', 'printing-color',
+    'coating-type', 'coating-color',
     'bottlespec', 'variant', 'production', 'permission', 'role', 'vision', 'all'
   ];
 

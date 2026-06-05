@@ -17,8 +17,8 @@ export default function AddBrand() {
   const [error, setError] = useState({});
 
   useEffect(() => {
-    dispatch(fetchBrands());
-    dispatch(fetchCompanies());
+    dispatch(fetchBrands({ pagination: 'false' }));
+    dispatch(fetchCompanies({ pagination: 'false' }));
   }, [dispatch]);
 
   const validateField = (field, value, currentCompanyId = companyId) => {

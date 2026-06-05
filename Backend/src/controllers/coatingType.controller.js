@@ -1,7 +1,7 @@
-const PrintingType = require("../models/PrintingType");
+const CoatingType = require("../models/CoatingType");
 
 // ✅ CREATE
-exports.createPrintingType = async (req, res) => {
+exports.createCoatingType = async (req, res) => {
   try {
     const rawStatus = req.body.status;
     const status = typeof rawStatus === 'string'
@@ -9,24 +9,24 @@ exports.createPrintingType = async (req, res) => {
       : rawStatus ?? true;
 
     const { name } = req.body;
-    const existing = await PrintingType.findOne({ name: { $regex: new RegExp("^" + name.trim() + "$", "i") } });
+    const existing = await CoatingType.findOne({ name: { $regex: new RegExp("^" + name.trim() + "$", "i") } });
     if (existing) {
-      return res.status(400).json(`Printing Type "${name}" already exists.`);
+      return res.status(400).json(`Coating Type "${name}" already exists.`);
     }
 
-    const printingType = await PrintingType.create({
+    const coatingType = await CoatingType.create({
       name: name.trim(),
       status
     });
-    res.json(printingType);
+    res.json(coatingType);
   } catch (err) {
-    console.log("CREATE PRINTING TYPE ERROR:", err);
+    console.log("CREATE COATING TYPE ERROR:", err);
     res.status(500).json(err.message);
   }
 };
 
 // ✅ GET
-exports.getPrintingTypes = async (req, res) => {
+exports.getCoatingTypes = async (req, res) => {
   try {
     const { page, limit, search, pagination } = req.query;
 
@@ -40,14 +40,14 @@ exports.getPrintingTypes = async (req, res) => {
       query.name = { $regex: new RegExp(search.trim(), "i") };
     }
 
-    const total = await PrintingType.countDocuments(query);
+    const total = await CoatingType.countDocuments(query);
 
-    let printingTypes;
+    let coatingTypes;
     if (pagination === "false") {
-      printingTypes = await PrintingType.find(query).sort({ createdAt: -1 });
-      return res.json({ success: true, data: printingTypes, total });
+      coatingTypes = await CoatingType.find(query).sort({ createdAt: -1 });
+      return res.json({ success: true, data: coatingTypes, total });
     } else {
-      printingTypes = await PrintingType.find(query)
+      coatingTypes = await CoatingType.find(query)
         .sort({ createdAt: -1 })
         .skip(skip)
         .limit(parsedLimit);
@@ -55,7 +55,7 @@ exports.getPrintingTypes = async (req, res) => {
 
     res.json({
       success: true,
-      data: printingTypes,
+      data: coatingTypes,
       page: parsedPage,
       totalPages: Math.ceil(total / parsedLimit),
       total,
@@ -66,39 +66,39 @@ exports.getPrintingTypes = async (req, res) => {
 };
 
 // ✅ UPDATE
-exports.updatePrintingType = async (req, res) => {
+exports.updateCoatingType = async (req, res) => {
   try {
     const body = { ...req.body };
     if (typeof body.status === 'string') {
       body.status = body.status === 'active';
     }
     if (body.name) {
-      const existing = await PrintingType.findOne({
+      const existing = await CoatingType.findOne({
         name: { $regex: new RegExp("^" + body.name.trim() + "$", "i") },
         _id: { $ne: req.params.id }
       });
       if (existing) {
-        return res.status(400).json(`Printing Type "${body.name}" already exists.`);
+        return res.status(400).json(`Coating Type "${body.name}" already exists.`);
       }
       body.name = body.name.trim();
     }
 
-    const printingType = await PrintingType.findByIdAndUpdate(
+    const coatingType = await CoatingType.findByIdAndUpdate(
       req.params.id,
       body,
       { returnDocument: 'after' }
     );
-    res.json(printingType);
+    res.json(coatingType);
   } catch (err) {
     res.status(500).json(err.message);
   }
 };
 
 // ✅ DELETE
-exports.deletePrintingType = async (req, res) => {
+exports.deleteCoatingType = async (req, res) => {
   try {
-    await PrintingType.findByIdAndUpdate(req.params.id, { isDeleted: true }, { new: true });
-    res.json({ msg: "Printing Type Deleted" });
+    await CoatingType.findByIdAndUpdate(req.params.id, { isDeleted: true }, { new: true });
+    res.json({ msg: "Coating Type Deleted" });
   } catch (err) {
     res.status(500).json(err.message);
   }

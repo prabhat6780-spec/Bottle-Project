@@ -8,13 +8,12 @@ export const fetchBottleSpecs =
 
     "bottleSpecs/fetchBottleSpecs",
 
-    async (_, { rejectWithValue }) => {
-
+    async (params, { rejectWithValue }) => {
       try {
-
         const response =
           await API.get(
-            "/bottle-spec"
+            "/bottle-spec",
+            { params }
           );
 
         return response.data;
@@ -151,13 +150,12 @@ const bottleSpecSlice = createSlice({
   name: "bottleSpecs",
 
   initialState: {
-
     bottleSpecs: [],
-
     loading: false,
-
     error: null,
-
+    page: 1,
+    totalPages: 1,
+    total: 0,
   },
 
   reducers: {},
@@ -179,12 +177,15 @@ const bottleSpecSlice = createSlice({
       .addCase(
         fetchBottleSpecs.fulfilled,
         (state, action) => {
-
           state.loading = false;
-
-          state.bottleSpecs =
-            action.payload;
-
+          if (action.payload.success) {
+            state.bottleSpecs = action.payload.data || [];
+            state.total = action.payload.total || 0;
+            if (action.payload.page !== undefined) state.page = action.payload.page;
+            if (action.payload.totalPages !== undefined) state.totalPages = action.payload.totalPages;
+          } else {
+            state.bottleSpecs = Array.isArray(action.payload) ? action.payload : [];
+          }
         }
       )
 

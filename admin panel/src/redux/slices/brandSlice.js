@@ -184,21 +184,16 @@ const brandSlice = createSlice({
       .addCase(
         fetchBrands.fulfilled,
         (state, action) => {
-
           state.loading = false;
-
-          state.brands =
-            action.payload.data || [];
-
-          state.page =
-            action.payload.page || 1;
-
-          state.totalPages =
-            action.payload.totalPages || 1;
-
-          state.total =
-            action.payload.total || 0;
-
+          state.brands = action.payload.data || [];
+          state.total = action.payload.total || 0;
+          // Only update pagination if backend returned paginated data
+          if (action.payload.page !== undefined) {
+            state.page = action.payload.page;
+          }
+          if (action.payload.totalPages !== undefined) {
+            state.totalPages = action.payload.totalPages;
+          }
         }
       )
 

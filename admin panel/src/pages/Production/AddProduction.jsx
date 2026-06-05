@@ -113,9 +113,9 @@ export default function AddProduction() {
   const streamRef = useRef(null);
 
   useEffect(() => {
-    dispatch(fetchBrands());
-    dispatch(fetchBottleSpecs());
-    dispatch(fetchVariants());
+    dispatch(fetchBrands({ pagination: 'false' }));
+    dispatch(fetchBottleSpecs({ pagination: 'false' }));
+    dispatch(fetchVariants({ pagination: 'false' }));
   }, [dispatch]);
 
   // Hierarchical Filtering Logic

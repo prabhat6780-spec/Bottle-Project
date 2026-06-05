@@ -24,15 +24,52 @@ exports.createSpec = async (req, res) => {
 // GET
 exports.getSpecs = async (req, res) => {
   try {
-    const specs = await BottleSpec.find({ isDeleted: { $ne: true } })
-      .sort({ createdAt: -1 })
-      .populate({
+    const { page, limit, search, pagination } = req.query;
+
+    const parsedPage = parseInt(page) || 1;
+    const parsedLimit = parseInt(limit) || 10;
+    const skip = (parsedPage - 1) * parsedLimit;
+
+    let query = { isDeleted: { $ne: true } };
+
+    if (search && search.trim() !== "") {
+      const regex = new RegExp(search.trim(), "i");
+      query.$or = [
+        { bottleName: { $regex: regex } },
+        { code: { $regex: regex } }
+      ];
+    }
+
+    const total = await BottleSpec.countDocuments(query);
+
+    const populateOpts = [
+      {
         path: "brandId",
         populate: { path: "companyId" }
-      })
-      .populate("printingTypeId")
-      .populate("printingColorId");
-    res.json(specs);
+      },
+      "printingTypeId",
+      "printingColorId"
+    ];
+
+    let specs;
+    if (pagination === "false") {
+      specs = await BottleSpec.find(query).sort({ createdAt: -1 }).populate(populateOpts);
+      return res.json({ success: true, data: specs, total });
+    } else {
+      specs = await BottleSpec.find(query)
+        .sort({ createdAt: -1 })
+        .populate(populateOpts)
+        .skip(skip)
+        .limit(parsedLimit);
+    }
+
+    res.json({
+      success: true,
+      data: specs,
+      page: parsedPage,
+      totalPages: Math.ceil(total / parsedLimit),
+      total,
+    });
   } catch (err) {
     res.status(500).json(err.message);
   }

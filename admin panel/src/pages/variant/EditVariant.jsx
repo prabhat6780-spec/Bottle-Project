@@ -98,7 +98,7 @@ export default function EditVariant() {
   };
 
   useEffect(() => {
-    dispatch(fetchBottleSpecs());
+    dispatch(fetchBottleSpecs({ pagination: 'false' }));
   }, [dispatch]);
 
   useEffect(() => {

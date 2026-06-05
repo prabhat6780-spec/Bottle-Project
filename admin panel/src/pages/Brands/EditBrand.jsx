@@ -18,7 +18,7 @@ export default function EditBrand() {
   const [error, setError] = useState({});
 
   useEffect(() => {
-    dispatch(fetchCompanies());
+    dispatch(fetchCompanies({ pagination: 'false' }));
   }, [dispatch]);
 
   const validateField = (field, value, currentCompanyId = companyId) => {

@@ -79,7 +79,7 @@ export default function AddUser() {
   };
 
   useEffect(() => {
-    dispatch(fetchRoles());
+    dispatch(fetchRoles({ pagination: 'false' }));
   }, [dispatch]);
 
   useEffect(() => {

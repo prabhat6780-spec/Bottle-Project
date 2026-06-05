@@ -64,12 +64,12 @@ export default function Dashboard() {
   const displayName = user?.name || 'Admin';
 
   useEffect(() => {
-    dispatch(fetchProductions());
-    dispatch(fetchVariants());
-    dispatch(fetchUsers());
-    dispatch(fetchCompanies());
-    dispatch(fetchBrands());
-    dispatch(fetchBottleSpecs());
+    dispatch(fetchProductions({ pagination: 'false' }));
+    dispatch(fetchVariants({ pagination: 'false' }));
+    dispatch(fetchUsers({ pagination: 'false' }));
+    dispatch(fetchCompanies({ pagination: 'false' }));
+    dispatch(fetchBrands({ pagination: 'false' }));
+    dispatch(fetchBottleSpecs({ pagination: 'false' }));
   }, [dispatch]);
 
   const todayIso = toIsoDate(new Date());

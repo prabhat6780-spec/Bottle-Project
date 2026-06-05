@@ -44,6 +44,8 @@ app.use("/api/permissions", require("./routes/permission.routes"));
 app.use("/api/vision", require("./routes/vision.routes"));
 app.use("/api/printing-type", require("./routes/printingType.routes"));
 app.use("/api/printing-color", require("./routes/printingColor.routes"));
+app.use("/api/coating-type", require("./routes/coatingType.routes"));
+app.use("/api/coating-color", require("./routes/coatingColor.routes"));
 app.use("/api/text-color", require("./routes/textcolor.routes"))
 
 // Added testing routes for the browser

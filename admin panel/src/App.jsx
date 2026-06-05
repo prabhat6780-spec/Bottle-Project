@@ -40,6 +40,12 @@ import EditPrintingType from './pages/PrintingTypes/EditPrintingType';
 import PrintingColors from './pages/PrintingColor/PrintingColors';
 import AddPrintingColor from './pages/PrintingColor/AddPrintingColor';
 import EditPrintingColor from './pages/PrintingColor/EditPrintingColor';
+import CoatingTypes from './pages/CoatingType/CoatingTypes';
+import AddCoatingType from './pages/CoatingType/AddCoatingType';
+import EditCoatingType from './pages/CoatingType/EditCoatingType';
+import CoatingColors from './pages/CoatingColor/CoatingColors';
+import AddCoatingColor from './pages/CoatingColor/AddCoatingColor';
+import EditCoatingColor from './pages/CoatingColor/EditCoatingColor';
 import Login from './pages/system/Login';
 import RoleList from './pages/Roles&Permission/RoleList';
 import CreateRole from './pages/Roles&Permission/CreateRole';
@@ -105,6 +111,12 @@ export default function App() {
               <Route path="/printing-colors" element={<PrintingColors />} />
               <Route path="/printing-colors/add" element={<AddPrintingColor />} />
               <Route path="/printing-colors/edit/:id" element={<EditPrintingColor />} />
+              <Route path="/coating-types" element={<CoatingTypes />} />
+              <Route path="/coating-types/add" element={<AddCoatingType />} />
+              <Route path="/coating-types/edit/:id" element={<EditCoatingType />} />
+              <Route path="/coating-colors" element={<CoatingColors />} />
+              <Route path="/coating-colors/add" element={<AddCoatingColor />} />
+              <Route path="/coating-colors/edit/:id" element={<EditCoatingColor />} />
               <Route path="/roles" element={<RoleList />} />
               <Route path="/roles/create" element={<CreateRole />} />
               <Route path="/roles/edit/:id" element={<CreateRole />} />

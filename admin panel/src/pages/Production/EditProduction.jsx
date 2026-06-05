@@ -117,10 +117,10 @@ export default function EditProduction() {
   const [calc, setCalc] = useState({ boxes: 0, rem: 0 });
 
   useEffect(() => {
-    dispatch(fetchBrands());
-    dispatch(fetchBottleSpecs());
-    dispatch(fetchVariants());
-    dispatch(fetchProductions()); // ensure productions are loaded if navigated directly
+    dispatch(fetchBrands({ pagination: 'false' }));
+    dispatch(fetchBottleSpecs({ pagination: 'false' }));
+    dispatch(fetchVariants({ pagination: 'false' }));
+    dispatch(fetchProductions({ pagination: 'false' })); // ensure productions are loaded if navigated directly
   }, [dispatch]);
 
   useEffect(() => {

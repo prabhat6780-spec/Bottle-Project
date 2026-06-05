@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
+import Select from 'react-select';
 import { Link, useSearchParams } from 'react-router-dom';
 import { Can } from '../../context/AbilityContext.js';
 import { useDispatch, useSelector } from 'react-redux';
@@ -135,15 +136,10 @@ export default function Productions() {
 
   ]);
   useEffect(() => {
-
-    dispatch(fetchBrands());
-
-    dispatch(fetchBottleSpecs());
-
-    dispatch(fetchCompanies());
-
-    dispatch(fetchVariants());
-
+    dispatch(fetchBrands({ pagination: false }));
+    dispatch(fetchBottleSpecs({ pagination: false }));
+    dispatch(fetchCompanies({ pagination: false }));
+    dispatch(fetchVariants({ pagination: false }));
   }, [dispatch]);
 
   const handleDelete = (id) => {
@@ -356,7 +352,7 @@ export default function Productions() {
       <div className="dash-card mb-4">
         <div className="dash-card-body p-3">
           <div className="row g-3 align-items-end productions-filters-panel">
-            <div className="col-6 col-md-4 col-lg">
+            <div className="col-12 col-sm-6 col-md-4 col-lg-3">
               <label className="small text-muted fw-bold mb-1 d-block">From</label>
               <input
                 type="date"
@@ -372,7 +368,7 @@ export default function Productions() {
                 }}
               />
             </div>
-            <div className="col-6 col-md-4 col-lg">
+            <div className="col-12 col-sm-6 col-md-4 col-lg-3">
               <label className="small text-muted fw-bold mb-1 d-block">To</label>
               <input
                 type="date"
@@ -388,99 +384,126 @@ export default function Productions() {
                 }}
               />
             </div>
-            <div className="col-6 col-md-4 col-lg">
+            <div className="col-12 col-sm-6 col-md-4 col-lg-3">
               <label className="small text-muted fw-bold mb-1 d-block">Company</label>
-              <select
-                className="form-select form-select-sm border-light-subtle bg-light shadow-none w-100"
-                style={{ borderRadius: 10, height: 38 }}
-                value={selectedCompany}
-                onChange={(e) => {
-
+              <Select
+                options={[{ value: '', label: 'All Companies' }, ...filteredCompanies.map(c => ({ value: c._id, label: c.name }))]}
+                value={selectedCompany ? { value: selectedCompany, label: filteredCompanies.find(c => c._id === selectedCompany)?.name || 'Unknown' } : { value: '', label: 'All Companies' }}
+                onChange={(option) => {
                   setSearchParams({ page: 1 });
-
-                  setSelectedCompany(e.target.value);
-
+                  setSelectedCompany(option.value);
                   setSelectedBrand('');
-
                   setSelectedSpec('');
-
                   setSelectedVariant('');
-
                 }}
-              >
-                <option value="">All Companies</option>
-                {filteredCompanies.map(c => (
-                  <option key={c._id} value={c._id}>{c.name}</option>
-                ))}
-              </select>
+                className="react-select-container"
+                classNamePrefix="react-select"
+                menuPortalTarget={document.body}
+                styles={{
+                  control: (base) => ({
+                    ...base,
+                    borderRadius: 10,
+                    minHeight: 38,
+                    borderColor: 'var(--bs-border-color-translucent)',
+                    backgroundColor: 'var(--bs-light)',
+                    boxShadow: 'none',
+                    '&:hover': { borderColor: 'var(--bs-border-color)' }
+                  }),
+                  menuPortal: base => ({ ...base, zIndex: 9999 })
+                }}
+              />
             </div>
-            <div className="col-6 col-md-4 col-lg">
+            <div className="col-12 col-sm-6 col-md-4 col-lg-3">
               <label className="small text-muted fw-bold mb-1 d-block">Brand</label>
-              <select
-                className="form-select form-select-sm border-light-subtle bg-light shadow-none w-100"
-                style={{ borderRadius: 10, height: 38 }}
-                value={selectedBrand}
-                onChange={(e) => {
-
+              <Select
+                options={[{ value: '', label: 'All Brands' }, ...filteredBrands.map(b => ({ value: b._id, label: b.name }))]}
+                value={selectedBrand ? { value: selectedBrand, label: filteredBrands.find(b => b._id === selectedBrand)?.name || 'Unknown' } : { value: '', label: 'All Brands' }}
+                onChange={(option) => {
                   setSearchParams({ page: 1 });
-
-                  setSelectedBrand(e.target.value);
-
+                  setSelectedBrand(option.value);
                   setSelectedSpec('');
-
                   setSelectedVariant('');
-
                 }}
-              >
-                <option value="">All Brands</option>
-                {filteredBrands.map(b => (
-                  <option key={b._id} value={b._id}>{b.name}</option>
-                ))}
-              </select>
+                className="react-select-container"
+                classNamePrefix="react-select"
+                menuPortalTarget={document.body}
+                styles={{
+                  control: (base) => ({
+                    ...base,
+                    borderRadius: 10,
+                    minHeight: 38,
+                    borderColor: 'var(--bs-border-color-translucent)',
+                    backgroundColor: 'var(--bs-light)',
+                    boxShadow: 'none',
+                    '&:hover': { borderColor: 'var(--bs-border-color)' }
+                  }),
+                  menuPortal: base => ({ ...base, zIndex: 9999 })
+                }}
+              />
             </div>
-            <div className="col-6 col-md-4 col-lg">
+            <div className="col-12 col-sm-6 col-md-4 col-lg-3">
               <label className="small text-muted fw-bold mb-1 d-block">Bottle Spec</label>
-              <select
-                className="form-select form-select-sm border-light-subtle bg-light shadow-none w-100"
-                style={{ borderRadius: 10, height: 38 }}
-                value={selectedSpec}
-                onChange={(e) => {
-
+              <Select
+                options={[{ value: '', label: 'All Specs' }, ...filteredBottleSpecs.map(s => ({ value: s._id, label: `${s.bottleName} (${s.code})` }))]}
+                value={selectedSpec ? { value: selectedSpec, label: filteredBottleSpecs.find(s => s._id === selectedSpec) ? `${filteredBottleSpecs.find(s => s._id === selectedSpec).bottleName} (${filteredBottleSpecs.find(s => s._id === selectedSpec).code})` : 'Unknown' } : { value: '', label: 'All Specs' }}
+                onChange={(option) => {
                   setSearchParams({ page: 1 });
-
-                  setSelectedSpec(e.target.value);
-
+                  setSelectedSpec(option.value);
                   setSelectedVariant('');
-
                 }}
-              >
-                <option value="">All Specs</option>
-                {filteredBottleSpecs.map(s => (
-                  <option key={s._id} value={s._id}>{s.bottleName} ({s.code})</option>
-                ))}
-              </select>
+                className="react-select-container"
+                classNamePrefix="react-select"
+                menuPortalTarget={document.body}
+                styles={{
+                  control: (base) => ({
+                    ...base,
+                    borderRadius: 10,
+                    minHeight: 38,
+                    borderColor: 'var(--bs-border-color-translucent)',
+                    backgroundColor: 'var(--bs-light)',
+                    boxShadow: 'none',
+                    '&:hover': { borderColor: 'var(--bs-border-color)' }
+                  }),
+                  menuPortal: base => ({ ...base, zIndex: 9999 })
+                }}
+              />
             </div>
-            <div className="col-6 col-md-4 col-lg">
+            <div className="col-12 col-sm-6 col-md-4 col-lg-3">
               <label className="small text-muted fw-bold mb-1 d-block">Variant</label>
-              <select
-                className="form-select form-select-sm border-light-subtle bg-light shadow-none w-100"
-                style={{ borderRadius: 10, height: 38 }}
-                value={selectedVariant}
-                onChange={(e) => {
-
+              <Select
+                options={[{ value: '', label: 'All Variants' }, ...filteredVariants.map(v => ({ value: v._id, label: v.variantSize ? `${v.variantName} (${v.variantSize})` : v.variantName }))]}
+                value={selectedVariant
+                  ? {
+                    value: selectedVariant,
+                    label: (() => {
+                      const v = filteredVariants.find(v => v._id === selectedVariant);
+                      return v ? (v.variantSize ? `${v.variantName} (${v.variantSize})` : v.variantName) : 'Unknown';
+                    })()
+                  }
+                  : { value: '', label: 'All Variants' }
+                }
+                onChange={(option) => {
                   setSearchParams({ page: 1 });
-
-                  setSelectedVariant(e.target.value);
-
+                  setSelectedVariant(option.value);
                 }}
-              >
-                <option value="">All Variants</option>
-                {filteredVariants.map(v => (
-                  <option key={v._id} value={v._id}>{v.variantName} ({v.productName})</option>
-                ))}
-              </select>
+                className="react-select-container"
+                classNamePrefix="react-select"
+                menuPortalTarget={document.body}
+                styles={{
+                  control: (base) => ({
+                    ...base,
+                    borderRadius: 10,
+                    minHeight: 38,
+                    borderColor: 'var(--bs-border-color-translucent)',
+                    backgroundColor: 'var(--bs-light)',
+                    boxShadow: 'none',
+                    '&:hover': { borderColor: 'var(--bs-border-color)' }
+                  }),
+                  menuPortal: base => ({ ...base, zIndex: 9999 })
+                }}
+              />
             </div>
-            <div className="col-6 col-md-4 col-lg">
+            <div className="col-12 col-sm-6 col-md-4 col-lg-3">
               <label className="small text-muted fw-bold mb-1 d-block">Search</label>
               <div className="search-input-wrapper position-relative">
                 <i className="bi bi-search text-muted position-absolute top-50 start-0 translate-middle-y ms-3" style={{ pointerEvents: 'none' }} />
@@ -500,7 +523,7 @@ export default function Productions() {
                 />
               </div>
             </div>
-            <div className="col-6 col-md-4 col-lg">
+            <div className="col-12 col-sm-6 col-md-4 col-lg-3">
               <button
                 type="button"
                 onClick={() => {
@@ -744,85 +767,45 @@ export default function Productions() {
         </div>
 
         <div className="dash-card-footer d-flex align-items-center justify-content-between p-3 border-top bg-white companies-dash-footer">
-
           <div className="text-muted small fw-500">
-
-            Showing page <b>{page}</b> of <b>{totalPages}</b>
-
-            {" "}(
-            <b>{total}</b> total entries
-            )
-
+            Showing <b>{total === 0 ? 0 : (currentPage - 1) * limit + 1}</b> to <b>{Math.min(currentPage * limit, total)}</b> of <b>{total}</b> entries
           </div>
 
           <div className="d-flex align-items-center gap-2">
-
             <button
-
               className="btn btn-sm btn-light"
-
               disabled={currentPage === 1}
-
               onClick={() => {
-
                 if (currentPage > 1) {
-
-                  setSearchParams({
-
-                    page: currentPage - 1,
-
-                  });
-
+                  setSearchParams({ page: currentPage - 1 });
                 }
-
               }}
-
             >
-
               Previous
-
             </button>
 
+            {Array.from({ length: totalPages }, (_, i) => i + 1).map((p) => (
+              <button
+                key={p}
+                className={`btn btn-sm ${currentPage === p ? 'btn-primary' : 'btn-light'}`}
+                onClick={() => setSearchParams({ page: p })}
+              >
+                {p}
+              </button>
+            ))}
+
             <button
-              className="btn btn-sm btn-primary"
-            >
-
-              {currentPage}
-
-            </button>
-
-            <button
-
               className="btn btn-sm btn-light"
-
-              disabled={
-                currentPage === totalPages
-              }
-
+              disabled={currentPage === totalPages || totalPages === 0}
               onClick={() => {
-
-                if (
-                  currentPage < totalPages
-                ) {
-
-                  setSearchParams({
-
-                    page: currentPage + 1,
-
-                  });
-
+                if (currentPage < totalPages) {
+                  setSearchParams({ page: currentPage + 1 });
                 }
-
               }}
-
             >
-
               Next
-
             </button>
-
           </div>
-
         </div>
       </div>
     </div>

@@ -84,7 +84,7 @@ export default function EditUser() {
 
   useEffect(() => {
     dispatch(fetchSingleUser(id));
-    dispatch(fetchRoles());
+    dispatch(fetchRoles({ pagination: 'false' }));
   }, [dispatch, id]);
 
   useEffect(() => {

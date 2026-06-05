@@ -1,12 +1,12 @@
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
 import API from '../../services/api';
 
-export const fetchPrintingColors = createAsyncThunk('printingColor/fetchAll', async (_, { rejectWithValue }) => {
+export const fetchPrintingColors = createAsyncThunk('printingColor/fetchAll', async (params, { rejectWithValue }) => {
   try {
-    const response = await API.get('/printing-color');
+    const response = await API.get('/printing-color', { params });
     return response.data;
   } catch (err) {
-    return rejectWithValue(err.response.data);
+    return rejectWithValue(err.response?.data || 'Failed to fetch printing colors');
   }
 });
 
@@ -43,13 +43,24 @@ const printingColorSlice = createSlice({
     items: [],
     loading: false,
     error: null,
+    page: 1,
+    totalPages: 1,
+    total: 0,
   },
   extraReducers: (builder) => {
     builder
       .addCase(fetchPrintingColors.pending, (state) => { state.loading = true; })
       .addCase(fetchPrintingColors.fulfilled, (state, action) => {
         state.loading = false;
-        state.items = action.payload;
+        if (action.payload.success) {
+          state.items = action.payload.data || [];
+          state.total = action.payload.total || 0;
+          if (action.payload.page !== undefined) state.page = action.payload.page;
+          if (action.payload.totalPages !== undefined) state.totalPages = action.payload.totalPages;
+        } else {
+          // Fallback just in case
+          state.items = Array.isArray(action.payload) ? action.payload : [];
+        }
       })
       .addCase(fetchPrintingColors.rejected, (state, action) => {
         state.loading = false;

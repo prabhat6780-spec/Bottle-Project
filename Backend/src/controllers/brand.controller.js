@@ -35,13 +35,10 @@ exports.getBrands = async (req, res) => {
   try {
 
     const {
-
       page = 1,
-
       limit = 10,
-
       search = "",
-
+      pagination = "true"
     } = req.query;
 
     const parsedPage =
@@ -54,73 +51,54 @@ exports.getBrands = async (req, res) => {
       (parsedPage - 1) * parsedLimit;
 
     let filter = {
-
       isDeleted: {
         $ne: true,
       },
-
     };
 
     let brands =
       await Brand.find(filter)
-
         .populate(
           "companyId",
           "name status"
         )
-
         .sort({
           createdAt: -1,
         })
-
         .lean();
 
     if (search) {
-
       const searchText =
         search.toLowerCase();
-
       brands =
         brands.filter((b) =>
-
           b.name
             ?.toLowerCase()
             .includes(searchText)
-
           ||
-
           b.companyId?.name
             ?.toLowerCase()
             .includes(searchText)
-
         );
-
     }
 
-    const total =
-      brands.length;
+    const total = brands.length;
 
-    const paginatedBrands =
-      brands.slice(
-        skip,
-        skip + parsedLimit
-      );
+    let paginatedBrands = brands;
+    if (pagination !== "false") {
+      paginatedBrands = brands.slice(skip, skip + parsedLimit);
+    }
+
+    if (pagination === "false") {
+      return res.json({ success: true, data: paginatedBrands, total });
+    }
 
     res.json({
-
       success: true,
-
       data: paginatedBrands,
-
       page: parsedPage,
-
-      totalPages:
-        Math.ceil(
-          total / parsedLimit
-        ),
-
+      totalPages: Math.ceil(total / parsedLimit),
       total,
-
     });
 
   } catch (err) {

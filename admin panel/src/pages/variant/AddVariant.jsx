@@ -95,7 +95,7 @@ export default function AddVariant() {
   };
 
   useEffect(() => {
-    dispatch(fetchBottleSpecs());
+    dispatch(fetchBottleSpecs({ pagination: 'false' }));
   }, [dispatch]);
 
   const handleSubmit = (e) => {

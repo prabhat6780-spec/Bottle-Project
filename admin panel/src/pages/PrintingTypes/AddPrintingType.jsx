@@ -13,7 +13,7 @@ export default function AddPrintingType() {
   const [error, setError] = useState('');
 
   useEffect(() => {
-    dispatch(fetchPrintingTypes());
+    dispatch(fetchPrintingTypes({ pagination: 'false' }));
   }, [dispatch]);
 
   const validateField = (value) => {

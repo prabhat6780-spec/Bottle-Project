@@ -39,10 +39,10 @@ export default function EditBottleSpec() {
   const [filteredColors, setFilteredColors] = useState([]);
 
   useEffect(() => {
-    dispatch(fetchCompanies());
-    dispatch(fetchBrands());
-    dispatch(fetchPrintingTypes());
-    dispatch(fetchPrintingColors());
+    dispatch(fetchCompanies({ pagination: 'false' }));
+    dispatch(fetchBrands({ pagination: 'false' }));
+    dispatch(fetchPrintingTypes({ pagination: 'false' }));
+    dispatch(fetchPrintingColors({ pagination: 'false' }));
   }, [dispatch]);
 
   useEffect(() => {

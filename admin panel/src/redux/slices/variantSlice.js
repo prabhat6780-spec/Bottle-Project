@@ -8,12 +8,10 @@ export const fetchVariants =
 
     "variants/fetchVariants",
 
-    async (_, { rejectWithValue }) => {
-
+    async (params, { rejectWithValue }) => {
       try {
-
         const response =
-          await API.get("/variant");
+          await API.get("/variant", { params });
 
         return response.data;
 
@@ -146,13 +144,12 @@ const variantSlice = createSlice({
   name: "variants",
 
   initialState: {
-
     variants: [],
-
     loading: false,
-
     error: null,
-
+    page: 1,
+    totalPages: 1,
+    total: 0,
   },
 
   reducers: {},
@@ -174,12 +171,15 @@ const variantSlice = createSlice({
       .addCase(
         fetchVariants.fulfilled,
         (state, action) => {
-
           state.loading = false;
-
-          state.variants =
-            action.payload;
-
+          if (action.payload.success) {
+            state.variants = action.payload.data || [];
+            state.total = action.payload.total || 0;
+            if (action.payload.page !== undefined) state.page = action.payload.page;
+            if (action.payload.totalPages !== undefined) state.totalPages = action.payload.totalPages;
+          } else {
+            state.variants = Array.isArray(action.payload) ? action.payload : [];
+          }
         }
       )
 

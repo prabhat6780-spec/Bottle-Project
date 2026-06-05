@@ -1,24 +1,24 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
-import { createPrintingColor, fetchPrintingColors } from '../../redux/slices/printingColorSlice';
-import { fetchPrintingTypes } from '../../redux/slices/printingTypeSlice';
+import { createCoatingColor, fetchCoatingColors } from '../../redux/slices/coatingColorSlice';
+import { fetchCoatingTypes } from '../../redux/slices/coatingTypeSlice';
 import Swal from 'sweetalert2';
 import SearchableSelect from '../../components/SearchableSelect';
 
-export default function AddPrintingColor() {
+export default function AddCoatingColor() {
   const navigate = useNavigate();
   const dispatch = useDispatch();
-  const { items: printingColors = [], loading } = useSelector((state) => state.printingColor);
-  const { items: printingTypes = [] } = useSelector((state) => state.printingType);
-  
-  const [printingTypeId, setPrintingTypeId] = useState('');
+  const { items: coatingColors = [], loading } = useSelector((state) => state.coatingColor);
+  const { items: coatingTypes = [] } = useSelector((state) => state.coatingType);
+
+  const [coatingTypeId, setCoatingTypeId] = useState('');
   const [colorRows, setColorRows] = useState([{ name: '', status: 'active' }]);
   const [errors, setErrors] = useState({});
 
   useEffect(() => {
-    dispatch(fetchPrintingTypes({ pagination: 'false' }));
-    dispatch(fetchPrintingColors({ pagination: 'false' }));
+    dispatch(fetchCoatingTypes({ pagination: 'false' }));
+    dispatch(fetchCoatingColors({ pagination: 'false' }));
   }, [dispatch]);
 
   const handleAddMore = () => {
@@ -29,7 +29,6 @@ export default function AddPrintingColor() {
     if (colorRows.length > 1) {
       const newRows = colorRows.filter((_, i) => i !== index);
       setColorRows(newRows);
-      // Clean up errors for removed row
       const newErrors = { ...errors };
       delete newErrors[`name_${index}`];
       setErrors(newErrors);
@@ -40,13 +39,13 @@ export default function AddPrintingColor() {
     let msg = '';
     if (!value || value.trim() === '') {
       msg = `${fieldLabel} is mandatory`;
-    } else if (printingTypeId) {
-      const isDuplicate = printingColors.some(c => 
-        (c.printingTypeId?._id === printingTypeId || c.printingTypeId === printingTypeId) &&
+    } else if (coatingTypeId) {
+      const isDuplicate = coatingColors.some(c =>
+        (c.coatingTypeId?._id === coatingTypeId || c.coatingTypeId === coatingTypeId) &&
         c.name.toLowerCase().trim() === value.toLowerCase().trim()
       );
       if (isDuplicate) {
-        msg = `${fieldLabel} "${value}" already exists for this printing type`;
+        msg = `${fieldLabel} "${value}" already exists for this coating type`;
       }
     }
     return msg;
@@ -81,8 +80,8 @@ export default function AddPrintingColor() {
 
   const validate = () => {
     let newErrors = {};
-    if (!printingTypeId) newErrors.printingTypeId = 'Printing Type is mandatory';
-    
+    if (!coatingTypeId) newErrors.coatingTypeId = 'Coating Type is mandatory';
+
     colorRows.forEach((row, index) => {
       const msg = validateField(row.name, 'Color Name');
       if (msg) {
@@ -101,12 +100,12 @@ export default function AddPrintingColor() {
     }
 
     const payload = colorRows.map(row => ({
-      printingTypeId,
+      coatingTypeId,
       name: row.name,
       status: row.status
     }));
 
-    dispatch(createPrintingColor(payload)).then((res) => {
+    dispatch(createCoatingColor(payload)).then((res) => {
       if (!res.error) {
         Swal.fire({
           icon: 'success',
@@ -115,9 +114,9 @@ export default function AddPrintingColor() {
           timer: 1500,
           showConfirmButton: false
         });
-        navigate('/printing-colors');
+        navigate('/coating-colors');
       } else {
-        Swal.fire('Error!', res.payload || 'Failed to add printing color.', 'error');
+        Swal.fire('Error!', res.payload || 'Failed to add coating color.', 'error');
       }
     });
   };
@@ -125,12 +124,12 @@ export default function AddPrintingColor() {
   return (
     <div className="page-content">
       <div className="page-header d-flex align-items-center gap-3 user-form-page-header">
-        <Link to="/printing-colors" className="btn-ghost" style={{ width: 40, height: 40, borderRadius: 10, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <Link to="/coating-colors" className="btn-ghost" style={{ width: 40, height: 40, borderRadius: 10, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
           <i className="bi bi-arrow-left" style={{ fontSize: 20 }} />
         </Link>
         <div>
-          <h1 className="page-title">Add Printing Colors</h1>
-          <p className="page-subtitle">Define one or more colors for a printing method</p>
+          <h1 className="page-title">Add Coating Colors</h1>
+          <p className="page-subtitle">Define one or more colors for a coating method</p>
         </div>
       </div>
 
@@ -141,19 +140,19 @@ export default function AddPrintingColor() {
               <form onSubmit={handleSubmit}>
                 <div className="mb-4 col-lg-6">
                   <label className="form-label fw-600 small text-uppercase text-muted">
-                    Printing Type <span className="text-danger">*</span>
+                    Coating Type <span className="text-danger">*</span>
                   </label>
                   <SearchableSelect
-                    options={printingTypes.filter(t => t.status).map(t => ({ value: t._id, label: t.name }))}
-                    value={printingTypeId}
+                    options={coatingTypes.filter(t => t.status).map(t => ({ value: t._id, label: t.name }))}
+                    value={coatingTypeId}
                     onChange={(val) => {
-                      setPrintingTypeId(val);
-                      if (errors.printingTypeId) setErrors(prev => ({ ...prev, printingTypeId: '' }));
+                      setCoatingTypeId(val);
+                      if (errors.coatingTypeId) setErrors(prev => ({ ...prev, coatingTypeId: '' }));
                     }}
-                    placeholder="Select Printing Type"
-                    isInvalid={!!errors.printingTypeId}
+                    placeholder="Select Coating Type"
+                    isInvalid={!!errors.coatingTypeId}
                   />
-                  {errors.printingTypeId && <div className="text-danger" style={{ fontSize: '0.875em', marginTop: 4 }}>{errors.printingTypeId}</div>}
+                  {errors.coatingTypeId && <div className="text-danger" style={{ fontSize: '0.875em', marginTop: 4 }}>{errors.coatingTypeId}</div>}
                 </div>
 
                 <hr className="my-4 text-muted opacity-25" />
@@ -167,7 +166,7 @@ export default function AddPrintingColor() {
                         <input
                           type="text"
                           className={`form-control custom-input-field ${errors[`name_${index}`] ? 'is-invalid' : ''}`}
-                          placeholder="e.g. Red, Blue"
+                          placeholder="e.g. Matte Black, Glossy White"
                           value={row.name}
                           onChange={(e) => handleRowChange(index, 'name', e.target.value)}
                           onBlur={() => handleBlur(index)}
@@ -189,9 +188,9 @@ export default function AddPrintingColor() {
                       </div>
                       <div className="col-md-2">
                         {colorRows.length > 1 && (
-                          <button 
-                            type="button" 
-                            onClick={() => handleRemoveRow(index)} 
+                          <button
+                            type="button"
+                            onClick={() => handleRemoveRow(index)}
                             className="btn btn-outline-danger w-100 border-0 shadow-none"
                             style={{ height: '48px', borderRadius: 12 }}
                           >
@@ -204,9 +203,9 @@ export default function AddPrintingColor() {
                 </div>
 
                 <div className="mb-4">
-                  <button 
-                    type="button" 
-                    onClick={handleAddMore} 
+                  <button
+                    type="button"
+                    onClick={handleAddMore}
                     className="btn btn-outline-primary border-dashed w-100 py-3"
                     style={{ borderRadius: 12, borderStyle: 'dashed' }}
                   >
@@ -219,11 +218,10 @@ export default function AddPrintingColor() {
                     {loading ? (
                       <><span className="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>Saving...</>
                     ) : (
-                      <><i className="bi bi-check2-circle me-2" /> Save & Back</>
+                      <><i className="bi bi-check2-circle me-2" /> Save &amp; Back</>
                     )}
                   </button>
-
-                  <button type="button" onClick={() => navigate('/printing-colors')} className="btn-ghost px-5 py-3">
+                  <button type="button" onClick={() => navigate('/coating-colors')} className="btn-ghost px-5 py-3">
                     Cancel
                   </button>
                 </div>

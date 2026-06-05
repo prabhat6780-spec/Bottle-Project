@@ -1,5 +1,5 @@
-import { useState, useMemo, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { useState, useEffect } from 'react';
+import { Link, useSearchParams } from 'react-router-dom';
 import { Can } from '../../context/AbilityContext.js';
 import { useDispatch, useSelector } from 'react-redux';
 import { fetchVariants, deleteVariant } from '../../redux/slices/variantSlice.js';
@@ -8,34 +8,20 @@ import { V_URL } from '../../../Baseurl.js';
 
 export default function Variants() {
   const dispatch = useDispatch();
-  const { variants, loading } = useSelector((state) => state.variants);
+  const { variants, loading, page, totalPages, total } = useSelector((state) => state.variants);
+  
+  const [searchParams, setSearchParams] = useSearchParams();
+  const currentPage = Number(searchParams.get("page")) || 1;
+  const [itemsPerPage, setItemsPerPage] = useState(10);
   const [search, setSearch] = useState('');
 
-  const [currentPage, setCurrentPage] = useState(() => {
-    return Number(sessionStorage.getItem('variants_page')) || 1;
-  });
-
-  const [itemsPerPage, setItemsPerPage] = useState(() => {
-    return Number(sessionStorage.getItem('variants_perPage')) || 10;
-  });
-
   useEffect(() => {
-    dispatch(fetchVariants());
-  }, [dispatch]);
-
-  // ── Persist page number ──────────────────────────────────────────────────────
-  const handlePageChange = (page) => {
-    setCurrentPage(page);
-    sessionStorage.setItem('variants_page', page);
-  };
-
-  // ── Persist items-per-page and reset to page 1 ───────────────────────────────
-  const handlePerPageChange = (val) => {
-    setItemsPerPage(val);
-    sessionStorage.setItem('variants_perPage', val);
-    setCurrentPage(1);
-    sessionStorage.setItem('variants_page', 1);
-  };
+    dispatch(fetchVariants({
+      page: currentPage,
+      limit: itemsPerPage,
+      search,
+    }));
+  }, [dispatch, currentPage, itemsPerPage, search]);
 
   const handleDelete = (id, name) => {
     Swal.fire({
@@ -55,31 +41,7 @@ export default function Variants() {
     });
   };
 
-  const filteredVariants = useMemo(() => {
-    return variants.filter(v => {
-      const brandName = v.bottleSpecId?.brandId?.name || '';
-      const companyName = v.bottleSpecId?.brandId?.companyId?.name || '';
-      return (
-        v.variantName?.toLowerCase().includes(search.toLowerCase()) ||
-        v.coatingShade?.toLowerCase().includes(search.toLowerCase()) ||
-        brandName.toLowerCase().includes(search.toLowerCase()) ||
-        companyName.toLowerCase().includes(search.toLowerCase())
-      );
-    });
-  }, [variants, search]);
 
-  const totalPages = Math.ceil(filteredVariants.length / itemsPerPage);
-
-  const paginatedItems = useMemo(() => {
-    const start = (currentPage - 1) * itemsPerPage;
-    return filteredVariants.slice(start, start + itemsPerPage);
-  }, [filteredVariants, currentPage, itemsPerPage]);
-
-  // Reset to page 1 only when search changes (not on back-navigation)
-  useEffect(() => {
-    setCurrentPage(1);
-    sessionStorage.setItem('variants_page', 1);
-  }, [search]);
 
   const isItemActive = (v) =>
     v.status === true || v.status === 'active' || v.status === undefined;
@@ -106,7 +68,7 @@ export default function Variants() {
               className="form-select form-select-sm shadow-none border-light-subtle bg-light"
               style={{ width: 70, borderRadius: 8, cursor: 'pointer' }}
               value={itemsPerPage}
-              onChange={(e) => handlePerPageChange(Number(e.target.value))}
+              onChange={(e) => setItemsPerPage(Number(e.target.value))}
             >
               <option value="10">10</option>
               <option value="25">25</option>
@@ -121,7 +83,7 @@ export default function Variants() {
               className="form-control form-control-sm border-light-subtle bg-light ps-5 py-2 shadow-none"
               placeholder="Search variants..."
               value={search}
-              onChange={e => setSearch(e.target.value)}
+              onChange={e => { setSearch(e.target.value); setSearchParams({ page: 1 }); }}
               style={{ borderRadius: 10, fontSize: 13 }}
             />
           </div>
@@ -129,7 +91,7 @@ export default function Variants() {
 
         {/* ── Mobile list ─────────────────────────────────────────────────────── */}
         <div className="companies-list-mobile">
-          {paginatedItems.map((v, index) => (
+          {variants.map((v, index) => (
             <div key={v._id} className="companies-mobile-card brands-mobile-card">
               <div className="d-flex align-items-start gap-3 w-100 min-w-0">
                 {v.image ? (
@@ -146,7 +108,7 @@ export default function Variants() {
                 )}
                 <div className="flex-grow-1 min-w-0">
                   <div className="d-flex align-items-center gap-2 mb-1 flex-wrap">
-                    <span className="text-muted small fw-bold">#{String(filteredVariants.length - ((currentPage - 1) * itemsPerPage + index)).padStart(2, '0')}</span>
+                    <span className="text-muted small fw-bold">#{String((currentPage - 1) * itemsPerPage + index + 1).padStart(2, '0')}</span>
                     <span className="fw-semibold text-truncate">{v.variantName}</span>
                   </div>
                   {v.coatingShade ? (
@@ -183,7 +145,7 @@ export default function Variants() {
               </div>
             </div>
           ))}
-          {paginatedItems.length === 0 && !loading && (
+          {variants.length === 0 && !loading && (
             <div className="companies-mobile-empty">No variants found</div>
           )}
         </div>
@@ -206,7 +168,7 @@ export default function Variants() {
               </tr>
             </thead>
             <tbody>
-              {paginatedItems.map((v, index) => (
+              {variants.map((v, index) => (
                 <tr key={v._id} className="align-middle border-bottom transition-all hover-bg-light">
                   <td className="py-3 ps-5 text-start">
                     <span className="text-muted fw-bold" style={{ fontSize: 13 }}>{String((currentPage - 1) * itemsPerPage + index + 1).padStart(2, '0')}</span>
@@ -268,7 +230,7 @@ export default function Variants() {
                   </td>
                 </tr>
               ))}
-              {paginatedItems.length === 0 && !loading && (
+              {variants.length === 0 && !loading && (
                 <tr>
                   <td colSpan={10} className="text-center py-5 text-muted">No variants found</td>
                 </tr>
@@ -280,41 +242,44 @@ export default function Variants() {
         {/* ── Footer / Pagination ──────────────────────────────────────────────── */}
         <div className="dash-card-footer d-flex align-items-center justify-content-between p-3 border-top bg-white companies-dash-footer">
           <div className="text-muted small fw-500">
-            Showing <b>{filteredVariants.length > 0 ? (currentPage - 1) * itemsPerPage + 1 : 0}</b> to <b>{Math.min(currentPage * itemsPerPage, filteredVariants.length)}</b> of <b>{filteredVariants.length}</b> entries
+            Showing <b>{total === 0 ? 0 : (currentPage - 1) * itemsPerPage + 1}</b> to <b>{Math.min(currentPage * itemsPerPage, total)}</b> of <b>{total}</b> entries
           </div>
-          <nav aria-label="Page navigation">
-            <ul className="pagination pagination-sm mb-0 gap-2">
-              <li className={`page-item ${currentPage === 1 ? 'disabled' : ''}`}>
-                <button
-                  className="page-link border-0 bg-light text-muted px-3"
-                  style={{ borderRadius: 8 }}
-                  onClick={() => handlePageChange(Math.max(currentPage - 1, 1))}
-                >
-                  Previous
-                </button>
-              </li>
-              {[...Array(totalPages)].map((_, i) => (
-                <li key={i} className={`page-item ${currentPage === i + 1 ? 'active' : ''}`}>
-                  <button
-                    className="page-link border-0 px-3"
-                    style={{ borderRadius: 8, backgroundColor: currentPage === i + 1 ? 'var(--accent)' : 'transparent' }}
-                    onClick={() => handlePageChange(i + 1)}
-                  >
-                    {i + 1}
-                  </button>
-                </li>
-              ))}
-              <li className={`page-item ${currentPage === totalPages || totalPages === 0 ? 'disabled' : ''}`}>
-                <button
-                  className="page-link border-0 bg-light text-muted px-3"
-                  style={{ borderRadius: 8 }}
-                  onClick={() => handlePageChange(Math.min(currentPage + 1, totalPages))}
-                >
-                  Next
-                </button>
-              </li>
-            </ul>
-          </nav>
+
+          <div className="d-flex align-items-center gap-2">
+            <button
+              className="btn btn-sm btn-light"
+              disabled={currentPage === 1}
+              onClick={() => {
+                if (currentPage > 1) {
+                  setSearchParams({ page: currentPage - 1 });
+                }
+              }}
+            >
+              Previous
+            </button>
+
+            {Array.from({ length: totalPages }, (_, i) => i + 1).map((p) => (
+              <button
+                key={p}
+                className={`btn btn-sm ${currentPage === p ? 'btn-primary' : 'btn-light'}`}
+                onClick={() => setSearchParams({ page: p })}
+              >
+                {p}
+              </button>
+            ))}
+
+            <button
+              className="btn btn-sm btn-light"
+              disabled={currentPage === totalPages || totalPages === 0}
+              onClick={() => {
+                if (currentPage < totalPages) {
+                  setSearchParams({ page: currentPage + 1 });
+                }
+              }}
+            >
+              Next
+            </button>
+          </div>
         </div>
       </div>
     </div>

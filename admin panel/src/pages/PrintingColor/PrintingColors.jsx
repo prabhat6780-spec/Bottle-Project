@@ -1,5 +1,5 @@
-import { useState, useEffect, useMemo } from 'react';
-import { Link } from 'react-router-dom';
+import { useState, useEffect } from 'react';
+import { Link, useSearchParams } from 'react-router-dom';
 import { Can } from '../../context/AbilityContext';
 import { useDispatch, useSelector } from 'react-redux';
 import { fetchPrintingColors, deletePrintingColor } from '../../redux/slices/printingColorSlice';
@@ -7,14 +7,20 @@ import Swal from 'sweetalert2';
 
 export default function PrintingColors() {
   const dispatch = useDispatch();
-  const { items, loading } = useSelector((state) => state.printingColor);
-  const [search, setSearch] = useState('');
-  const [currentPage, setCurrentPage] = useState(1);
+  const { items, loading, page, totalPages, total } = useSelector((state) => state.printingColor);
+  
+  const [searchParams, setSearchParams] = useSearchParams();
+  const currentPage = Number(searchParams.get("page")) || 1;
   const [itemsPerPage, setItemsPerPage] = useState(10);
+  const [search, setSearch] = useState('');
 
   useEffect(() => {
-    dispatch(fetchPrintingColors());
-  }, [dispatch]);
+    dispatch(fetchPrintingColors({
+      page: currentPage,
+      limit: itemsPerPage,
+      search,
+    }));
+  }, [dispatch, currentPage, itemsPerPage, search]);
 
   const handleDelete = (id, name) => {
     Swal.fire({
@@ -33,23 +39,6 @@ export default function PrintingColors() {
       }
     });
   };
-
-  const filteredItems = useMemo(() => {
-    return items.filter(b => 
-      b.name?.toLowerCase().includes(search.toLowerCase()) ||
-      b.printingTypeId?.name?.toLowerCase().includes(search.toLowerCase())
-    );
-  }, [items, search]);
-
-  const totalPages = Math.ceil(filteredItems.length / itemsPerPage);
-  const paginatedItems = useMemo(() => {
-    const start = (currentPage - 1) * itemsPerPage;
-    return filteredItems.slice(start, start + itemsPerPage);
-  }, [filteredItems, currentPage, itemsPerPage]);
-
-  useEffect(() => {
-    setCurrentPage(1);
-  }, [search, itemsPerPage]);
 
   const isItemActive = (b) =>
     b.status === true || b.status === 'active' || b.status === undefined;
@@ -98,14 +87,14 @@ export default function PrintingColors() {
               className="form-control form-control-sm border-light-subtle bg-light ps-5 py-2 shadow-none"
               placeholder="Search printing colors..."
               value={search}
-              onChange={e => setSearch(e.target.value)}
+              onChange={e => { setSearch(e.target.value); setSearchParams({ page: 1 }); }}
               style={{ borderRadius: 10, fontSize: 13 }}
             />
           </div>
         </div>
 
         <div className="companies-list-mobile">
-          {paginatedItems.map((b, index) => (
+          {items.map((b, index) => (
             <div key={b._id} className="companies-mobile-card">
               <div className="d-flex align-items-start gap-3 flex-grow-1 min-w-0">
                 <div
@@ -156,7 +145,7 @@ export default function PrintingColors() {
               </div>
             </div>
           ))}
-          {paginatedItems.length === 0 && !loading && (
+          {items.length === 0 && !loading && (
             <div className="companies-mobile-empty">No printing colors found</div>
           )}
         </div>
@@ -174,7 +163,7 @@ export default function PrintingColors() {
               </tr>
             </thead>
             <tbody>
-               {paginatedItems.map((b, index) => (
+               {items.map((b, index) => (
                 <tr key={b._id} className="align-middle border-bottom transition-all hover-bg-light">
                   <td className="py-3 ps-5 text-start">
                     <span className="text-muted fw-bold" style={{ fontSize: 13 }}>{String((currentPage - 1) * itemsPerPage + index + 1).padStart(2, '0')}</span>
@@ -207,7 +196,7 @@ export default function PrintingColors() {
                   </td>
                 </tr>
               ))}
-              {paginatedItems.length === 0 && !loading && (
+              {items.length === 0 && !loading && (
                 <tr><td colSpan={7} className="text-center py-5 text-muted">No printing colors found</td></tr>
               )}
             </tbody>
@@ -216,41 +205,44 @@ export default function PrintingColors() {
 
         <div className="dash-card-footer d-flex align-items-center justify-content-between p-3 border-top bg-white companies-dash-footer">
           <div className="text-muted small fw-500">
-            Showing <b>{filteredItems.length > 0 ? (currentPage - 1) * itemsPerPage + 1 : 0}</b> to <b>{Math.min(currentPage * itemsPerPage, filteredItems.length)}</b> of <b>{filteredItems.length}</b> entries
+            Showing <b>{total === 0 ? 0 : (currentPage - 1) * itemsPerPage + 1}</b> to <b>{Math.min(currentPage * itemsPerPage, total)}</b> of <b>{total}</b> entries
           </div>
-          <nav aria-label="Page navigation">
-            <ul className="pagination pagination-sm mb-0 gap-2">
-              <li className={`page-item ${currentPage === 1 ? 'disabled' : ''}`}>
-                <button 
-                  className="page-link border-0 bg-light text-muted px-3" 
-                  style={{ borderRadius: 8 }}
-                  onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
-                >
-                  Previous
-                </button>
-              </li>
-              {[...Array(totalPages)].map((_, i) => (
-                <li key={i} className={`page-item ${currentPage === i + 1 ? 'active' : ''}`}>
-                  <button 
-                    className="page-link border-0 px-3" 
-                    style={{ borderRadius: 8, backgroundColor: currentPage === i + 1 ? 'var(--accent)' : 'transparent' }}
-                    onClick={() => setCurrentPage(i + 1)}
-                  >
-                    {i + 1}
-                  </button>
-                </li>
-              ))}
-              <li className={`page-item ${currentPage === totalPages || totalPages === 0 ? 'disabled' : ''}`}>
-                <button 
-                  className="page-link border-0 bg-light text-muted px-3" 
-                  style={{ borderRadius: 8 }}
-                  onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
-                >
-                  Next
-                </button>
-              </li>
-            </ul>
-          </nav>
+
+          <div className="d-flex align-items-center gap-2">
+            <button
+              className="btn btn-sm btn-light"
+              disabled={currentPage === 1}
+              onClick={() => {
+                if (currentPage > 1) {
+                  setSearchParams({ page: currentPage - 1 });
+                }
+              }}
+            >
+              Previous
+            </button>
+
+            {Array.from({ length: totalPages }, (_, i) => i + 1).map((p) => (
+              <button
+                key={p}
+                className={`btn btn-sm ${currentPage === p ? 'btn-primary' : 'btn-light'}`}
+                onClick={() => setSearchParams({ page: p })}
+              >
+                {p}
+              </button>
+            ))}
+
+            <button
+              className="btn btn-sm btn-light"
+              disabled={currentPage === totalPages || totalPages === 0}
+              onClick={() => {
+                if (currentPage < totalPages) {
+                  setSearchParams({ page: currentPage + 1 });
+                }
+              }}
+            >
+              Next
+            </button>
+          </div>
         </div>
       </div>
     </div>
