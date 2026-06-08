@@ -14,7 +14,9 @@ exports.createSpec = async (req, res) => {
         populate: { path: "companyId" }
       })
       .populate("printingTypeId")
-      .populate("printingColorId");
+      .populate("printingColorId")
+      .populate("coatingTypeId")
+      .populate("coatingColorId");
     res.json(populated);
   } catch (err) {
     res.status(500).json(err.message);
@@ -48,7 +50,9 @@ exports.getSpecs = async (req, res) => {
         populate: { path: "companyId" }
       },
       "printingTypeId",
-      "printingColorId"
+      "printingColorId",
+      "coatingTypeId",
+      "coatingColorId"
     ];
 
     let specs;
@@ -89,7 +93,11 @@ exports.updateSpec = async (req, res) => {
     ).populate({
       path: "brandId",
       populate: { path: "companyId" }
-    }).populate("printingTypeId").populate("printingColorId");
+    })
+    .populate("printingTypeId")
+    .populate("printingColorId")
+    .populate("coatingTypeId")
+    .populate("coatingColorId");
     res.json(spec);
   } catch (err) {
     res.status(500).json(err.message);

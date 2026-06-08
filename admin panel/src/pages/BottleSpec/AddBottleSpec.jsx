@@ -6,6 +6,8 @@ import { fetchBrands } from '../../redux/slices/brandSlice';
 import { fetchCompanies } from '../../redux/slices/companySlice';
 import { fetchPrintingTypes } from '../../redux/slices/printingTypeSlice';
 import { fetchPrintingColors } from '../../redux/slices/printingColorSlice';
+import { fetchCoatingTypes } from '../../redux/slices/coatingTypeSlice';
+import { fetchCoatingColors } from '../../redux/slices/coatingColorSlice';
 import Swal from 'sweetalert2';
 import SearchableSelect from '../../components/SearchableSelect';
 
@@ -16,6 +18,8 @@ export default function AddBottleSpec() {
   const { companies } = useSelector((state) => state.companies);
   const { items: printingTypes } = useSelector((state) => state.printingType);
   const { items: printingColors } = useSelector((state) => state.printingColor);
+  const { items: coatingTypes } = useSelector((state) => state.coatingType);
+  const { items: coatingColors } = useSelector((state) => state.coatingColor);
   const { loading } = useSelector((state) => state.bottleSpecs);
 
   const [formData, setFormData] = useState({
@@ -25,6 +29,8 @@ export default function AddBottleSpec() {
     code: '',
     printingTypeId: '',
     printingColorId: '',
+    coatingTypeId: '',
+    coatingColorId: '',
     status: 'active'
   });
 
@@ -42,6 +48,8 @@ export default function AddBottleSpec() {
     dispatch(fetchBrands({ pagination: 'false' }));
     dispatch(fetchPrintingTypes({ pagination: 'false' }));
     dispatch(fetchPrintingColors({ pagination: 'false' }));
+    dispatch(fetchCoatingTypes({ pagination: 'false' }));
+    dispatch(fetchCoatingColors({ pagination: 'false' }));
   }, [dispatch]);
 
   useEffect(() => {
@@ -57,6 +65,21 @@ export default function AddBottleSpec() {
       setFormData(prev => ({ ...prev, printingColorId: '' }));
     }
   }, [formData.printingTypeId, printingColors]);
+
+  const [filteredCoatingColors, setFilteredCoatingColors] = useState([]);
+
+  useEffect(() => {
+    if (formData.coatingTypeId) {
+      const filtered = coatingColors.filter(c => c.coatingTypeId?._id === formData.coatingTypeId || c.coatingTypeId === formData.coatingTypeId);
+      setFilteredCoatingColors(filtered);
+      if (!filtered.some(c => c._id === formData.coatingColorId)) {
+        setFormData(prev => ({ ...prev, coatingColorId: '' }));
+      }
+    } else {
+      setFilteredCoatingColors([]);
+      setFormData(prev => ({ ...prev, coatingColorId: '' }));
+    }
+  }, [formData.coatingTypeId, coatingColors]);
 
   const validateField = (name, value) => {
     let msg = '';
@@ -241,6 +264,43 @@ export default function AddBottleSpec() {
                     >
                       <option value="">Select Color</option>
                       {filteredColors.filter(c => c.status).map(c => (
+                        <option key={c._id} value={c._id}>{c.name}</option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div className="col-md-6">
+                    <label className="form-label fw-600 small text-uppercase text-muted">
+                      Coating Type
+                    </label>
+                    <select
+                      className="form-select custom-input-field"
+                      name="coatingTypeId"
+                      value={formData.coatingTypeId}
+                      onChange={handleChange}
+                      style={{ borderRadius: 12 }}
+                    >
+                      <option value="">Select Coating Type</option>
+                      {coatingTypes.filter(t => t.status).map(t => (
+                        <option key={t._id} value={t._id}>{t.name}</option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div className="col-md-6">
+                    <label className="form-label fw-600 small text-uppercase text-muted">
+                      Coating Color
+                    </label>
+                    <select
+                      className="form-select custom-input-field"
+                      name="coatingColorId"
+                      disabled={!formData.coatingTypeId}
+                      value={formData.coatingColorId}
+                      onChange={handleChange}
+                      style={{ borderRadius: 12 }}
+                    >
+                      <option value="">Select Coating Color</option>
+                      {filteredCoatingColors.filter(c => c.status).map(c => (
                         <option key={c._id} value={c._id}>{c.name}</option>
                       ))}
                     </select>

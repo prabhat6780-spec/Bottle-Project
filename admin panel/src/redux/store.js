@@ -14,6 +14,7 @@ import printingTypeReducer from "./slices/printingTypeSlice";
 import printingColorReducer from "./slices/printingColorSlice";
 import coatingTypeReducer from "./slices/coatingTypeSlice";
 import coatingColorReducer from "./slices/coatingColorSlice";
+import coatingProductionReducer from "./slices/coatingProductionSlice";
 
 export const store = configureStore({
 
@@ -33,6 +34,7 @@ export const store = configureStore({
     printingColor: printingColorReducer,
     coatingType: coatingTypeReducer,
     coatingColor: coatingColorReducer,
+    coatingProductions: coatingProductionReducer,
 
   },
 

@@ -16,7 +16,7 @@ const addProduction = async (req, res) => {
     const date = reqDate || new Date().toISOString().split("T")[0];
 
     // 🚫 Prevent duplicate entry for same variant + date
-    const exists = await Production.findOne({ variantId, date });
+    const exists = await Production.findOne({ variantId, date, isDeleted: { $ne: true } });
     if (exists) {
       return res.status(400).json({
         message: "Production already exists for this variant today",

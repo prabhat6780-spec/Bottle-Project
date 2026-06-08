@@ -138,6 +138,7 @@ export default function BottleSpecs() {
                 <th className="py-3 text-uppercase small fw-bold text-muted text-center">Company</th>
                 <th className="py-3 text-uppercase small fw-bold text-muted text-center">Associated Brand</th>
                 <th className="py-3 text-uppercase small fw-bold text-muted text-center">Printing Details</th>
+                <th className="py-3 text-uppercase small fw-bold text-muted text-center">Coating Details</th>
                 <th className="py-3 text-uppercase small fw-bold text-muted text-center">Status</th>
                 <th className="py-3 text-uppercase small fw-bold text-muted text-center" style={{ width: 150 }}>Actions</th>
               </tr>
@@ -172,6 +173,12 @@ export default function BottleSpecs() {
                     <div className="d-flex flex-column align-items-center">
                       <div className="fw-600 text-dark" style={{ fontSize: 13 }}>{s.printingTypeId?.name || 'N/A'}</div>
                       <div className="text-muted small badge bg-light text-primary border" style={{ fontSize: 11, marginTop: 4 }}>{s.printingColorId?.name || 'No Color'}</div>
+                    </div>
+                  </td>
+                  <td className="py-3 text-center">
+                    <div className="d-flex flex-column align-items-center">
+                      <div className="fw-600 text-dark" style={{ fontSize: 13 }}>{s.coatingTypeId?.name || 'N/A'}</div>
+                      <div className="text-muted small badge bg-light text-primary border" style={{ fontSize: 11, marginTop: 4 }}>{s.coatingColorId?.name || 'No Color'}</div>
                     </div>
                   </td>
                   <td className="py-3 text-center">
@@ -210,7 +217,7 @@ export default function BottleSpecs() {
               ))}
               {specs.length === 0 && !loading && (
                 <tr>
-                  <td colSpan={7} className="text-center py-5">
+                  <td colSpan={8} className="text-center py-5">
                     <div className="py-4">
                       <i className="bi bi-search text-muted mb-3 d-block" style={{ fontSize: 48 }} />
                       <h5 className="text-dark fw-bold">No results found</h5>

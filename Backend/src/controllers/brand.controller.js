@@ -10,7 +10,7 @@ exports.createBrand = async (req, res) => {
       : rawStatus ?? true;
 
     const { name, companyId } = req.body;
-    const existing = await Brand.findOne({ companyId, name: { $regex: new RegExp("^" + name.trim() + "$", "i") } });
+    const existing = await Brand.findOne({ companyId, name: { $regex: new RegExp("^" + name.trim() + "$", "i") }, isDeleted: { $ne: true } });
     if (existing) {
       return res.status(400).json(`Brand "${name}" already exists for this company.`);
     }

@@ -11,7 +11,8 @@ exports.createCoatingColor = async (req, res) => {
       for (const item of data) {
         const existing = await CoatingColor.findOne({
           coatingTypeId: item.coatingTypeId,
-          name: { $regex: new RegExp("^" + item.name.trim() + "$", "i") }
+          name: { $regex: new RegExp("^" + item.name.trim() + "$", "i") },
+          isDeleted: { $ne: true }
         });
         if (existing) {
           return res.status(400).json(`Color "${item.name}" already exists for this coating type.`);
@@ -28,7 +29,8 @@ exports.createCoatingColor = async (req, res) => {
       // Single create
       const existing = await CoatingColor.findOne({
         coatingTypeId: data.coatingTypeId,
-        name: { $regex: new RegExp("^" + data.name.trim() + "$", "i") }
+        name: { $regex: new RegExp("^" + data.name.trim() + "$", "i") },
+        isDeleted: { $ne: true }
       });
       if (existing) {
         return res.status(400).json(`Color "${data.name}" already exists for this coating type.`);
@@ -106,7 +108,8 @@ exports.updateCoatingColor = async (req, res) => {
       const existing = await CoatingColor.findOne({
         coatingTypeId: body.coatingTypeId,
         name: { $regex: new RegExp("^" + body.name.trim() + "$", "i") },
-        _id: { $ne: req.params.id }
+        _id: { $ne: req.params.id },
+        isDeleted: { $ne: true }
       });
       if (existing) {
         return res.status(400).json(`Color "${body.name}" already exists for this coating type.`);

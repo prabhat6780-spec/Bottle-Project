@@ -69,6 +69,8 @@ export default function BottleSpecDetail() {
                   <th className="px-4 py-3 text-uppercase small fw-bold text-muted" style={{ fontSize: 11 }}>Code</th>
                   <th className="px-4 py-3 text-uppercase small fw-bold text-muted" style={{ fontSize: 11 }}>Printing Type</th>
                   <th className="px-4 py-3 text-uppercase small fw-bold text-muted" style={{ fontSize: 11 }}>Printing Color</th>
+                  <th className="px-4 py-3 text-uppercase small fw-bold text-muted" style={{ fontSize: 11 }}>Coating Type</th>
+                  <th className="px-4 py-3 text-uppercase small fw-bold text-muted" style={{ fontSize: 11 }}>Coating Color</th>
                   <th className="px-4 py-3 text-uppercase small fw-bold text-muted" style={{ fontSize: 11 }}>Status</th>
                   <th className="px-4 py-3 text-uppercase small fw-bold text-muted" style={{ fontSize: 11 }}>Action</th>
                 </tr>
@@ -82,6 +84,12 @@ export default function BottleSpecDetail() {
                   </td>
                   <td className="px-4 py-4">
                     <span className="fw-500">{spec.printingColorId?.name || 'N/A'}</span>
+                  </td>
+                  <td className="px-4 py-4">
+                    <span className="fw-500">{spec.coatingTypeId?.name || 'N/A'}</span>
+                  </td>
+                  <td className="px-4 py-4">
+                    <span className="fw-500">{spec.coatingColorId?.name || 'N/A'}</span>
                   </td>
                   <td className="px-4 py-4">
                     <span className={`badge-status badge-${isActive ? 'active' : 'inactive'}`}>

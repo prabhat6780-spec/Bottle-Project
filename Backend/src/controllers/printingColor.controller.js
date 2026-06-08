@@ -11,7 +11,8 @@ exports.createPrintingColor = async (req, res) => {
       for (const item of data) {
         const existing = await PrintingColor.findOne({
           printingTypeId: item.printingTypeId,
-          name: { $regex: new RegExp("^" + item.name.trim() + "$", "i") }
+          name: { $regex: new RegExp("^" + item.name.trim() + "$", "i") },
+          isDeleted: { $ne: true }
         });
         if (existing) {
           // Skip or error? The user said "if beardo is created then Beardo should cant created".
@@ -30,7 +31,8 @@ exports.createPrintingColor = async (req, res) => {
       // Single create
       const existing = await PrintingColor.findOne({
         printingTypeId: data.printingTypeId,
-        name: { $regex: new RegExp("^" + data.name.trim() + "$", "i") }
+        name: { $regex: new RegExp("^" + data.name.trim() + "$", "i") },
+        isDeleted: { $ne: true }
       });
       if (existing) {
         return res.status(400).json(`Color "${data.name}" already exists for this printing type.`);

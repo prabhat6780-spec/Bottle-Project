@@ -4,9 +4,17 @@ const Role = require("../models/role.model");
 exports.createRole = async (req, res) => {
   try {
     const { name, permissions } = req.body;
-    const role = await Role.create({ name, permissions });
+    const existing = await Role.findOne({ name: { $regex: new RegExp("^" + name.trim() + "$", "i") }, isDeleted: { $ne: true } });
+    if (existing) {
+      return res.status(400).json({ success: false, message: "Role with this name already exists" });
+    }
+
+    const role = await Role.create({ name: name.trim(), permissions });
     res.status(201).json({ success: true, data: role });
   } catch (error) {
+    if (error.code === 11000) {
+      return res.status(400).json({ success: false, message: "Role with this name already exists" });
+    }
     res.status(400).json({ success: false, message: error.message });
   }
 };

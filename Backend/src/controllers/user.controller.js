@@ -8,30 +8,19 @@ exports.createUser = async (req, res) => {
 
     const loweremail = email.toLowerCase();
 
-    let user = await User.findOne({ email: loweremail });
+    const existingUser = await User.findOne({ email: loweremail, isDeleted: { $ne: true } });
 
-    if (user) {
-      if (!user.isDeleted) {
-        return res.status(400).json("User with this email already exists.");
-      } else {
-        // Restore soft-deleted user with new credentials
-        user.isDeleted = false;
-        user.password = await bcrypt.hash(password, 10);
-        user.role = role;
-        user.name = name;
-        user.status = "active";
-        await user.save();
-      }
-    } else {
-      // Create new user
-      const hashed = await bcrypt.hash(password, 10);
-      user = await User.create({
-        email: loweremail,
-        password: hashed,
-        role,
-        name
-      });
+    if (existingUser) {
+      return res.status(400).json("User with this email already exists.");
     }
+
+    const hashed = await bcrypt.hash(password, 10);
+    const user = await User.create({
+      email: loweremail,
+      password: hashed,
+      role,
+      name
+    });
 
     await user.populate({ path: "role", populate: { path: "permissions" } });
     res.json(user);

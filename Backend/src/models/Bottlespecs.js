@@ -28,6 +28,16 @@ const bottleSpecSchema = new mongoose.Schema({
     required: true
   },
 
+  coatingTypeId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "CoatingType",
+  },
+
+  coatingColorId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "CoatingColor",
+  },
+
   status: {
     type: Boolean,
     default: true

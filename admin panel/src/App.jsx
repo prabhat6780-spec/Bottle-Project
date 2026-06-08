@@ -31,6 +31,10 @@ import Production from './pages/Production/Production';
 import AddProduction from './pages/Production/AddProduction';
 import EditProduction from './pages/Production/EditProduction';
 import ProductionDetail from './pages/Production/ProductionDetail';
+import CoatingProductions from './pages/CoatingProduction/CoatingProductions';
+import AddCoatingProduction from './pages/CoatingProduction/AddCoatingProduction';
+import EditCoatingProduction from './pages/CoatingProduction/EditCoatingProduction';
+import ViewCoatingProduction from './pages/CoatingProduction/ViewCoatingProduction';
 import Settings from './pages/system/Settings';
 import ChangePassword from './pages/system/ChangePassword';
 import Placeholder from './pages/system/Placeholder';
@@ -105,6 +109,10 @@ export default function App() {
               <Route path="/productions/add" element={<AddProduction />} />
               <Route path="/productions/edit/:id" element={<EditProduction />} />
               <Route path="/productions/view/:id" element={<ProductionDetail />} />
+              <Route path="/coating-productions/unit/:unit" element={<CoatingProductions />} />
+              <Route path="/coating-productions/add/unit/:unit" element={<AddCoatingProduction />} />
+              <Route path="/coating-productions/edit/:id" element={<EditCoatingProduction />} />
+              <Route path="/coating-productions/view/:id" element={<ViewCoatingProduction />} />
               <Route path="/printing-types" element={<PrintingTypes />} />
               <Route path="/printing-types/add" element={<AddPrintingType />} />
               <Route path="/printing-types/edit/:id" element={<EditPrintingType />} />

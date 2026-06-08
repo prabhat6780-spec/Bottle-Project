@@ -3,7 +3,8 @@ import Select from 'react-select';
 import { Link, useSearchParams } from 'react-router-dom';
 import { Can } from '../../context/AbilityContext.js';
 import { useDispatch, useSelector } from 'react-redux';
-import { fetchProductions, deleteProduction, clearProductions } from '../../redux/slices/productionSlice.js';
+import { useParams } from 'react-router-dom';
+import { fetchCoatingProductions, deleteCoatingProduction, clearCoatingProductions } from '../../redux/slices/coatingProductionSlice.js';
 import { fetchBrands } from '../../redux/slices/brandSlice.js';
 import { fetchBottleSpecs } from '../../redux/slices/bottleSpecSlice.js';
 import { fetchCompanies } from '../../redux/slices/companySlice.js';
@@ -56,18 +57,18 @@ const matchesDateRange = (dateStr, startIso, endIso) => {
   return (!start || prodDay >= start) && (!end || prodDay <= end);
 };
 
-export default function Productions() {
+export default function CoatingProductions() {
+  const { unit } = useParams();
   const dispatch = useDispatch();
-  const [searchParams, setSearchParams] =
-    useSearchParams();
+  const [searchParams, setSearchParams] = useSearchParams();
   const {
-    productions,
+    coatingProductions: productions,
     loading,
     page,
     totalPages,
     total,
   } = useSelector(
-    (state) => state.productions
+    (state) => state.coatingProductions
   );
   const { brands } = useSelector((state) => state.brands);
   const { companies } = useSelector((state) => state.companies);
@@ -89,13 +90,15 @@ export default function Productions() {
 
   useEffect(() => {
 
-    dispatch(clearProductions());
+    dispatch(clearCoatingProductions());
 
-    dispatch(fetchProductions({
+    dispatch(fetchCoatingProductions({
 
       page: currentPage,
 
       limit,
+
+      unit,
 
       companyId: selectedCompany,
 
@@ -120,21 +123,14 @@ export default function Productions() {
     currentPage,
 
     limit,
-
+    unit,
     search,
-
     startDate,
-
     endDate,
-
     selectedCompany,
-
     selectedBrand,
-
     selectedSpec,
-
     selectedVariant,
-
   ]);
   useEffect(() => {
     dispatch(fetchBrands({ pagination: false }));
@@ -145,7 +141,7 @@ export default function Productions() {
 
   const handleDelete = (id) => {
     Swal.fire({
-      title: 'Delete Production Log?',
+      title: 'Delete Coating Production Log?',
       text: "You won't be able to revert this!",
       icon: 'warning',
       showCancelButton: true,
@@ -153,8 +149,8 @@ export default function Productions() {
       confirmButtonText: 'Yes, delete it!'
     }).then((result) => {
       if (result.isConfirmed) {
-        dispatch(deleteProduction(id)).then(res => {
-          if (!res.error) Swal.fire('Deleted!', 'Production log removed.', 'success');
+        dispatch(deleteCoatingProduction(id)).then(res => {
+          if (!res.error) Swal.fire('Deleted!', 'Coating Production log removed.', 'success');
           else Swal.fire('Error!', res.payload || 'Failed to delete.', 'error');
         });
       }
@@ -305,8 +301,9 @@ export default function Productions() {
       });
 
       // Fetch all productions matching current filters but without pagination
-      const response = await API.get("/production", {
+      const response = await API.get("/coating-production", {
         params: {
+          unit,
           companyId: selectedCompany,
           brandId: selectedBrand,
           bottleSpecId: selectedSpec,
@@ -328,28 +325,24 @@ export default function Productions() {
       const data = allProductions.map((p, index) => ({
         'Sr No': index + 1,
         'Date': parseProductionDate(p.date)?.toLocaleDateString() || 'N/A',
+        'Unit': `Unit ${p.unit}`,
         'Company': p.brandId?.companyId?.name || 'N/A',
         'Brand': p.brandId?.name || 'N/A',
         'Bottle Name': p.bottleSpecId?.bottleName || 'N/A',
         'Variant Name': p.variantId?.variantName || 'N/A',
-        'Coating Shade': p.variantId?.coatingShade ||
-          variants.find(v => v._id === (p.variantId?._id || p.variantId))?.coatingShade ||
-          'N/A',
-        'Text Color': p.variantId?.detectedTextColor ||
-          variants.find(v => v._id === (p.variantId?._id || p.variantId))?.detectedTextColor ||
-          'N/A',
-        'Total Printed Bottles': p.totalPrinted,
-        'Bottles Per Box': p.bottlePerBox,
-        'Total Boxes': p.totalBoxes,
-        'Extra Printed Bottles': p.remainingBottles
+        'Operator Name': p.operatorName || 'N/A',
+        'Actual Quantity': p.actualQuantity,
+        'Rejection Quantity': p.rejectionQuantity,
+        'Total Actual Coated Bottle': p.totalActualCoatedBottle,
+        'Total Bottle Coated': p.totalBottleCoated
       }));
 
       const worksheet = XLSX.utils.json_to_sheet(data);
       const workbook = XLSX.utils.book_new();
-      XLSX.utils.book_append_sheet(workbook, worksheet, "Printing Production Report");
+      XLSX.utils.book_append_sheet(workbook, worksheet, `Coating Production Unit ${unit}`);
 
       // Generate filename based on dates
-      let filename = "Printing_Production_Report";
+      let filename = `Coating_Production_Unit_${unit}`;
       if (startDate) filename += `_from_${startDate}`;
       if (endDate) filename += `_to_${endDate}`;
       filename += ".xlsx";
@@ -369,15 +362,15 @@ export default function Productions() {
     <div className="page-content">
       <div className="page-header d-flex align-items-center justify-content-between companies-page-header">
         <div>
-          <h1 className="page-title">Printing Production</h1>
-          <p className="page-subtitle">Track and manage daily production entries</p>
+          <h1 className="page-title">Coating Production - Unit {unit}</h1>
+          <p className="page-subtitle">Track and manage coating production entries</p>
         </div>
         <div className="d-flex align-items-center gap-3 productions-page-actions">
           <button onClick={handleExport} className="btn btn-outline-success shadow-sm px-4 py-2 rounded-3">
             <i className="bi bi-file-earmark-excel-fill me-2" /> Export Excel
           </button>
-          <Can I="create" a="production">
-            <Link to="/productions/add" className="btn-accent shadow-sm px-4 py-2 rounded-3">
+          <Can I="create" a="coatingproduction">
+            <Link to={`/coating-productions/add/unit/${unit}`} className="btn-accent shadow-sm px-4 py-2 rounded-3">
               <i className="bi bi-plus-lg me-2" /> New Entry
             </Link>
           </Can>
@@ -604,7 +597,7 @@ export default function Productions() {
 
                 setSearchParams({ page: 1 });
 
-                dispatch(clearProductions());
+                dispatch(clearCoatingProductions());
 
                 setLimit(Number(e.target.value));
 
@@ -648,30 +641,30 @@ export default function Productions() {
                       {p.brandId?.companyId?.name || p.bottleSpecId?.brandId?.companyId?.name || 'N/A'} · {p.brandId?.name || p.bottleSpecId?.brandId?.name || 'N/A'}
                     </div>
                     <div className="small fw-600 text-truncate">{p.bottleSpecId?.bottleName}</div>
-                    <div className="small text-muted">
+                    <div className="small text-muted mb-1">
                       {p.variantId?.variantName} {p.variantId?.variantSize ? `(${p.variantId.variantSize})` : ''}
                     </div>
+                    <div className="small fw-bold">Operator: {p.operatorName}</div>
                     <div className="d-flex flex-wrap gap-1 mt-1">
-                      <span className="badge bg-soft-primary text-primary small">{p.totalBoxes} Boxes</span>
-                      <span className="badge bg-light text-dark border small">{p.totalPrinted} pcs</span>
-                      {(p.remainingBottles ?? 0) > 0 && (
-                        <span className="badge bg-soft-warning text-warning-accent small">{p.remainingBottles} extra</span>
-                      )}
+                      <span className="badge bg-soft-primary text-primary small">Actual: {p.actualQuantity}</span>
+                      <span className="badge bg-soft-danger text-danger small">Rejection: {p.rejectionQuantity}</span>
+                      <span className="badge bg-soft-success text-success small">Total Actual: {p.totalActualCoatedBottle}</span>
+                      <span className="badge bg-light text-dark border small">Total: {p.totalBottleCoated}</span>
                     </div>
                   </div>
                 </div>
                 <div className="companies-mobile-actions brands-mobile-actions">
-                  <Can I="read" a="productiondetail">
-                    <Link to={`/productions/view/${p._id}`} className="btn btn-sm btn-outline-info border-0 rounded-3 shadow-none companies-mobile-action-btn" title="View">
+                  <Can I="read" a="coatingproductiondetail">
+                    <Link to={`/coating-productions/view/${p._id}`} className="btn btn-sm btn-outline-info border-0 rounded-3 shadow-none companies-mobile-action-btn" title="View">
                       <i className="bi bi-eye fs-6" />
                     </Link>
                   </Can>
-                  <Can I="edit" a="production">
-                    <Link to={`/productions/edit/${p._id}`} className="btn btn-sm btn-outline-primary border-0 rounded-3 shadow-none companies-mobile-action-btn" title="Edit">
+                  <Can I="edit" a="coatingproduction">
+                    <Link to={`/coating-productions/edit/${p._id}`} className="btn btn-sm btn-outline-primary border-0 rounded-3 shadow-none companies-mobile-action-btn" title="Edit">
                       <i className="bi bi-pencil-square fs-6" />
                     </Link>
                   </Can>
-                  <Can I="delete" a="production">
+                  <Can I="delete" a="coatingproduction">
                     <button type="button" onClick={() => handleDelete(p._id)} className="btn btn-sm btn-outline-danger border-0 rounded-3 shadow-none companies-mobile-action-btn" title="Delete">
                       <i className="bi bi-trash fs-6" />
                     </button>
@@ -681,7 +674,7 @@ export default function Productions() {
             );
           })}
           {productions.length === 0 && !loading && (
-            <div className="companies-mobile-empty">No production logs found</div>
+            <div className="companies-mobile-empty">No coating production logs found</div>
           )}
         </div>
 
@@ -694,7 +687,7 @@ export default function Productions() {
                 <th className="py-3 text-uppercase small fw-bold text-muted text-center" style={{ width: 80 }}>Image</th>
                 <th className="py-3 text-uppercase small fw-bold text-muted text-center">Company & Brand</th>
                 <th className="py-3 text-uppercase small fw-bold text-muted text-center">Product & Variant</th>
-                <th className="py-3 text-uppercase small fw-bold text-muted text-center">Qty / Boxes</th>
+                <th className="py-3 text-uppercase small fw-bold text-muted text-center">Quantities</th>
                 <th className="py-3 text-uppercase small fw-bold text-muted text-center" style={{ width: 150 }}>Actions</th>
               </tr>
             </thead>
@@ -748,41 +741,38 @@ export default function Productions() {
                     <td className="py-3 text-center">
                       <div className="fw-600 text-dark">{p.variantId?.productName}</div>
                       <div className="small text-muted mb-1">{p.variantId?.variantName} {p.variantId?.variantSize ? `(${p.variantId.variantSize})` : ''}</div>
+                      <div className="fw-500 text-dark small">Operator: {p.operatorName}</div>
                       {p.variantId?.coatingShade && (
                         <span className="badge bg-soft-warning text-warning-accent px-2 py-1 mt-1" style={{ fontSize: 10 }}>
                           Coating: {p.variantId.coatingShade}
                         </span>
                       )}
-                      {p.variantId?.detectedTextColor && (
-                        <span className="badge bg-light text-dark border px-2 py-1 mt-1" style={{ fontSize: 10 }}>
-                          Text: {p.variantId.detectedTextColor}
-                        </span>
-                      )}
                     </td>
                     <td className="py-3 text-center">
                       <div className="d-flex flex-column align-items-center gap-1">
-                        <div className="fw-bold text-dark">{p.totalPrinted} <small className="text-muted fw-normal">pcs</small></div>
-                        <span className="badge bg-soft-primary text-primary rounded-pill px-3 py-1" style={{ fontSize: 12 }}>
-                          {p.totalBoxes} <small className="fw-normal">Boxes</small>
+                        <div className="fw-bold text-dark">Actual: {p.actualQuantity}</div>
+                        <div className="fw-bold text-danger">Rejection: {p.rejectionQuantity}</div>
+                        <span className="badge bg-soft-success text-success rounded-pill px-3 py-1" style={{ fontSize: 12 }}>
+                          Total Actual: {p.totalActualCoatedBottle}
                         </span>
-                        <span className="badge bg-soft-warning text-warning-accent rounded-pill px-3 py-1" style={{ fontSize: 12 }}>
-                          {p.remainingBottles ?? 0} <small className="fw-normal">Extra Printed Bottles</small>
+                        <span className="badge bg-light text-dark border rounded-pill px-3 py-1" style={{ fontSize: 12 }}>
+                          Total: {p.totalBottleCoated}
                         </span>
                       </div>
                     </td>
                     <td className="py-3 text-center">
                       <div className="d-flex gap-2 justify-content-center">
-                        <Can I="read" a="productiondetail">
-                          <Link to={`/productions/view/${p._id}`} className="btn btn-sm btn-outline-info border-0 rounded-3 shadow-none p-2" title="View">
+                        <Can I="read" a="coatingproductiondetail">
+                          <Link to={`/coating-productions/view/${p._id}`} className="btn btn-sm btn-outline-info border-0 rounded-3 shadow-none p-2" title="View">
                             <i className="bi bi-eye fs-6" />
                           </Link>
                         </Can>
-                        <Can I="edit" a="production">
-                          <Link to={`/productions/edit/${p._id}`} className="btn btn-sm btn-outline-primary border-0 rounded-3 shadow-none p-2" title="Edit">
+                        <Can I="edit" a="coatingproduction">
+                          <Link to={`/coating-productions/edit/${p._id}`} className="btn btn-sm btn-outline-primary border-0 rounded-3 shadow-none p-2" title="Edit">
                             <i className="bi bi-pencil-square fs-6" />
                           </Link>
                         </Can>
-                        <Can I="delete" a="production">
+                        <Can I="delete" a="coatingproduction">
                           <button onClick={() => handleDelete(p._id)} className="btn btn-sm btn-outline-danger border-0 rounded-3 shadow-none p-2" title="Delete">
                             <i className="bi bi-trash fs-6" />
                           </button>
@@ -794,7 +784,7 @@ export default function Productions() {
               })}
               {productions.length === 0 && !loading && (
                 <tr>
-                  <td colSpan={7} className="text-center py-5 text-muted">No production logs found</td>
+                  <td colSpan={7} className="text-center py-5 text-muted">No coating production logs found</td>
                 </tr>
               )}
             </tbody>

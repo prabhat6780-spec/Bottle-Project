@@ -9,7 +9,7 @@ exports.createCompany = async (req, res) => {
       : rawStatus ?? true;
 
     const { name } = req.body;
-    const existing = await Company.findOne({ name: { $regex: new RegExp("^" + name.trim() + "$", "i") } });
+    const existing = await Company.findOne({ name: { $regex: new RegExp("^" + name.trim() + "$", "i") }, isDeleted: { $ne: true } });
     if (existing) {
       return res.status(400).json(`Company "${name}" already exists.`);
     }
