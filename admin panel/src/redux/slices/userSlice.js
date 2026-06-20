@@ -215,6 +215,9 @@ const userSlice = createSlice({
     totalPages: 1,
 
     total: 0,
+    activeCount: 0,
+    inactiveCount: 0,
+    pendingCount: 0
 
   },
 
@@ -233,21 +236,23 @@ const userSlice = createSlice({
 
       .addCase(fetchUsers.fulfilled, (state, action) => {
 
-        state.loading = false;
+  state.loading = false;
 
-        state.users =
-          action.payload.data || [];
+  state.users = action.payload.data || [];
 
-        state.page =
-          action.payload.page || 1;
+  state.page = action.payload.page || 1;
 
-        state.totalPages =
-          action.payload.totalPages || 1;
+  state.totalPages = action.payload.totalPages || 1;
 
-        state.total =
-          action.payload.total || 0;
+  state.total = action.payload.total || 0;
 
-      })
+  state.activeCount = action.payload.activeCount || 0;
+
+  state.inactiveCount = action.payload.inactiveCount || 0;
+
+  state.pendingCount = action.payload.pendingCount || 0;
+
+})
 
       .addCase(fetchUsers.rejected, (state, action) => {
 

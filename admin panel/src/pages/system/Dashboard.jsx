@@ -1,4 +1,4 @@
-import { useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
 import {
@@ -12,6 +12,8 @@ import { fetchUsers } from '../../redux/slices/userSlice';
 import { fetchCompanies } from '../../redux/slices/companySlice';
 import { fetchBrands } from '../../redux/slices/brandSlice';
 import { fetchBottleSpecs } from '../../redux/slices/bottleSpecSlice';
+import { fetchCoatingProductions } from '../../redux/slices/coatingProductionSlice';
+import { fetchCoatingSpecs } from '../../redux/slices/coatingSpecSlice';
 
 const ACCENT = '#00aeef';
 const ACCENT_SOFT = 'rgba(0, 174, 239, 0.12)';
@@ -60,8 +62,26 @@ export default function Dashboard() {
   const { companies } = useSelector((state) => state.companies);
   const { brands } = useSelector((state) => state.brands);
   const { bottleSpecs } = useSelector((state) => state.bottleSpecs);
+  const { coatingProductions } = useSelector((state) => state.coatingProductions);
+  const { coatingSpecs } = useSelector((state) => state.coatingSpecs);
 
   const displayName = user?.name || 'Admin';
+
+  // Coating filter states
+  const [coatingFilterType, setCoatingFilterType] = useState('date');
+  const [coatingFilterDate, setCoatingFilterDate] = useState(toIsoDate(new Date()));
+  const [coatingFilterMonth, setCoatingFilterMonth] = useState(
+    `${new Date().getFullYear()}-${String(new Date().getMonth() + 1).padStart(2, '0')}`
+  );
+  const [coatingFilterYear, setCoatingFilterYear] = useState(String(new Date().getFullYear()));
+
+  // Printing filter states
+  const [printingFilterType, setPrintingFilterType] = useState('date');
+  const [printingFilterDate, setPrintingFilterDate] = useState(toIsoDate(new Date()));
+  const [printingFilterMonth, setPrintingFilterMonth] = useState(
+    `${new Date().getFullYear()}-${String(new Date().getMonth() + 1).padStart(2, '0')}`
+  );
+  const [printingFilterYear, setPrintingFilterYear] = useState(String(new Date().getFullYear()));
 
   useEffect(() => {
     dispatch(fetchProductions({ pagination: 'false' }));
@@ -70,6 +90,8 @@ export default function Dashboard() {
     dispatch(fetchCompanies({ pagination: 'false' }));
     dispatch(fetchBrands({ pagination: 'false' }));
     dispatch(fetchBottleSpecs({ pagination: 'false' }));
+    dispatch(fetchCoatingProductions({ pagination: 'false' }));
+    dispatch(fetchCoatingSpecs({ pagination: 'false' }));
   }, [dispatch]);
 
   const todayIso = toIsoDate(new Date());
@@ -97,6 +119,111 @@ export default function Dashboard() {
       specsCount: bottleSpecs.length,
     };
   }, [productions, variants, users, companies, brands, bottleSpecs, todayIso]);
+
+  // Total coating metrics (Row 1)
+  const coatingTotals = useMemo(() => {
+    let totalCoated = 0, totalActual = 0, totalRejection = 0, totalBoxes = 0;
+    (coatingProductions || []).forEach(p => {
+      totalCoated += Number(p.totalBottleCoated) || Number(p.totalActualCoatedBottle) || 0;
+      totalActual += Number(p.actualQuantity) || 0;
+      totalRejection += Number(p.rejectionQuantity) || 0;
+      const bpb = Number(p.bottlePerBox) || 0;
+      const actual = Number(p.actualQuantity) || 0;
+      totalBoxes += bpb > 0 ? Math.floor(actual / bpb) : 0;
+    });
+    return {
+      totalCoated, totalActual, totalRejection, totalBoxes,
+      totalRejectionPercentage: totalCoated > 0 ? ((totalRejection / totalCoated) * 100).toFixed(2) : '0.00',
+      totalEntries: (coatingProductions || []).length,
+      coatingSpecsCount: (coatingSpecs || []).length,
+    };
+  }, [coatingProductions, coatingSpecs]);
+
+  // Filtered coating metrics (Row 2)
+  const coatingFiltered = useMemo(() => {
+    let coated = 0, actual = 0, rejection = 0, boxes = 0, entries = 0;
+    let label = '';
+
+    (coatingProductions || []).forEach(p => {
+      const dateStr = normalizeDate(p.date);
+      let match = false;
+
+      if (coatingFilterType === 'date') {
+        match = dateStr === coatingFilterDate;
+      } else if (coatingFilterType === 'month') {
+        // coatingFilterMonth is 'YYYY-MM'
+        match = dateStr.substring(0, 7) === coatingFilterMonth;
+      } else if (coatingFilterType === 'year') {
+        match = dateStr.substring(0, 4) === coatingFilterYear;
+      }
+
+      if (match) {
+        coated += Number(p.totalBottleCoated) || Number(p.totalActualCoatedBottle) || 0;
+        actual += Number(p.actualQuantity) || 0;
+        rejection += Number(p.rejectionQuantity) || 0;
+        const bpb = Number(p.bottlePerBox) || 0;
+        const act = Number(p.actualQuantity) || 0;
+        boxes += bpb > 0 ? Math.floor(act / bpb) : 0;
+        entries++;
+      }
+    });
+
+    if (coatingFilterType === 'date') {
+      const d = new Date(coatingFilterDate);
+      label = d.toLocaleDateString(undefined, { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' });
+    } else if (coatingFilterType === 'month') {
+      const [y, m] = coatingFilterMonth.split('-');
+      const d = new Date(Number(y), Number(m) - 1);
+      label = d.toLocaleString('default', { month: 'long', year: 'numeric' });
+    } else {
+      label = `Year ${coatingFilterYear}`;
+    }
+
+    const rejectionPercentage = coated > 0 ? ((rejection / coated) * 100).toFixed(2) : '0.00';
+
+    return { coated, actual, rejection, boxes, entries, label, rejectionPercentage };
+  }, [coatingProductions, coatingFilterType, coatingFilterDate, coatingFilterMonth, coatingFilterYear]);
+
+  // Filtered printing metrics (Row 2)
+  const printingFiltered = useMemo(() => {
+    let printed = 0, entries = 0;
+    let label = '';
+    const variantSet = new Set();
+    const specSet = new Set();
+
+    (productions || []).forEach(p => {
+      const dateStr = normalizeDate(p.date);
+      let match = false;
+
+      if (printingFilterType === 'date') {
+        match = dateStr === printingFilterDate;
+      } else if (printingFilterType === 'month') {
+        match = dateStr.substring(0, 7) === printingFilterMonth;
+      } else if (printingFilterType === 'year') {
+        match = dateStr.substring(0, 4) === printingFilterYear;
+      }
+
+      if (match) {
+        printed += Number(p.totalPrinted) || 0;
+        entries++;
+        if (p.variantId) variantSet.add(p.variantId._id || p.variantId);
+        if (p.bottleSpecId) specSet.add(p.bottleSpecId._id || p.bottleSpecId);
+      }
+    });
+
+    if (printingFilterType === 'date') {
+      const d = new Date(printingFilterDate);
+      label = d.toLocaleDateString(undefined, { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' });
+    } else if (printingFilterType === 'month') {
+      const [y, m] = printingFilterMonth.split('-');
+      const d = new Date(Number(y), Number(m) - 1);
+      label = d.toLocaleString('default', { month: 'long', year: 'numeric' });
+    } else {
+      label = `Year ${printingFilterYear}`;
+    }
+
+    return { printed, variantsCount: variantSet.size, specsCount: specSet.size, entries, label };
+  }, [productions, printingFilterType, printingFilterDate, printingFilterMonth, printingFilterYear]);
 
   const dailyChartData = useMemo(() => {
     const dayKeys = [];
@@ -204,19 +331,7 @@ export default function Dashboard() {
       <div className="page-header d-flex align-items-center justify-content-between flex-wrap gap-3">
         <div>
           <h1 className="page-title">Dashboard</h1>
-          <p className="page-subtitle">Welcome back, {displayName}. Printing production overview.</p>
-        </div>
-        <div className="d-flex gap-2 flex-wrap">
-          <Can I="read" a="production">
-            <Link to="/productions" className="btn-ghost">
-              <i className="bi bi-box-seam me-2" /> All Productions
-            </Link>
-          </Can>
-          <Can I="create" a="production">
-            <Link to="/productions/add" className="btn-accent">
-              <i className="bi bi-plus-lg me-2" /> New Entry
-            </Link>
-          </Can>
+          <p className="page-subtitle">Welcome back, {displayName}.</p>
         </div>
       </div>
 
@@ -227,9 +342,20 @@ export default function Dashboard() {
         </div>
       ) : (
         <>
+          {/* ── Printing Production Overview ── */}
+          <div className="page-header d-flex align-items-center justify-content-between flex-wrap gap-3 mb-3 mt-2">
+            <div>
+              <h2 className="page-title" style={{ fontSize: 22 }}>
+                <i className="bi bi-printer me-2" style={{ color: ACCENT }} />
+                Printing Production Overview
+              </h2>
+              <p className="page-subtitle mb-0">Printing production summary across all units.</p>
+            </div>
+          </div>
+
           <div className="row g-3 mb-4">
             {stats.map((s, i) => (
-              <div className="col-6 col-xl-3 fade-in-up" key={s.label} style={{ animationDelay: `${i * 0.05}s` }}>
+              <div className="col-12 col-sm-6 col-xl-3 fade-in-up" key={s.label} style={{ animationDelay: `${i * 0.05}s` }}>
                 <div className={`stat-card ${s.color}`}>
                   <div className={`stat-icon ${s.color}`}>
                     <i className={`bi ${s.icon}`} />
@@ -244,219 +370,227 @@ export default function Dashboard() {
             ))}
           </div>
 
-          <div className="row g-3 mb-3">
-            <div className="col-sm-4">
-              <div className="dash-card h-100 p-3 d-flex align-items-center gap-3">
-                <div className="stat-icon teal mb-0">
-                  <i className="bi bi-box-fill" />
-                </div>
-                <div>
-                  <div className="text-muted small fw-bold text-uppercase">Today's Boxes</div>
-                  <div className="h4 mb-0 fw-bold">{metrics.todayBoxes.toLocaleString()}</div>
-                </div>
+          {/* Row 2 — Filter by Date / Month / Year */}
+          <div className="dash-card mb-4">
+            <div className="dash-card-header d-flex align-items-center justify-content-between flex-wrap gap-2">
+              <span className="dash-card-title">Printing Summary — {printingFiltered.label}</span>
+              <div className="d-flex align-items-center gap-2 flex-wrap">
+                {[
+                  { key: 'date', label: 'Date', icon: 'bi-calendar-day' },
+                  { key: 'month', label: 'Month', icon: 'bi-calendar-month' },
+                  { key: 'year', label: 'Year', icon: 'bi-calendar-range' },
+                ].map(f => (
+                  <button
+                    key={f.key}
+                    onClick={() => setPrintingFilterType(f.key)}
+                    className={`btn btn-sm ${printingFilterType === f.key ? 'btn-primary' : 'btn-light border'}`}
+                    style={{ borderRadius: 8, fontSize: 12, fontWeight: 600, padding: '5px 14px' }}
+                  >
+                    <i className={`bi ${f.icon} me-1`} />{f.label}
+                  </button>
+                ))}
+
+                {printingFilterType === 'date' && (
+                  <input
+                    type="date"
+                    value={printingFilterDate}
+                    onChange={e => setPrintingFilterDate(e.target.value)}
+                    className="form-control form-control-sm"
+                    style={{ width: 160, borderRadius: 8, fontSize: 12, fontWeight: 600 }}
+                  />
+                )}
+                {printingFilterType === 'month' && (
+                  <input
+                    type="month"
+                    value={printingFilterMonth}
+                    onChange={e => setPrintingFilterMonth(e.target.value)}
+                    className="form-control form-control-sm"
+                    style={{ width: 160, borderRadius: 8, fontSize: 12, fontWeight: 600 }}
+                  />
+                )}
+                {printingFilterType === 'year' && (
+                  <select
+                    value={printingFilterYear}
+                    onChange={e => setPrintingFilterYear(e.target.value)}
+                    className="form-select form-select-sm"
+                    style={{ width: 110, borderRadius: 8, fontSize: 12, fontWeight: 600 }}
+                  >
+                    {Array.from({ length: 10 }, (_, i) => new Date().getFullYear() - i).map(y => (
+                      <option key={y} value={String(y)}>{y}</option>
+                    ))}
+                  </select>
+                )}
               </div>
             </div>
-            <div className="col-sm-4">
+            <div className="dash-card-body">
+              <div className="row g-3">
+                {[
+                  { label: 'Printed', value: printingFiltered.printed.toLocaleString(), sub: `${printingFiltered.entries} entries`, icon: 'bi-printer-fill', color: 'teal' },
+                  { label: 'Variants', value: printingFiltered.variantsCount.toLocaleString(), sub: printingFiltered.label, icon: 'bi-layers-fill', color: 'green' },
+                  { label: 'Bottle Specs', value: printingFiltered.specsCount.toLocaleString(), sub: printingFiltered.label, icon: 'bi-droplet-fill', color: 'orange' },
+                ].map((s, i) => (
+                  <div className="col-12 col-sm-6 col-xl-4 fade-in-up" key={s.label} style={{ animationDelay: `${i * 0.05}s` }}>
+                    <div className={`stat-card ${s.color}`}>
+                      <div className={`stat-icon ${s.color}`}>
+                        <i className={`bi ${s.icon}`} />
+                      </div>
+                      <div className="stat-value">{s.value}</div>
+                      <div className="stat-label">{s.label}</div>
+                      <div className="stat-change up" style={{ color: 'var(--text-muted)' }}>
+                        {s.sub}
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          
+
+         
+
+          {/* ── Coating Production Overview ── */}
+          <div className="page-header d-flex align-items-center justify-content-between flex-wrap gap-3 mt-5 mb-3">
+            <div>
+              <h2 className="page-title" style={{ fontSize: 22 }}>
+                <i className="bi bi-paint-bucket me-2" style={{ color: '#e91e63' }} />
+                Coating Production Overview
+              </h2>
+              <p className="page-subtitle mb-0">Coating production summary across all units.</p>
+            </div>
+          </div>
+
+          {/* Row 1 — Total Coating Stats */}
+          <div className="row g-3 mb-3">
+            {[
+              { label: 'Total Coating', value: coatingTotals.totalCoated.toLocaleString(), sub: `${coatingTotals.totalEntries} total entries`, icon: 'bi-paint-bucket', color: 'teal' },
+              { label: 'Total Actual', value: coatingTotals.totalActual.toLocaleString(), sub: 'All-time actual quantity', icon: 'bi-check-circle-fill', color: 'green' },
+              { label: 'Total Rejection', value: coatingTotals.totalRejection.toLocaleString(), sub: 'All-time rejected', icon: 'bi-x-circle-fill', color: 'orange' },
+              { label: 'Total Boxes', value: coatingTotals.totalBoxes.toLocaleString(), sub: 'All-time boxes packed', icon: 'bi-box-seam-fill', color: 'purple' },
+              { label: 'Coating Specs', value: coatingTotals.coatingSpecsCount.toLocaleString(), sub: 'Active specifications', icon: 'bi-droplet-half', color: 'green' },
+            ].map((s, i) => (
+              <div className="col-12 col-sm-6 col-xl fade-in-up" key={s.label} style={{ animationDelay: `${i * 0.05}s` }}>
+                <div className={`stat-card ${s.color}`}>
+                  <div className={`stat-icon ${s.color}`}>
+                    <i className={`bi ${s.icon}`} />
+                  </div>
+                  <div className="stat-value">{s.value}</div>
+                  <div className="stat-label">{s.label}</div>
+                  <div className="stat-change up" style={{ color: 'var(--text-muted)' }}>
+                    {s.sub}
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* Row 2 — Filter by Date / Month / Year */}
+          <div className="dash-card mb-4">
+            <div className="dash-card-header d-flex align-items-center justify-content-between flex-wrap gap-2">
+              <span className="dash-card-title">Coating Summary — {coatingFiltered.label}</span>
+              <div className="d-flex align-items-center gap-2 flex-wrap">
+                {/* Filter type tabs */}
+                {[
+                  { key: 'date', label: 'Date', icon: 'bi-calendar-day' },
+                  { key: 'month', label: 'Month', icon: 'bi-calendar-month' },
+                  { key: 'year', label: 'Year', icon: 'bi-calendar-range' },
+                ].map(f => (
+                  <button
+                    key={f.key}
+                    onClick={() => setCoatingFilterType(f.key)}
+                    className={`btn btn-sm ${coatingFilterType === f.key ? 'btn-primary' : 'btn-light border'}`}
+                    style={{ borderRadius: 8, fontSize: 12, fontWeight: 600, padding: '5px 14px' }}
+                  >
+                    <i className={`bi ${f.icon} me-1`} />{f.label}
+                  </button>
+                ))}
+
+                {/* Date/Month/Year input */}
+                {coatingFilterType === 'date' && (
+                  <input
+                    type="date"
+                    value={coatingFilterDate}
+                    onChange={e => setCoatingFilterDate(e.target.value)}
+                    className="form-control form-control-sm"
+                    style={{ width: 160, borderRadius: 8, fontSize: 12, fontWeight: 600 }}
+                  />
+                )}
+                {coatingFilterType === 'month' && (
+                  <input
+                    type="month"
+                    value={coatingFilterMonth}
+                    onChange={e => setCoatingFilterMonth(e.target.value)}
+                    className="form-control form-control-sm"
+                    style={{ width: 160, borderRadius: 8, fontSize: 12, fontWeight: 600 }}
+                  />
+                )}
+                {coatingFilterType === 'year' && (
+                  <select
+                    value={coatingFilterYear}
+                    onChange={e => setCoatingFilterYear(e.target.value)}
+                    className="form-select form-select-sm"
+                    style={{ width: 110, borderRadius: 8, fontSize: 12, fontWeight: 600 }}
+                  >
+                    {Array.from({ length: 10 }, (_, i) => new Date().getFullYear() - i).map(y => (
+                      <option key={y} value={String(y)}>{y}</option>
+                    ))}
+                  </select>
+                )}
+              </div>
+            </div>
+            <div className="dash-card-body">
+              <div className="row g-3">
+                {[
+                  { label: 'Coating', value: coatingFiltered.coated.toLocaleString(), sub: `${coatingFiltered.entries} entries`, icon: 'bi-paint-bucket', color: 'teal' },
+                  { label: 'Actual', value: coatingFiltered.actual.toLocaleString(), sub: coatingFiltered.label, icon: 'bi-check-circle-fill', color: 'green' },
+                  { label: 'Rejection', value: coatingFiltered.rejection.toLocaleString(), sub: coatingFiltered.label, icon: 'bi-x-circle-fill', color: 'orange' },
+                  { label: 'Boxes', value: coatingFiltered.boxes.toLocaleString(), sub: coatingFiltered.label, icon: 'bi-box-seam-fill', color: 'purple' },
+                ].map((s, i) => (
+                  <div className="col-12 col-sm-6 col-xl-3 fade-in-up" key={s.label} style={{ animationDelay: `${i * 0.05}s` }}>
+                    <div className={`stat-card ${s.color}`}>
+                      <div className={`stat-icon ${s.color}`}>
+                        <i className={`bi ${s.icon}`} />
+                      </div>
+                      <div className="stat-value">{s.value}</div>
+                      <div className="stat-label">{s.label}</div>
+                      <div className="stat-change up" style={{ color: 'var(--text-muted)' }}>
+                        {s.sub}
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          {/* Row 3 — Rejection Percentage */}
+          <div className="row g-3 mb-4">
+            <div className="col-12 col-md-6">
               <div className="dash-card h-100 p-3 d-flex align-items-center gap-3">
                 <div className="stat-icon orange mb-0">
-                  <i className="bi bi-plus-square-fill" />
+                  <i className="bi bi-percent" />
                 </div>
                 <div>
-                  <div className="text-muted small fw-bold text-uppercase">Today's Extra Printed</div>
-                  <div className="h4 mb-0 fw-bold">{metrics.todayExtra.toLocaleString()}</div>
+                  <div className="text-muted small fw-bold text-uppercase">Total Rejection %</div>
+                  <div className="h4 mb-0 fw-bold">{coatingTotals.totalRejectionPercentage}%</div>
                 </div>
               </div>
             </div>
-            <div className="col-sm-4">
-              <div className="dash-card h-100 p-3">
-                <div className="text-muted small fw-bold text-uppercase mb-2">Quick Actions</div>
-                <div className="d-flex flex-wrap gap-2">
-                  {quickActions.map(action => (
-                    <Can key={action.to} I={action.action} a={action.subject}>
-                      <Link
-                        to={action.to}
-                        className="btn btn-sm btn-light border px-3 py-2"
-                        style={{ borderRadius: 10, fontSize: 12, fontWeight: 600 }}
-                      >
-                        <i className={`bi ${action.icon} me-1 text-primary`} />
-                        {action.label}
-                      </Link>
-                    </Can>
-                  ))}
+            <div className="col-12 col-md-6">
+              <div className="dash-card h-100 p-3 d-flex align-items-center gap-3">
+                <div className="stat-icon orange mb-0">
+                  <i className="bi bi-percent" />
                 </div>
-              </div>
-            </div>
-          </div>
-
-          <div className="row g-3 mb-4">
-            <div className="col-lg-8">
-              <div className="dash-card h-100">
-                <div className="dash-card-header">
-                  <span className="dash-card-title">Printing Output (Last 3 Days)</span>
-                </div>
-                <div className="dash-card-body">
-                  <ResponsiveContainer width="100%" height={260}>
-                    <AreaChart data={dailyChartData}>
-                      <defs>
-                        <linearGradient id="printedGrad" x1="0" y1="0" x2="0" y2="1">
-                          <stop offset="5%" stopColor={ACCENT} stopOpacity={0.35} />
-                          <stop offset="95%" stopColor={ACCENT} stopOpacity={0} />
-                        </linearGradient>
-                        <linearGradient id="boxesGrad" x1="0" y1="0" x2="0" y2="1">
-                          <stop offset="5%" stopColor="#10b981" stopOpacity={0.3} />
-                          <stop offset="95%" stopColor="#10b981" stopOpacity={0} />
-                        </linearGradient>
-                      </defs>
-                      <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
-                      <XAxis dataKey="label" tick={{ fill: '#64748b', fontSize: 12 }} axisLine={false} tickLine={false} />
-                      <YAxis tick={{ fill: '#64748b', fontSize: 12 }} axisLine={false} tickLine={false} />
-                      <Tooltip content={<ChartTooltip />} />
-                      <Area type="monotone" dataKey="printed" name="Bottles printed" stroke={ACCENT} strokeWidth={2.5} fill="url(#printedGrad)" />
-                      <Area type="monotone" dataKey="boxes" name="Boxes" stroke="#10b981" strokeWidth={2} fill="url(#boxesGrad)" />
-                    </AreaChart>
-                  </ResponsiveContainer>
-                  <div className="d-flex gap-4 mt-2">
-                    <span className="small text-muted">
-                      <span style={{ display: 'inline-block', width: 10, height: 10, borderRadius: 3, background: ACCENT, marginRight: 6 }} />
-                      Bottles printed
-                    </span>
-                    <span className="small text-muted">
-                      <span style={{ display: 'inline-block', width: 10, height: 10, borderRadius: 3, background: '#10b981', marginRight: 6 }} />
-                      Boxes
-                    </span>
+                <div>
+                  <div className="text-muted small fw-bold text-uppercase">
+                    {coatingFilterType === 'date'
+                      ? `${new Date(coatingFilterDate).toLocaleDateString()} Rejection %`
+                      : coatingFilterType === 'month'
+                        ? `${new Date(coatingFilterMonth + '-01').toLocaleString('default', { month: 'long', year: 'numeric' })} Rejection %`
+                        : `Year ${coatingFilterYear} Rejection %`}
                   </div>
-                </div>
-              </div>
-            </div>
-
-            <div className="col-lg-4">
-              <div className="dash-card h-100">
-                <div className="dash-card-header">
-                  <span className="dash-card-title">Daily Entries</span>
-                </div>
-                <div className="dash-card-body">
-                  <ResponsiveContainer width="100%" height={220}>
-                    <BarChart data={dailyChartData} barSize={28}>
-                      <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" vertical={false} />
-                      <XAxis dataKey="label" tick={{ fill: '#64748b', fontSize: 11 }} axisLine={false} tickLine={false} />
-                      <YAxis allowDecimals={false} tick={{ fill: '#64748b', fontSize: 12 }} axisLine={false} tickLine={false} />
-                      <Tooltip content={<ChartTooltip />} cursor={{ fill: ACCENT_SOFT }} />
-                      <Bar dataKey="entries" name="Production logs" fill={ACCENT} radius={[8, 8, 0, 0]} />
-                    </BarChart>
-                  </ResponsiveContainer>
-                  <div className="mt-3 pt-3 border-top">
-                    {catalogItems.map(item => (
-                      <Link
-                        key={item.label}
-                        to={item.to}
-                        className="d-flex align-items-center justify-content-between py-2 text-decoration-none"
-                        style={{ color: 'inherit' }}
-                      >
-                        <span className="small text-muted">
-                          <i className={`bi ${item.icon} me-2`} style={{ color: ACCENT }} />
-                          {item.label}
-                        </span>
-                        <span className="fw-bold small">{item.count}</span>
-                      </Link>
-                    ))}
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <div className="row g-3">
-            <div className="col-lg-7">
-              <div className="dash-card">
-                <div className="dash-card-header">
-                  <span className="dash-card-title">Recent Production Logs</span>
-                  <Can I="read" a="production">
-                    <Link to="/productions" className="btn-ghost py-1 px-3" style={{ fontSize: 12 }}>View All</Link>
-                  </Can>
-                </div>
-                <div style={{ overflowX: 'auto' }}>
-                  <table className="data-table">
-                    <thead>
-                      <tr>
-                        <th>Date</th>
-                        <th>Brand</th>
-                        <th>Variant</th>
-                        <th>Printed</th>
-                        <th>Boxes</th>
-                        <th>Extra</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {recentProductions.length === 0 ? (
-                        <tr>
-                          <td colSpan={6} className="text-center py-4 text-muted">
-                            No production logs yet.{' '}
-                            <Can I="create" a="production">
-                              <Link to="/productions/add">Add first entry</Link>
-                            </Can>
-                          </td>
-                        </tr>
-                      ) : (
-                        recentProductions.map(p => (
-                          <tr key={p._id}>
-                            <td className="fw-600">{dayLabel(normalizeDate(p.date), todayIso)}</td>
-                            <td>{p.brandId?.name || p.bottleSpecId?.brandId?.name || '—'}</td>
-                            <td>
-                              <div className="small fw-600">{p.variantId?.productName || '—'}</div>
-                              <div className="small text-muted">{p.variantId?.variantName || ''}</div>
-                            </td>
-                            <td className="fw-bold">{p.totalPrinted?.toLocaleString()}</td>
-                            <td>
-                              <span className="badge bg-soft-primary text-primary rounded-pill px-2 py-1" style={{ fontSize: 11 }}>
-                                {p.totalBoxes ?? 0} Boxes
-                              </span>
-                            </td>
-                            <td>
-                              <span className="badge bg-soft-warning text-warning-accent rounded-pill px-2 py-1" style={{ fontSize: 11 }}>
-                                {p.remainingBottles ?? 0} Extra
-                              </span>
-                            </td>
-                          </tr>
-                        ))
-                      )}
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-            </div>
-
-            <div className="col-lg-5">
-              <div className="dash-card h-100">
-                <div className="dash-card-header">
-                  <span className="dash-card-title">Top Variants by Volume</span>
-                  <Can I="read" a="variant">
-                    <Link to="/variants" className="btn-ghost py-1 px-3" style={{ fontSize: 12 }}>View All</Link>
-                  </Can>
-                </div>
-                <div className="dash-card-body">
-                  {topVariants.length === 0 ? (
-                    <p className="text-muted small mb-0 text-center py-4">No production data to rank variants yet.</p>
-                  ) : (
-                    topVariants.map((v, i) => (
-                      <div key={v.id} className="mb-3">
-                        <div className="d-flex justify-content-between mb-1">
-                          <div>
-                            <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)' }}>{v.name}</span>
-                            {v.product && (
-                              <span className="small text-muted d-block" style={{ fontSize: 11 }}>{v.product}</span>
-                            )}
-                          </div>
-                          <span style={{ fontSize: 13, fontWeight: 700, color: ACCENT }}>{v.printed.toLocaleString()}</span>
-                        </div>
-                        <div className="custom-progress">
-                          <div
-                            className="custom-progress-bar"
-                            style={{ width: `${Math.round((v.printed / maxVariantPrinted) * 100)}%`, background: ACCENT }}
-                          />
-                        </div>
-                      </div>
-                    ))
-                  )}
+                  <div className="h4 mb-0 fw-bold">{coatingFiltered.rejectionPercentage}%</div>
                 </div>
               </div>
             </div>

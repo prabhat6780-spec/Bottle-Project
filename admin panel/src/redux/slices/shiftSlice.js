@@ -1,35 +1,44 @@
-import {createSlice, createAsyncThunk,} from "@reduxjs/toolkit";
+import { createSlice, createAsyncThunk, } from "@reduxjs/toolkit";
 
 import API from "../../services/api";
 
-// ================= GET SPECS =================
-export const fetchBottleSpecs = createAsyncThunk(
-  "bottleSpecs/fetchBottleSpecs",
-  async (params, { rejectWithValue }) => {
-    try {
-      const queryParams = new URLSearchParams(params || {});
-      // Only apply the printing type filter when NOT fetching all (e.g. list page).
-      // When pagination:'false' is passed from forms that need all specs for suggestions,
-      // skip the type filter so coating specs are also included in name suggestions.
-      if (!queryParams.has('type')) {
-        queryParams.set('type', 'printing');
-      }
-      const url = `/bottle-spec?${queryParams.toString()}`;
-      const response = await API.get(url);
-      return response.data;
-    } catch (error) {
-      return rejectWithValue(
-        error.response?.data?.message || "Failed to fetch specs"
-      );
-    }
-  }
-);
-
-// ================= CREATE SPEC =================
-export const createBottleSpec =
+// ================= GET shifts =================
+export const fetchShifts =
   createAsyncThunk(
 
-    "bottleSpecs/createBottleSpec",
+    "shifts/fetchshifts",
+
+    async (params, { rejectWithValue }) => {
+
+      try {
+
+        const response =
+          await API.get("/shift", {
+            params,
+          });
+
+        return response.data;
+
+      } catch (error) {
+
+        return rejectWithValue(
+
+          error.response?.data?.message ||
+          "Failed to fetch shifts"
+
+        );
+
+      }
+
+    }
+
+  );
+
+// ================= CREATE shift =================
+export const createShift =
+  createAsyncThunk(
+
+    "shifts/createshift",
 
     async (
       formData,
@@ -40,11 +49,8 @@ export const createBottleSpec =
 
         const response =
           await API.post(
-
-            "/bottle-spec",
-
+            "/shift",
             formData
-
           );
 
         return response.data;
@@ -54,7 +60,7 @@ export const createBottleSpec =
         return rejectWithValue(
 
           error.response?.data?.message ||
-          "Failed to create spec"
+          "Failed to create shift"
 
         );
 
@@ -64,11 +70,11 @@ export const createBottleSpec =
 
   );
 
-// ================= UPDATE SPEC =================
-export const updateBottleSpec =
+// ================= UPDATE shift =================
+export const updateShift =
   createAsyncThunk(
 
-    "bottleSpecs/updateBottleSpec",
+    "shifts/updateshift",
 
     async (
       { id, formData },
@@ -80,7 +86,7 @@ export const updateBottleSpec =
         const response =
           await API.put(
 
-            `/bottle-spec/${id}`,
+            `/shift/${id}`,
 
             formData
 
@@ -93,7 +99,7 @@ export const updateBottleSpec =
         return rejectWithValue(
 
           error.response?.data?.message ||
-          "Failed to update spec"
+          "Failed to update shift"
 
         );
 
@@ -103,11 +109,11 @@ export const updateBottleSpec =
 
   );
 
-// ================= DELETE SPEC =================
-export const deleteBottleSpec =
+// ================= DELETE shift =================
+export const deleteShift =
   createAsyncThunk(
 
-    "bottleSpecs/deleteBottleSpec",
+    "shifts/deleteshift",
 
     async (
       id,
@@ -117,7 +123,7 @@ export const deleteBottleSpec =
       try {
 
         await API.delete(
-          `/bottle-spec/${id}`
+          `/shift/${id}`
         );
 
         return id;
@@ -127,7 +133,7 @@ export const deleteBottleSpec =
         return rejectWithValue(
 
           error.response?.data?.message ||
-          "Failed to delete spec"
+          "Failed to delete shift"
 
         );
 
@@ -137,17 +143,24 @@ export const deleteBottleSpec =
 
   );
 
-const bottleSpecSlice = createSlice({
+const shiftSlice = createSlice({
 
-  name: "bottleSpecs",
+  name: "shifts",
 
   initialState: {
-    bottleSpecs: [],
+
+    shifts: [],
+
     loading: false,
+
     error: null,
+
     page: 1,
+
     totalPages: 1,
+
     total: 0,
+
   },
 
   reducers: {},
@@ -158,7 +171,7 @@ const bottleSpecSlice = createSlice({
 
       // ================= FETCH =================
       .addCase(
-        fetchBottleSpecs.pending,
+        fetchShifts.pending,
         (state) => {
 
           state.loading = true;
@@ -167,22 +180,23 @@ const bottleSpecSlice = createSlice({
       )
 
       .addCase(
-        fetchBottleSpecs.fulfilled,
+        fetchShifts.fulfilled,
         (state, action) => {
           state.loading = false;
-          if (action.payload.success) {
-            state.bottleSpecs = action.payload.data || [];
-            state.total = action.payload.total || 0;
-            if (action.payload.page !== undefined) state.page = action.payload.page;
-            if (action.payload.totalPages !== undefined) state.totalPages = action.payload.totalPages;
-          } else {
-            state.bottleSpecs = Array.isArray(action.payload) ? action.payload : [];
+          state.shifts = action.payload.data || [];
+          state.total = action.payload.total || 0;
+          // Only update pagination if backend returned paginated data
+          if (action.payload.page !== undefined) {
+            state.page = action.payload.page;
+          }
+          if (action.payload.totalPages !== undefined) {
+            state.totalPages = action.payload.totalPages;
           }
         }
       )
 
       .addCase(
-        fetchBottleSpecs.rejected,
+        fetchShifts.rejected,
         (state, action) => {
 
           state.loading = false;
@@ -195,7 +209,7 @@ const bottleSpecSlice = createSlice({
 
       // ================= CREATE =================
       .addCase(
-        createBottleSpec.pending,
+        createShift.pending,
         (state) => {
 
           state.loading = true;
@@ -204,12 +218,12 @@ const bottleSpecSlice = createSlice({
       )
 
       .addCase(
-        createBottleSpec.fulfilled,
+        createShift.fulfilled,
         (state, action) => {
 
           state.loading = false;
 
-          state.bottleSpecs.push(
+          state.shifts.push(
             action.payload
           );
 
@@ -217,7 +231,7 @@ const bottleSpecSlice = createSlice({
       )
 
       .addCase(
-        createBottleSpec.rejected,
+        createShift.rejected,
         (state, action) => {
 
           state.loading = false;
@@ -230,7 +244,7 @@ const bottleSpecSlice = createSlice({
 
       // ================= UPDATE =================
       .addCase(
-        updateBottleSpec.pending,
+        updateShift.pending,
         (state) => {
 
           state.loading = true;
@@ -239,28 +253,28 @@ const bottleSpecSlice = createSlice({
       )
 
       .addCase(
-        updateBottleSpec.fulfilled,
+        updateShift.fulfilled,
         (state, action) => {
 
           state.loading = false;
 
-          state.bottleSpecs =
-            state.bottleSpecs.map(
-              (spec) =>
+          state.shifts =
+            state.shifts.map(
+              (shift) =>
 
-                spec._id ===
-                action.payload._id
+                shift._id ===
+                  action.payload._id
 
                   ? action.payload
 
-                  : spec
+                  : shift
             );
 
         }
       )
 
       .addCase(
-        updateBottleSpec.rejected,
+        updateShift.rejected,
         (state, action) => {
 
           state.loading = false;
@@ -273,7 +287,7 @@ const bottleSpecSlice = createSlice({
 
       // ================= DELETE =================
       .addCase(
-        deleteBottleSpec.pending,
+        deleteShift.pending,
         (state) => {
 
           state.loading = true;
@@ -282,16 +296,16 @@ const bottleSpecSlice = createSlice({
       )
 
       .addCase(
-        deleteBottleSpec.fulfilled,
+        deleteShift.fulfilled,
         (state, action) => {
 
           state.loading = false;
 
-          state.bottleSpecs =
-            state.bottleSpecs.filter(
-              (spec) =>
+          state.shifts =
+            state.shifts.filter(
+              (shift) =>
 
-                spec._id !==
+                shift._id !==
                 action.payload
             );
 
@@ -299,7 +313,7 @@ const bottleSpecSlice = createSlice({
       )
 
       .addCase(
-        deleteBottleSpec.rejected,
+        deleteShift.rejected,
         (state, action) => {
 
           state.loading = false;
@@ -314,4 +328,4 @@ const bottleSpecSlice = createSlice({
 
 });
 
-export default bottleSpecSlice.reducer;
+export default shiftSlice.reducer;

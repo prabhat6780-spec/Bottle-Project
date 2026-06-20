@@ -24,8 +24,8 @@ export default function Topbar({ collapsed, onToggle, onLogout }) {
       </button>
 
       <div className="ms-auto topbar-actions">
-        <div 
-          className="user-dropdown" 
+        <div
+          className="user-dropdown"
           onClick={() => setShowDropdown(!showDropdown)}
         >
           <div className="topbar-avatar">
@@ -33,8 +33,8 @@ export default function Topbar({ collapsed, onToggle, onLogout }) {
           </div>
           <span className="user-name-text">Hi, {displayName}</span>
           <i className={`bi bi-chevron-down ms-2 ${showDropdown ? 'rotate-180' : ''}`} style={{ fontSize: '10px', color: 'var(--text-muted)', transition: 'transform 0.2s' }} />
-          
-          <div 
+
+          <div
             className={`dropdown-menu ${showDropdown ? 'show' : ''}`}
             onClick={(e) => e.stopPropagation()} // Prevent closing when clicking inside
           >

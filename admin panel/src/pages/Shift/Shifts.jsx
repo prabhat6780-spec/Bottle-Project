@@ -2,14 +2,14 @@ import { useState, useEffect, useMemo } from 'react';
 import { Link, useSearchParams, } from 'react-router-dom';
 import { Can } from '../../context/AbilityContext';
 import { useDispatch, useSelector } from 'react-redux';
-import { fetchCompanies, deleteCompany } from '../../redux/slices/companySlice';
+import { fetchShifts, deleteShift } from '../../redux/slices/shiftSlice';
 import Swal from 'sweetalert2';
 
-export default function Companies() {
+export default function Shifts() {
   const dispatch = useDispatch();
   const {
 
-    companies,
+    shifts,
 
     loading,
 
@@ -20,7 +20,7 @@ export default function Companies() {
     total,
 
   } = useSelector(
-    (state) => state.companies
+    (state) => state.shifts
   );
   const [search, setSearch] = useState('');
   const [searchParams, setSearchParams] =
@@ -33,9 +33,9 @@ export default function Companies() {
 
 
 
-  const handledeleteCompany = (id, name) => {
+  const handledeleteShift = (id, name) => {
     Swal.fire({
-      title: 'Delete company?',
+      title: 'Delete shift?',
       text: `Are you sure you want to delete "${name}"?`,
       icon: 'warning',
       showCancelButton: true,
@@ -43,8 +43,8 @@ export default function Companies() {
       confirmButtonText: 'Yes, delete!'
     }).then((result) => {
       if (result.isConfirmed) {
-        dispatch(deleteCompany(id)).then(res => {
-          if (!res.error) Swal.fire('Deleted!', 'company removed.', 'success');
+        dispatch(deleteShift(id)).then(res => {
+          if (!res.error) Swal.fire('Deleted!', 'shift removed.', 'success');
           else Swal.fire('Error!', res.payload || 'Failed to delete.', 'error');
         });
       }
@@ -55,7 +55,7 @@ export default function Companies() {
 
   useEffect(() => {
 
-    dispatch(fetchCompanies({
+    dispatch(fetchShifts({
 
       page: currentPage,
 
@@ -77,10 +77,10 @@ export default function Companies() {
 
   ]);
 
-  const isCompanyActive = (b) =>
+  const isShiftActive = (b) =>
     b.status === true || b.status === 'active' || b.status === undefined;
 
-  const companyAvatarColors = [
+  const shiftAvatarColors = [
     'linear-gradient(135deg,#00aeef,#008ecc)',
     'linear-gradient(135deg,#007236,#008b45)',
     'linear-gradient(135deg,#6366f1,#8b5cf6)',
@@ -89,20 +89,20 @@ export default function Companies() {
 
   return (
     <div className="page-content">
-      <div className="page-header d-flex align-items-center justify-content-between companies-page-header">
+      <div className="page-header d-flex align-items-center justify-content-between shifts-page-header">
         <div>
-          <h1 className="page-title">Companies</h1>
-          <p className="page-subtitle">Manage your company portfolio</p>
+          <h1 className="page-title">Shifts</h1>
+          <p className="page-subtitle">Manage your shift portfolio</p>
         </div>
-        <Can I="create" a="company">
-          <Link to="/companies/add" className="btn-accent">
-            <i className="bi bi-plus-circle-fill me-2" /> Add Company
+        <Can I="create" a="shift">
+          <Link to="/shifts/add" className="btn-accent">
+            <i className="bi bi-plus-circle-fill me-2" /> Add Shift
           </Link>
         </Can>
       </div>
 
       <div className="dash-card">
-        <div className="dash-card-header d-flex align-items-center justify-content-between p-3 border-bottom bg-white companies-dash-toolbar">
+        <div className="dash-card-header d-flex align-items-center justify-content-between p-3 border-bottom bg-white shifts-dash-toolbar">
           <div className="d-flex align-items-center gap-2 text-muted small fw-500">
             <span>Show</span>
             <select
@@ -127,12 +127,12 @@ export default function Companies() {
             </select>
             <span>entries</span>
           </div>
-          <div className="search-input-wrapper position-relative companies-search-wrap">
+          <div className="search-input-wrapper position-relative shifts-search-wrap">
             <i className="bi bi-search text-muted position-absolute top-50 start-0 translate-middle-y ms-3" style={{ pointerEvents: 'none' }} />
             <input
               type="text"
               className="form-control form-control-sm border-light-subtle bg-light ps-5 py-2 shadow-none"
-              placeholder="Search companies..."
+              placeholder="Search shifts..."
               value={search}
               onChange={(e) => {
                 setSearchParams({ page: 1 });
@@ -144,43 +144,43 @@ export default function Companies() {
         </div>
 
         <div className="companies-list-mobile">
-          {companies.map((b, index) => (
-            <div key={b._id} className="companies-mobile-card brands-mobile-card">
+          {shifts.map((b, index) => (
+            <div key={b._id} className="shifts-mobile-card brands-mobile-card">
               <div className="d-flex align-items-start gap-3 w-100 min-w-0">
                 <div
-                  className="companies-mobile-avatar"
-                  style={{ background: companyAvatarColors[index % companyAvatarColors.length], flexShrink: 0 }}
+                  className="shifts-mobile-avatar"
+                  style={{ background: shiftAvatarColors[index % shiftAvatarColors.length], flexShrink: 0 }}
                 >
-                  {b.name?.charAt(0).toUpperCase() || 'C'}
+                  {b.name?.charAt(0).toUpperCase() || 'S'}
                 </div>
                 <div className="flex-grow-1 min-w-0">
                   <div className="d-flex align-items-center gap-2 mb-1 flex-wrap">
                     <span className="text-muted small fw-bold">#{String((currentPage - 1) * itemsPerPage + index + 1).padStart(2, '0')}</span>
                     <span className="fw-semibold text-truncate">{b.name}</span>
                   </div>
-                  <span className={`badge-status badge-${isCompanyActive(b) ? 'active' : 'inactive'}`}>
-                    {isCompanyActive(b) ? 'ACTIVE' : 'INACTIVE'}
+                  <span className={`badge-status badge-${isShiftActive(b) ? 'active' : 'inactive'}`}>
+                    {isShiftActive(b) ? 'ACTIVE' : 'INACTIVE'}
                   </span>
                   <div className="small text-muted mt-1">
                     Created {b.createdAt ? new Date(b.createdAt).toLocaleDateString() : 'N/A'}
                   </div>
                 </div>
               </div>
-              <div className="companies-mobile-actions brands-mobile-actions">
-                <Can I="edit" a="company">
+              <div className="shifts-mobile-actions brands-mobile-actions">
+                <Can I="edit" a="shift">
                   <Link
-                    to={`/companies/edit/${b._id}`}
-                    className="btn btn-sm btn-outline-primary border-0 rounded-3 shadow-none companies-mobile-action-btn"
+                    to={`/shifts/edit/${b._id}`}
+                    className="btn btn-sm btn-outline-primary border-0 rounded-3 shadow-none shifts-mobile-action-btn"
                     title="Edit"
                   >
                     <i className="bi bi-pencil-square fs-6" />
                   </Link>
                 </Can>
-                <Can I="delete" a="company">
+                <Can I="delete" a="shift">
                   <button
                     type="button"
-                    onClick={() => handledeleteCompany(b._id, b.name)}
-                    className="btn btn-sm btn-outline-danger border-0 rounded-3 shadow-none companies-mobile-action-btn"
+                    onClick={() => handledeleteShift(b._id, b.name)}
+                    className="btn btn-sm btn-outline-danger border-0 rounded-3 shadow-none shifts-mobile-action-btn"
                     title="Delete"
                   >
                     <i className="bi bi-trash fs-6" />
@@ -189,8 +189,8 @@ export default function Companies() {
               </div>
             </div>
           ))}
-          {companies.length === 0 && !loading && (
-            <div className="companies-mobile-empty">No companies found</div>
+          {shifts.length === 0 && !loading && (
+            <div className="shifts-mobile-empty">No shifts found</div>
           )}
         </div>
 
@@ -199,22 +199,22 @@ export default function Companies() {
             <thead>
               <tr>
                 <th className="py-3 text-uppercase small fw-bold text-muted ps-5 text-start" style={{ width: 150 }}>Sr No</th>
-                <th className="py-3 text-uppercase small fw-bold text-muted text-center">Company Name</th>
+                <th className="py-3 text-uppercase small fw-bold text-muted text-center">Shift Name</th>
                 <th className="py-3 text-uppercase small fw-bold text-muted text-center">Status</th>
                 <th className="py-3 text-uppercase small fw-bold text-muted text-center">Created At</th>
                 <th className="py-3 text-uppercase small fw-bold text-muted text-center" style={{ width: 150 }}>Actions</th>
               </tr>
             </thead>
             <tbody>
-              {companies.map((b, index) => (
+              {shifts.map((b, index) => (
                 <tr key={b._id} className="align-middle border-bottom transition-all hover-bg-light">
                   <td className="py-3 ps-5 text-start">
                     <span className="text-muted fw-bold" style={{ fontSize: 13 }}>{String((currentPage - 1) * itemsPerPage + index + 1).padStart(2, '0')}</span>
                   </td>
                   <td className="py-3 text-center fw-600">{b.name}</td>
                   <td className="py-3 text-center">
-                    <span className={`badge-status badge-${isCompanyActive(b) ? 'active' : 'inactive'}`}>
-                      {isCompanyActive(b) ? 'ACTIVE' : 'INACTIVE'}
+                    <span className={`badge-status badge-${isShiftActive(b) ? 'active' : 'inactive'}`}>
+                      {isShiftActive(b) ? 'ACTIVE' : 'INACTIVE'}
                     </span>
                   </td>
                   <td className="py-3 text-center text-muted">
@@ -222,13 +222,13 @@ export default function Companies() {
                   </td>
                   <td className="py-3 text-center">
                     <div className="d-flex gap-2 justify-content-center">
-                      <Can I="edit" a="company">
-                        <Link to={`/companies/edit/${b._id}`} className="btn btn-sm btn-outline-primary border-0 rounded-3 shadow-none p-2" title="Edit">
+                      <Can I="edit" a="shift">
+                        <Link to={`/shifts/edit/${b._id}`} className="btn btn-sm btn-outline-primary border-0 rounded-3 shadow-none p-2" title="Edit">
                           <i className="bi bi-pencil-square fs-6" />
                         </Link>
                       </Can>
-                      <Can I="delete" a="company">
-                        <button onClick={() => handledeleteCompany(b._id, b.name)} className="btn btn-sm btn-outline-danger border-0 rounded-3 shadow-none p-2" title="Delete">
+                      <Can I="delete" a="shift">
+                        <button onClick={() => handledeleteShift(b._id, b.name)} className="btn btn-sm btn-outline-danger border-0 rounded-3 shadow-none p-2" title="Delete">
                           <i className="bi bi-trash fs-6" />
                         </button>
                       </Can>
@@ -236,14 +236,14 @@ export default function Companies() {
                   </td>
                 </tr>
               ))}
-              {companies.length === 0 && !loading && (
-                <tr><td colSpan={5} className="text-center py-5 text-muted">No companies found</td></tr>
+              {shifts.length === 0 && !loading && (
+                <tr><td colSpan={5} className="text-center py-5 text-muted">No shifts found</td></tr>
               )}
             </tbody>
           </table>
         </div>
 
-        <div className="dash-card-footer d-flex align-items-center justify-content-between p-3 border-top bg-white companies-dash-footer">
+        <div className="dash-card-footer d-flex align-items-center justify-content-between p-3 border-top bg-white shifts-dash-footer">
 
           <div className="text-muted small fw-500">
             Showing <b>{total === 0 ? 0 : (currentPage - 1) * itemsPerPage + 1}</b> to <b>{Math.min(currentPage * itemsPerPage, total)}</b> of <b>{total}</b> entries

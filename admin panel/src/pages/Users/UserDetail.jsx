@@ -45,83 +45,89 @@ export default function UserDetail() {
   return (
     <div className="page-content">
       <div className="page-header d-flex align-items-center gap-3 user-detail-page-header">
-        <Link to="/users" className="btn-ghost" style={{ width: 40, height: 40, borderRadius: 10, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <Link to="/users" className="btn-ghost" style={{ width: 40, height: 40, borderRadius: 10, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
           <i className="bi bi-arrow-left" style={{ fontSize: 20 }} />
         </Link>
-        <h1 className="page-title">User Detailed</h1>
-      </div>
-
-      <div className="user-detail-mobile dash-card mt-4">
-        <div className="dash-card-body p-4">
-          <div className="user-detail-mobile-profile text-center mb-4">
-            <div className="user-detail-mobile-avatar">
-              {user.name?.charAt(0).toUpperCase() || 'U'}
-            </div>
-            <h2 className="h5 mb-1 mt-3">{user.name}</h2>
-            <p className="text-muted small mb-0">{user.email}</p>
-          </div>
-          <div className="user-detail-mobile-grid">
-            <div className="user-detail-mobile-field">
-              <span className="user-detail-mobile-label">Role</span>
-              <span>{typeof user.role === 'object' ? user.role.name : (user.role || 'N/A')}</span>
-            </div>
-            <div className="user-detail-mobile-field">
-              <span className="user-detail-mobile-label">Status</span>
-              <span className={`badge-status badge-${user.status || 'pending'}`} style={{ fontSize: 11, borderRadius: 4 }}>
-                {(user.status || 'pending').toUpperCase()}
-              </span>
-            </div>
-          </div>
-          <button
-            type="button"
-            onClick={toggleStatus}
-            disabled={loading}
-            className={`btn w-100 mt-4 ${user.status === 'active' ? 'btn-danger' : 'btn-success'} py-2 fw-bold text-uppercase`}
-            style={{ fontSize: 12, borderRadius: 6, boxShadow: '0 4px 6px rgba(0,0,0,0.1)' }}
-          >
-            {loading ? 'Processing...' : (user.status === 'active' ? 'MAKE INACTIVE' : 'MAKE ACTIVE')}
-          </button>
+        <div>
+          <h1 className="page-title">User Detail</h1>
+          <p className="page-subtitle">{user.name}</p>
         </div>
       </div>
 
-      <div className="user-detail-desktop dash-card mt-4">
-        <div className="dash-card-body p-0">
-          <div className="table-responsive">
-            <table className="table mb-0 align-middle">
-              <thead className="bg-light">
-                <tr>
-                  <th className="px-4 py-3 text-uppercase small fw-bold text-muted" style={{ fontSize: 11, letterSpacing: 1 }}>Name</th>
-                  <th className="px-4 py-3 text-uppercase small fw-bold text-muted" style={{ fontSize: 11, letterSpacing: 1 }}>Email</th>
-                  <th className="px-4 py-3 text-uppercase small fw-bold text-muted" style={{ fontSize: 11, letterSpacing: 1 }}>Role</th>
-                  <th className="px-4 py-3 text-uppercase small fw-bold text-muted" style={{ fontSize: 11, letterSpacing: 1 }}>Status</th>
-                  <th className="px-4 py-3 text-uppercase small fw-bold text-muted" style={{ fontSize: 11, letterSpacing: 1 }}>Action</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr>
-                  <td className="px-4 py-4 fw-600" style={{ fontSize: 15 }}>{user.name}</td>
-                  <td className="px-4 py-4 text-muted" style={{ fontSize: 15 }}>{user.email}</td>
-                  <td className="px-4 py-4 text-muted" style={{ fontSize: 15 }}>
-                    {typeof user.role === 'object' ? user.role.name : (user.role || 'N/A')}
-                  </td>
-                  <td className="px-4 py-4">
-                    <span className={`badge-status badge-${user.status || 'pending'}`} style={{ fontSize: 11, borderRadius: 4 }}>
+      <div className="row mt-4 justify-content-center">
+        <div className="col-lg-8">
+          <div className="dash-card">
+            <div className="dash-card-header d-flex flex-wrap justify-content-between align-items-center gap-2">
+              <h5 className="mb-0 fw-bold">User Information</h5>
+              <button
+                type="button"
+                onClick={toggleStatus}
+                disabled={loading}
+                className={`btn btn-sm px-4 py-2 fw-bold rounded-pill shadow-none ${user.status === 'active' ? 'btn-outline-danger' : 'btn-outline-success'}`}
+                style={{ fontSize: 12 }}
+              >
+                {loading ? 'Processing...' : (user.status === 'active' ? 'MARK INACTIVE' : 'MARK ACTIVE')}
+              </button>
+            </div>
+            <div className="dash-card-body p-4">
+              {/* Avatar + name */}
+              <div className="d-flex align-items-center gap-4 mb-4 pb-4" style={{ borderBottom: '1px solid var(--card-border)' }}>
+                <div style={{
+                  width: 64, height: 64, borderRadius: 16, flexShrink: 0,
+                  background: 'linear-gradient(135deg,#6366f1,#8b5cf6)',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  fontSize: 26, fontWeight: 700, color: '#fff'
+                }}>
+                  {user.name?.charAt(0).toUpperCase() || 'U'}
+                </div>
+                <div>
+                  <div className="fw-bold fs-5">{user.name}</div>
+                  <div className="text-muted small">{user.email}</div>
+                </div>
+              </div>
+
+              {/* Detail fields grid */}
+              <div className="row g-3">
+                <div className="col-sm-6">
+                  <div className="p-3 bg-light rounded-4 border border-light-subtle">
+                    <span className="text-uppercase small fw-bold text-muted d-block mb-1">Role</span>
+                    <span className="fw-bold fs-6">{typeof user.role === 'object' ? user.role.name : (user.role || 'N/A')}</span>
+                  </div>
+                </div>
+                <div className="col-sm-6">
+                  <div className="p-3 bg-light rounded-4 border border-light-subtle">
+                    <span className="text-uppercase small fw-bold text-muted d-block mb-1">Status</span>
+                    <span className={`badge-status badge-${user.status || 'pending'}`}>
                       {(user.status || 'pending').toUpperCase()}
                     </span>
-                  </td>
-                  <td className="px-4 py-4">
-                    <button
-                      onClick={toggleStatus}
-                      disabled={loading}
-                      className={`btn ${user.status === 'active' ? 'btn-danger' : 'btn-success'} btn-sm px-3 py-2 fw-bold text-uppercase`}
-                      style={{ fontSize: 12, borderRadius: 6, boxShadow: '0 4px 6px rgba(0,0,0,0.1)' }}
-                    >
-                      {loading ? 'Processing...' : (user.status === 'active' ? 'MAKE INACTIVE' : 'MAKE ACTIVE')}
-                    </button>
-                  </td>
-                </tr>
-              </tbody>
-            </table>
+                  </div>
+                </div>
+                <div className="col-sm-6">
+                  <div className="p-3 bg-light rounded-4 border border-light-subtle">
+                    <span className="text-uppercase small fw-bold text-muted d-block mb-1">Email</span>
+                    <span className="fw-semibold" style={{ wordBreak: 'break-all' }}>{user.email}</span>
+                  </div>
+                </div>
+                <div className="col-sm-6">
+                  <div className="p-3 bg-light rounded-4 border border-light-subtle">
+                    <span className="text-uppercase small fw-bold text-muted d-block mb-1">Joined</span>
+                    <span className="fw-semibold">
+                      {user.createdAt ? new Date(user.createdAt).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' }) : 'N/A'}
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Actions */}
+              <div className="d-flex flex-wrap gap-2 mt-4">
+                <Link to={`/users/edit/${user._id}`} className="btn-accent px-4 py-2 rounded-3">
+                  <i className="bi bi-pencil-square me-2" /> Edit User
+                </Link>
+                <Link to="/users" className="btn-ghost px-4 py-2 rounded-3">
+                  Back to Users
+                </Link>
+              </div>
+            </div>
           </div>
         </div>
       </div>

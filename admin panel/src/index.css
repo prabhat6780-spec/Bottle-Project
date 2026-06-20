@@ -1948,3 +1948,53 @@ body {
     padding: 0.5rem 1.5rem !important;
   }
 }
+
+/* ============================================================
+   Coating Production & Coating Spec — Responsive Styles
+   ============================================================ */
+
+/* CoatingProductions list — hide mobile cards on desktop */
+.coating-production-list-mobile {
+  display: none;
+}
+
+@media (max-width: 991.98px) {
+
+  /* ---------- CoatingProductions list page ---------- */
+  .coating-production-list-desktop {
+    display: none !important;
+  }
+
+  .coating-production-list-mobile {
+    display: block;
+  }
+
+  /* ---------- CoatingSpecs list page ---------- */
+  /* Already uses companies-list-mobile / companies-list-desktop — no extra needed */
+
+  /* ---------- ViewCoatingProduction & ViewCoatingSpec ---------- */
+  .view-detail-header-actions {
+    flex-direction: column !important;
+    align-items: stretch !important;
+    width: 100%;
+  }
+
+  .view-detail-header-actions .btn {
+    width: 100%;
+    justify-content: center;
+  }
+
+  /* Quantity cards on ViewCoatingProduction — make 2-column grid on small screens */
+  .production-qty-grid .col-md-3 {
+    flex: 0 0 50%;
+    max-width: 50%;
+  }
+}
+
+@media (max-width: 575.98px) {
+  /* Single column quantity cards on very small phones */
+  .production-qty-grid .col-md-3 {
+    flex: 0 0 100%;
+    max-width: 100%;
+  }
+}

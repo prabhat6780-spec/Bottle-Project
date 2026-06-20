@@ -1,15 +1,15 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
-import { createBottleSpec } from '../../redux/slices/bottleSpecSlice';
+import { createBottleSpec, fetchBottleSpecs } from '../../redux/slices/bottleSpecSlice';
+import { fetchCoatingSpecs } from '../../redux/slices/coatingSpecSlice';
 import { fetchBrands } from '../../redux/slices/brandSlice';
 import { fetchCompanies } from '../../redux/slices/companySlice';
 import { fetchPrintingTypes } from '../../redux/slices/printingTypeSlice';
 import { fetchPrintingColors } from '../../redux/slices/printingColorSlice';
-import { fetchCoatingTypes } from '../../redux/slices/coatingTypeSlice';
-import { fetchCoatingColors } from '../../redux/slices/coatingColorSlice';
 import Swal from 'sweetalert2';
 import SearchableSelect from '../../components/SearchableSelect';
+import CreatableSelect from 'react-select/creatable';
 
 export default function AddBottleSpec() {
   const navigate = useNavigate();
@@ -18,9 +18,8 @@ export default function AddBottleSpec() {
   const { companies } = useSelector((state) => state.companies);
   const { items: printingTypes } = useSelector((state) => state.printingType);
   const { items: printingColors } = useSelector((state) => state.printingColor);
-  const { items: coatingTypes } = useSelector((state) => state.coatingType);
-  const { items: coatingColors } = useSelector((state) => state.coatingColor);
-  const { loading } = useSelector((state) => state.bottleSpecs);
+  const { bottleSpecs, loading } = useSelector((state) => state.bottleSpecs);
+  const { coatingSpecs } = useSelector((state) => state.coatingSpecs);
 
   const [formData, setFormData] = useState({
     companyId: '',
@@ -29,9 +28,8 @@ export default function AddBottleSpec() {
     code: '',
     printingTypeId: '',
     printingColorId: '',
-    coatingTypeId: '',
-    coatingColorId: '',
-    status: 'active'
+    status: 'active',
+    isPrinting: true
   });
 
   const [errors, setErrors] = useState({
@@ -48,15 +46,33 @@ export default function AddBottleSpec() {
     dispatch(fetchBrands({ pagination: 'false' }));
     dispatch(fetchPrintingTypes({ pagination: 'false' }));
     dispatch(fetchPrintingColors({ pagination: 'false' }));
-    dispatch(fetchCoatingTypes({ pagination: 'false' }));
-    dispatch(fetchCoatingColors({ pagination: 'false' }));
+    dispatch(fetchBottleSpecs({ pagination: 'false' }));
+    dispatch(fetchCoatingSpecs({ pagination: 'false', type: 'all' }));
   }, [dispatch]);
+
+  // Combine specs to extract unique names and codes
+  const allSpecs = [...(bottleSpecs || []), ...(coatingSpecs || [])];
+
+  const filteredSpecs = formData.brandId
+    ? allSpecs.filter(s => (s.brandId?._id || s.brandId) === formData.brandId)
+    : allSpecs;
+
+  const uniqueBottleNames = Array.from(new Set(
+    filteredSpecs
+      .map(s => s.bottleName)
+      .filter(name => name && name.trim() !== '')
+  )).map(name => ({ value: name, label: name }));
+
+  const uniqueBottleCodes = Array.from(new Set(
+    filteredSpecs
+      .map(s => s.code)
+      .filter(code => code && code.trim() !== '')
+  )).map(code => ({ value: code, label: code }));
 
   useEffect(() => {
     if (formData.printingTypeId) {
       const filtered = printingColors.filter(c => c.printingTypeId?._id === formData.printingTypeId || c.printingTypeId === formData.printingTypeId);
       setFilteredColors(filtered);
-      // Reset color if current color is not in filtered list
       if (!filtered.some(c => c._id === formData.printingColorId)) {
         setFormData(prev => ({ ...prev, printingColorId: '' }));
       }
@@ -66,21 +82,6 @@ export default function AddBottleSpec() {
     }
   }, [formData.printingTypeId, printingColors]);
 
-  const [filteredCoatingColors, setFilteredCoatingColors] = useState([]);
-
-  useEffect(() => {
-    if (formData.coatingTypeId) {
-      const filtered = coatingColors.filter(c => c.coatingTypeId?._id === formData.coatingTypeId || c.coatingTypeId === formData.coatingTypeId);
-      setFilteredCoatingColors(filtered);
-      if (!filtered.some(c => c._id === formData.coatingColorId)) {
-        setFormData(prev => ({ ...prev, coatingColorId: '' }));
-      }
-    } else {
-      setFilteredCoatingColors([]);
-      setFormData(prev => ({ ...prev, coatingColorId: '' }));
-    }
-  }, [formData.coatingTypeId, coatingColors]);
-
   const validateField = (name, value) => {
     let msg = '';
     const fieldNames = {
@@ -89,10 +90,7 @@ export default function AddBottleSpec() {
       bottleName: 'Bottle Name',
       printingTypeId: 'Printing Type'
     };
-
-    if (!value) {
-      msg = `${fieldNames[name] || name} is mandatory`;
-    } 
+    if (!value) msg = `${fieldNames[name] || name} is mandatory`;
     setErrors(prev => ({ ...prev, [name]: msg }));
     return msg;
   };
@@ -101,15 +99,7 @@ export default function AddBottleSpec() {
     const { name, value } = e.target;
     const msg = validateField(name, value);
     if (msg) {
-      Swal.fire({
-        icon: 'warning',
-        title: 'Validation Warning',
-        text: msg,
-        toast: true,
-        position: 'top-end',
-        showConfirmButton: false,
-        timer: 3000
-      });
+      Swal.fire({ icon: 'warning', title: 'Validation Warning', text: msg, toast: true, position: 'top-end', showConfirmButton: false, timer: 3000 });
     }
   };
 
@@ -130,8 +120,6 @@ export default function AddBottleSpec() {
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    
-    // Validate all mandatory fields
     const companyError = validateField('companyId', formData.companyId);
     const brandError = validateField('brandId', formData.brandId);
     const nameError = validateField('bottleName', formData.bottleName);
@@ -141,12 +129,45 @@ export default function AddBottleSpec() {
       return Swal.fire('Validation Error', 'Please fix the errors before submitting.', 'error');
     }
 
+    // Duplicate check: same brand + bottleName + printingType + printingColor
+    const isDuplicate = bottleSpecs?.some(spec => {
+      const matchBrand = (spec.brandId?._id || spec.brandId) === formData.brandId;
+      const matchName = spec.bottleName?.trim().toLowerCase() === formData.bottleName?.trim().toLowerCase();
+      const matchType = (spec.printingTypeId?._id || spec.printingTypeId) === formData.printingTypeId;
+      const matchColor = (spec.printingColorId?._id || spec.printingColorId || '') === (formData.printingColorId || '');
+      return matchBrand && matchName && matchType && matchColor;
+    });
+
+    if (isDuplicate) {
+      const brandName = brands.find(b => b._id === formData.brandId)?.name || '';
+      const typeName = printingTypes.find(t => t._id === formData.printingTypeId)?.name || '';
+      const colorName = filteredColors.find(c => c._id === formData.printingColorId)?.name || '';
+      return Swal.fire({
+        icon: 'error',
+        title: 'Duplicate Entry',
+        html: `Bottle Spec <b>"${formData.bottleName}"</b><br/>
+               with Printing Type <b>"${typeName}"</b>${colorName ? ` and Color <b>"${colorName}"</b>` : ''}<br/>
+               already exists for brand <b>"${brandName}"</b>.<br/>
+               <span class="text-muted small">Change the Printing Type or Printing Color.</span>`,
+        confirmButtonColor: '#e91e63'
+      });
+    }
+
     dispatch(createBottleSpec(formData)).then((res) => {
       if (!res.error) {
         Swal.fire('Success!', `Specification "${formData.bottleName}" added!`, 'success');
         navigate('/bottle-specs');
       } else {
-        Swal.fire('Error!', res.payload || 'Failed to add spec.', 'error');
+        const msg = res.payload || 'Failed to add spec.';
+        const isDupErr = msg.toLowerCase().includes('already exists');
+        Swal.fire({
+          icon: 'error',
+          title: isDupErr ? 'Duplicate Entry' : 'Error',
+          html: isDupErr
+            ? `Bottle Spec <b>"${formData.bottleName}"</b> with the same<br/>Printing Type and Color already exists<br/>for this brand.<br/><span class="text-muted small">Change the Printing Type or Printing Color.</span>`
+            : msg,
+          confirmButtonColor: '#e91e63'
+        });
       }
     });
   };
@@ -159,7 +180,7 @@ export default function AddBottleSpec() {
         </Link>
         <div>
           <h1 className="page-title">Add Bottle Specification</h1>
-          <p className="page-subtitle">Configure technical details</p>
+          <p className="page-subtitle">Configure printing technical details</p>
         </div>
       </div>
 
@@ -202,17 +223,29 @@ export default function AddBottleSpec() {
                     <label className="form-label fw-600 small text-uppercase text-muted">
                       Bottle Name <span className="text-danger">*</span>
                     </label>
-                    <input
-                      type="text"
-                      name="bottleName"
-                      className={`form-control custom-input-field ${errors.bottleName ? 'is-invalid' : ''}`}
-                      required
-                      value={formData.bottleName}
-                      onChange={handleChange}
-                      onBlur={handleBlur}
-                      style={{ borderRadius: 12 }}
+                    <CreatableSelect
+                      isClearable
+                      options={uniqueBottleNames}
+                      value={formData.bottleName ? { value: formData.bottleName, label: formData.bottleName } : null}
+                      onChange={(selected) => {
+                        handleSelectChange('bottleName', selected ? selected.value : '');
+                      }}
+                      onBlur={() => handleBlur({ target: { name: 'bottleName', value: formData.bottleName } })}
+                      placeholder="Select or type bottle name..."
+                      styles={{
+                        control: (base, state) => ({
+                          ...base,
+                          borderRadius: '12px',
+                          borderColor: errors.bottleName ? '#dc3545' : (state.isFocused ? '#86b7fe' : '#dee2e6'),
+                          boxShadow: state.isFocused ? (errors.bottleName ? '0 0 0 0.25rem rgba(220, 53, 69, 0.25)' : '0 0 0 0.25rem rgba(13, 110, 253, 0.25)') : 'none',
+                          padding: '2px',
+                          '&:hover': {
+                            borderColor: errors.bottleName ? '#dc3545' : (state.isFocused ? '#86b7fe' : '#dee2e6')
+                          }
+                        })
+                      }}
                     />
-                    {errors.bottleName && <div className="invalid-feedback">{errors.bottleName}</div>}
+                    {errors.bottleName && <div className="text-danger" style={{ fontSize: '0.875em', marginTop: 4 }}>{errors.bottleName}</div>}
                   </div>
 
                   <div className="col-md-6">
@@ -221,11 +254,12 @@ export default function AddBottleSpec() {
                     </label>
                     <input
                       type="text"
-                      name="code"
                       className="form-control custom-input-field"
-                      value={formData.code}
+                      name="code"
+                      value={formData.code || ''}
                       onChange={handleChange}
-                      style={{ borderRadius: 12 }}
+                      placeholder="Enter bottle code..."
+                      style={{ borderRadius: 12, padding: '8px 12px' }}
                     />
                   </div>
 
@@ -269,48 +303,11 @@ export default function AddBottleSpec() {
                     </select>
                   </div>
 
-                  <div className="col-md-6">
-                    <label className="form-label fw-600 small text-uppercase text-muted">
-                      Coating Type
-                    </label>
-                    <select
-                      className="form-select custom-input-field"
-                      name="coatingTypeId"
-                      value={formData.coatingTypeId}
-                      onChange={handleChange}
-                      style={{ borderRadius: 12 }}
-                    >
-                      <option value="">Select Coating Type</option>
-                      {coatingTypes.filter(t => t.status).map(t => (
-                        <option key={t._id} value={t._id}>{t.name}</option>
-                      ))}
-                    </select>
-                  </div>
-
-                  <div className="col-md-6">
-                    <label className="form-label fw-600 small text-uppercase text-muted">
-                      Coating Color
-                    </label>
-                    <select
-                      className="form-select custom-input-field"
-                      name="coatingColorId"
-                      disabled={!formData.coatingTypeId}
-                      value={formData.coatingColorId}
-                      onChange={handleChange}
-                      style={{ borderRadius: 12 }}
-                    >
-                      <option value="">Select Coating Color</option>
-                      {filteredCoatingColors.filter(c => c.status).map(c => (
-                        <option key={c._id} value={c._id}>{c.name}</option>
-                      ))}
-                    </select>
-                  </div>
-
                   <div className="col-md-12">
                     <label className="form-label fw-600 small text-uppercase text-muted">Status</label>
-                    <select 
-                      className="form-select custom-input-field" 
-                      value={formData.status} 
+                    <select
+                      className="form-select custom-input-field"
+                      value={formData.status}
                       onChange={(e) => setFormData({ ...formData, status: e.target.value })}
                       style={{ borderRadius: 12 }}
                     >

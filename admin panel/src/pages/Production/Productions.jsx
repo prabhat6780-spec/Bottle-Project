@@ -345,6 +345,23 @@ export default function Productions() {
       }));
 
       const worksheet = XLSX.utils.json_to_sheet(data);
+      // Define column widths for Sr No, Date, Company, Brand only
+      const wscols = [
+        { wch: 8 },   // Sr No
+        { wch: 15 },  // Date
+        { wch: 20 },  // Company
+        { wch: 20 },  // Brand
+        { wch: 20 },  // Bottle Name
+        { wch: 25 },  // Variant Name
+        { wch: 20 },  // Coating Shade
+        { wch: 25 },  // Text Color
+        { wch: 15 },  // Total Printed Bottles
+        { wch: 15 },  // Bottles Per Box
+        { wch: 15 },  // Total Boxes
+        { wch: 15 },  // Extra Printed Bottles
+      ];
+      worksheet['!cols'] = wscols;
+
       const workbook = XLSX.utils.book_new();
       XLSX.utils.book_append_sheet(workbook, worksheet, "Printing Production Report");
 
@@ -806,37 +823,36 @@ export default function Productions() {
             Showing <b>{total === 0 ? 0 : (currentPage - 1) * limit + 1}</b> to <b>{Math.min(currentPage * limit, total)}</b> of <b>{total}</b> entries
           </div>
 
-          <div className="d-flex align-items-center gap-2">
+          <div className="d-flex align-items-center gap-2 flex-wrap justify-content-center">
             <button
               className="btn btn-sm btn-light"
               disabled={currentPage === 1}
-              onClick={() => {
-                if (currentPage > 1) {
-                  setSearchParams({ page: currentPage - 1 });
-                }
-              }}
+              onClick={() => { if (currentPage > 1) setSearchParams({ page: currentPage - 1 }); }}
             >
               Previous
             </button>
 
-            {Array.from({ length: totalPages }, (_, i) => i + 1).map((p) => (
-              <button
-                key={p}
-                className={`btn btn-sm ${currentPage === p ? 'btn-primary' : 'btn-light'}`}
-                onClick={() => setSearchParams({ page: p })}
-              >
-                {p}
-              </button>
-            ))}
+            {(() => {
+              const pages = [];
+              const delta = 2;
+              const left = currentPage - delta;
+              const right = currentPage + delta;
+              pages.push(1);
+              if (left > 2) pages.push('...');
+              for (let i = Math.max(2, left); i <= Math.min(totalPages - 1, right); i++) pages.push(i);
+              if (right < totalPages - 1) pages.push('...');
+              if (totalPages > 1) pages.push(totalPages);
+              return pages.map((p, idx) =>
+                p === '...'
+                  ? <span key={`e-${idx}`} className="px-1 text-muted" style={{ fontSize: 13 }}>…</span>
+                  : <button key={p} className={`btn btn-sm ${currentPage === p ? 'btn-primary' : 'btn-light'}`} onClick={() => setSearchParams({ page: p })}>{p}</button>
+              );
+            })()}
 
             <button
               className="btn btn-sm btn-light"
               disabled={currentPage === totalPages || totalPages === 0}
-              onClick={() => {
-                if (currentPage < totalPages) {
-                  setSearchParams({ page: currentPage + 1 });
-                }
-              }}
+              onClick={() => { if (currentPage < totalPages) setSearchParams({ page: currentPage + 1 }); }}
             >
               Next
             </button>

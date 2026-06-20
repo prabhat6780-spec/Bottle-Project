@@ -201,7 +201,7 @@ export default function CoatingTypes() {
             Showing <b>{total === 0 ? 0 : (currentPage - 1) * itemsPerPage + 1}</b> to <b>{Math.min(currentPage * itemsPerPage, total)}</b> of <b>{total}</b> entries
           </div>
 
-          <div className="d-flex align-items-center gap-2">
+          <div className="d-flex align-items-center gap-2 flex-wrap justify-content-center">
             <button
               className="btn btn-sm btn-light"
               disabled={currentPage === 1}
@@ -209,15 +209,24 @@ export default function CoatingTypes() {
             >
               Previous
             </button>
-            {Array.from({ length: totalPages }, (_, i) => i + 1).map((p) => (
-              <button
-                key={p}
-                className={`btn btn-sm ${currentPage === p ? 'btn-primary' : 'btn-light'}`}
-                onClick={() => setSearchParams({ page: p })}
-              >
-                {p}
-              </button>
-            ))}
+
+            {(() => {
+              const pages = [];
+              const delta = 2;
+              const left = currentPage - delta;
+              const right = currentPage + delta;
+              pages.push(1);
+              if (left > 2) pages.push('...');
+              for (let i = Math.max(2, left); i <= Math.min(totalPages - 1, right); i++) pages.push(i);
+              if (right < totalPages - 1) pages.push('...');
+              if (totalPages > 1) pages.push(totalPages);
+              return pages.map((p, idx) =>
+                p === '...'
+                  ? <span key={`e-${idx}`} className="px-1 text-muted" style={{ fontSize: 13 }}>…</span>
+                  : <button key={p} className={`btn btn-sm ${currentPage === p ? 'btn-primary' : 'btn-light'}`} onClick={() => setSearchParams({ page: p })}>{p}</button>
+              );
+            })()}
+
             <button
               className="btn btn-sm btn-light"
               disabled={currentPage === totalPages || totalPages === 0}

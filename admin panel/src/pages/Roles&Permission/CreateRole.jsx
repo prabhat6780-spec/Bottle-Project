@@ -77,9 +77,7 @@ export default function CreateRole() {
   }
 
   const groupOrder = [
-    'dashboard', 'user', 'company', 'brand', 'printing-type', 'printing-color',
-    'coating-type', 'coating-color',
-    'bottlespec', 'variant', 'production', 'permission', 'role', 'vision', 'all'
+    'dashboard', 'user', 'operator', 'shift', 'company', 'brand', 'printing-type', 'printing-color', 'bottlespec', 'variant', 'production', 'coating-type','coatingspec',  'coatingproduction', 'permission', 'role', 'vision', 'all'
   ];
 
   const groupedPermissions = permissions.reduce((acc, p) => {
@@ -97,6 +95,7 @@ export default function CreateRole() {
     // Group detail permissions into their parent subject
     if (subject === 'bottlespecdetail') subject = 'bottlespec';
     if (subject === 'productiondetail') subject = 'production';
+    if (subject === 'coatingproductiondetail') subject = 'coatingproduction';
 
     if (!acc[subject]) acc[subject] = [];
     acc[subject].push(p);

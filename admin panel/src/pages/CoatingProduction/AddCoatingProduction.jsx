@@ -1,72 +1,115 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useNavigate, Link, useParams } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
 import { fetchBrands } from '../../redux/slices/brandSlice';
-import { fetchBottleSpecs } from '../../redux/slices/bottleSpecSlice';
-import { fetchVariants } from '../../redux/slices/variantSlice';
+import { fetchCompanies } from '../../redux/slices/companySlice';
+import { fetchCoatingSpecs } from '../../redux/slices/coatingSpecSlice';
 import { createCoatingProduction } from '../../redux/slices/coatingProductionSlice';
+import { fetchOperators, createOperator } from '../../redux/slices/operatorSlice';
+import { fetchShifts } from '../../redux/slices/shiftSlice';
 import Swal from 'sweetalert2';
 import SearchableSelect from '../../components/SearchableSelect';
+import CreatableSelect from 'react-select/creatable';
+import { V_URL } from '../../../Baseurl.js';
+
+const getIsAdmin = (user) => {
+  const roleName = typeof user?.role === 'object' ? user?.role?.name : user?.role;
+  return roleName?.toLowerCase() === 'admin';
+};
 
 export default function AddCoatingProduction() {
   const { unit } = useParams();
   const navigate = useNavigate();
   const dispatch = useDispatch();
 
-  const { brands } = useSelector((state) => state.brands);
-  const { bottleSpecs: specs } = useSelector((state) => state.bottleSpecs);
-  const { variants } = useSelector((state) => state.variants);
-  const { loading: saving } = useSelector((state) => state.coatingProductions);
+  const { user: authUser } = useSelector((state) => state.auth);
+  const isAdmin = getIsAdmin(authUser);
 
-  // Calculate min and max dates (Yesterday, Today, Tomorrow)
+  const { companies } = useSelector((state) => state.companies);
+  const { brands } = useSelector((state) => state.brands);
+  const { coatingSpecs } = useSelector((state) => state.coatingSpecs);
+  const { loading: saving } = useSelector((state) => state.coatingProductions);
+  const { operators } = useSelector((state) => state.operators);
+  const { shifts } = useSelector((state) => state.shifts);
+
   const today = new Date();
-  
   const tomorrow = new Date(today);
   tomorrow.setDate(today.getDate() + 1);
   const maxDate = tomorrow.toISOString().split('T')[0];
-
   const yesterday = new Date(today);
   yesterday.setDate(today.getDate() - 1);
   const minDate = yesterday.toISOString().split('T')[0];
 
   const [formData, setFormData] = useState({
     unit,
+    companyId: '',
     brandId: '',
-    bottleSpecId: '',
-    variantId: '',
+    coatingSpecId: '',
+    coatingShade: '',
     date: new Date().toISOString().split('T')[0],
-    operatorName: '',
+    shift: '',
+    operatorId: '',
     actualQuantity: '',
     rejectionQuantity: '',
+    bottlePerBox: '',
+    rejectionReason: ''
   });
 
   const [errors, setErrors] = useState({
-    brandId: '',
-    bottleSpecId: '',
-    variantId: '',
-    date: '',
-    operatorName: '',
-    actualQuantity: '',
-    rejectionQuantity: ''
+    companyId: '', brandId: '', coatingSpecId: '', coatingShade: '', date: '',
+    operatorId: '', shift: '', actualQuantity: '', bottlePerBox: ''
   });
 
-  const validateField = (name, value) => {
-    let msg = '';
-    const fieldNames = {
-      brandId: 'Brand',
-      bottleSpecId: 'Bottle Spec',
-      variantId: 'Variant',
-      date: 'Production Date',
-      operatorName: 'Operator Name',
-      actualQuantity: 'Actual Quantity',
-      rejectionQuantity: 'Rejection Quantity'
-    };
+  const [calc, setCalc] = useState({ totalActual: 0, total: 0, totalBoxes: 0, extraBottles: 0, rejectionPercentage: 0 });
 
-    if (!value && name !== 'rejectionQuantity') {
-      msg = `${fieldNames[name] || name} is mandatory`;
-    } else if (['actualQuantity', 'rejectionQuantity'].includes(name) && /\s/.test(value.toString())) {
-      msg = 'Whitespace is not allowed';
+  useEffect(() => {
+    dispatch(fetchCompanies({ pagination: 'false' }));
+    dispatch(fetchBrands({ pagination: 'false' }));
+    dispatch(fetchCoatingSpecs({ pagination: 'false' }));
+    dispatch(fetchOperators({ pagination: 'false' }));
+    dispatch(fetchShifts({ pagination: 'false' }));
+  }, [dispatch]);
+
+  // Brands filtered by selected company
+  const availableBrands = brands.filter(b =>
+    b.status && (b.companyId?._id === formData.companyId || b.companyId === formData.companyId)
+  );
+
+  // Coating specs filtered by selected brand
+  const availableSpecs = coatingSpecs.filter(s => {
+    const sBrandId = (s.brandId?._id || s.brandId)?.toString();
+    return sBrandId === formData.brandId?.toString() && s.status;
+  });
+
+  // Auto-populate coatingShade from selected spec's coatingShade field
+  useEffect(() => {
+    if (formData.coatingSpecId) {
+      const spec = coatingSpecs.find(s => s._id === formData.coatingSpecId);
+      if (spec && spec.coatingShade) {
+        setFormData(prev => ({ ...prev, coatingShade: spec.coatingShade }));
+      }
     }
+  }, [formData.coatingSpecId, coatingSpecs]);
+
+  useEffect(() => {
+    const actual = parseInt(formData.actualQuantity) || 0;
+    const rejected = parseInt(formData.rejectionQuantity) || 0;
+    const bottlePerBox = parseInt(formData.bottlePerBox) || 0;
+    const totalActual = actual;
+    const totalCoated = actual + rejected;
+    const totalBoxes = bottlePerBox > 0 ? Math.floor(totalActual / bottlePerBox) : 0;
+    const extraBottles = bottlePerBox > 0 ? totalActual % bottlePerBox : 0;
+    const rejectionPercentage = totalCoated > 0 ? ((rejected / totalCoated) * 100).toFixed(2) : 0;
+    setCalc({ totalActual, total: totalCoated, totalBoxes, extraBottles, rejectionPercentage });
+  }, [formData.actualQuantity, formData.rejectionQuantity, formData.bottlePerBox]);
+
+  const validateField = (name, value) => {
+    const fieldNames = {
+      companyId: 'Company', brandId: 'Brand', coatingSpecId: 'Coating Spec', coatingShade: 'Coating Shade',
+      date: 'Production Date', operatorId: 'Operator Name', shift: 'Shift',
+      actualQuantity: 'Actual Quantity', bottlePerBox: 'Bottle Per Box'
+    };
+    const msg = !value ? `${fieldNames[name] || name} is mandatory` : '';
     setErrors(prev => ({ ...prev, [name]: msg }));
     return msg;
   };
@@ -74,85 +117,31 @@ export default function AddCoatingProduction() {
   const handleBlur = (e) => {
     const { name, value } = e.target;
     const msg = validateField(name, value);
-    if (msg) {
-      Swal.fire({
-        icon: 'warning',
-        title: 'Validation Warning',
-        text: msg,
-        toast: true,
-        position: 'top-end',
-        showConfirmButton: false,
-        timer: 3000
-      });
-    }
+    if (msg) Swal.fire({ icon: 'warning', title: 'Validation Warning', text: msg, toast: true, position: 'top-end', showConfirmButton: false, timer: 3000 });
   };
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-    let cleanValue = value;
-
-    if (['actualQuantity', 'rejectionQuantity'].includes(name)) {
-      cleanValue = value.replace(/\s/g, '');
-    }
-
-    if (name === 'brandId') {
-      setFormData({ ...formData, brandId: cleanValue, bottleSpecId: '', variantId: '' });
-    } else if (name === 'bottleSpecId') {
-      setFormData({ ...formData, bottleSpecId: cleanValue, variantId: '' });
-    } else {
-      setFormData({ ...formData, [name]: cleanValue });
-    }
-
+    let cleanValue = ['actualQuantity', 'rejectionQuantity'].includes(name) ? value.replace(/\s/g, '') : value;
+    setFormData(prev => ({ ...prev, [name]: cleanValue }));
     if (errors[name]) setErrors(prev => ({ ...prev, [name]: '' }));
   };
 
-  const [calc, setCalc] = useState({ totalActual: 0, total: 0 });
-
-  useEffect(() => {
-    dispatch(fetchBrands({ pagination: 'false' }));
-    dispatch(fetchBottleSpecs({ pagination: 'false' }));
-    dispatch(fetchVariants({ pagination: 'false' }));
-  }, [dispatch]);
-
-  // Hierarchical Filtering Logic
-  const availableSpecs = specs.filter(s => {
-    const sBrandId = (s.brandId?._id || s.brandId)?.toString();
-    const isBrandActive = s.brandId?.status !== false; // If brandId is just an ID, we assume true or handle elsewhere
-    return sBrandId === formData.brandId?.toString() && s.status && isBrandActive;
-  });
-
-  const filteredVariants = variants.filter(v => {
-    const vSpecId = (v.bottleSpecId?._id || v.bottleSpecId)?.toString();
-    const isSpecActive = v.bottleSpecId?.status !== false;
-    return vSpecId === formData.bottleSpecId?.toString() && v.status && isSpecActive;
-  });
-
-  useEffect(() => {
-    const actual = parseInt(formData.actualQuantity) || 0;
-    const rejected = parseInt(formData.rejectionQuantity) || 0;
-    setCalc({
-      totalActual: actual,
-      total: actual + rejected
-    });
-  }, [formData.actualQuantity, formData.rejectionQuantity]);
-
-
-
   const handleSubmit = (e) => {
     e.preventDefault();
-
-    // Validate all mandatory fields
+    const companyError = validateField('companyId', formData.companyId);
     const brandError = validateField('brandId', formData.brandId);
-    const specError = validateField('bottleSpecId', formData.bottleSpecId);
-    const varError = validateField('variantId', formData.variantId);
+    const specError = validateField('coatingSpecId', formData.coatingSpecId);
+    const shadeError = validateField('coatingShade', formData.coatingShade);
     const dateError = validateField('date', formData.date);
-    const printedError = validateField('actualQuantity', formData.actualQuantity);
+    const opError = validateField('operatorId', formData.operatorId);
+    const shiftError = validateField('shift', formData.shift);
+    const qtyError = validateField('actualQuantity', formData.actualQuantity);
+    const boxError = validateField('bottlePerBox', formData.bottlePerBox);
 
-    if (brandError) return Swal.fire('Validation Error', brandError, 'error');
-    if (specError) return Swal.fire('Validation Error', specError, 'error');
-    if (varError) return Swal.fire('Validation Error', varError, 'error');
-    if (dateError) return Swal.fire('Validation Error', dateError, 'error');
-    if (printedError) return Swal.fire('Validation Error', printedError, 'error');
+    if (companyError || brandError || specError || shadeError || dateError || opError || shiftError || qtyError || boxError) {
+      return Swal.fire('Validation Error', 'Please fill all required fields.', 'error');
+    }
 
     dispatch(createCoatingProduction({
       ...formData,
@@ -168,6 +157,8 @@ export default function AddCoatingProduction() {
     });
   };
 
+  const selectedSpec = coatingSpecs.find(s => s._id === formData.coatingSpecId);
+
   return (
     <div className="page-content">
       <div className="page-header d-flex align-items-center justify-content-between productions-add-header user-form-page-header">
@@ -176,7 +167,7 @@ export default function AddCoatingProduction() {
             <i className="bi bi-arrow-left" style={{ fontSize: 20 }} />
           </Link>
           <div>
-            <h1 className="page-title">Add Coating Production - Unit {unit}</h1>
+            <h1 className="page-title">Add Coating Production — Unit {unit}</h1>
             <p className="page-subtitle">Log new coating production details</p>
           </div>
         </div>
@@ -184,181 +175,280 @@ export default function AddCoatingProduction() {
 
       <div className="row justify-content-center">
         <div className="col-lg-10">
-            <div className="dash-card border-0 shadow-sm" style={{ borderRadius: 24 }}>
-              <div className="dash-card-body p-4 p-md-5">
+          <div className="dash-card border-0 shadow-sm" style={{ borderRadius: 24 }}>
+            <div className="dash-card-body p-4 p-md-5">
+              <form onSubmit={handleSubmit}>
+                <div className="row g-4">
 
-                <form onSubmit={handleSubmit}>
-                  <div className="row g-4">
-                    <div className="col-md-6">
-                      <label className="form-label fw-600 small text-uppercase text-muted">
-                        1. Brand <span className="text-danger">*</span>
-                      </label>
-                      <SearchableSelect
-                        options={brands.filter(b => b.status).map(b => ({
-                          value: b._id,
-                          label: `${b.name}${b.companyId?.name ? ` (${b.companyId.name})` : ''}`
-                        }))}
-                        value={formData.brandId}
-                        onChange={(val) => {
-                          setFormData({ ...formData, brandId: val, bottleSpecId: '', variantId: '' });
-                          if (errors.brandId) setErrors(prev => ({ ...prev, brandId: '' }));
-                        }}
-                        placeholder="-- Choose Brand --"
-                        isInvalid={!!errors.brandId}
-                      />
-                      {errors.brandId && <div className="text-danger" style={{ fontSize: '0.875em', marginTop: 4 }}>{errors.brandId}</div>}
+                  {/* Company */}
+                  <div className="col-md-6">
+                    <label className="form-label fw-600 small text-uppercase text-muted">
+                      1. Company <span className="text-danger">*</span>
+                    </label>
+                    <SearchableSelect
+                      options={companies.filter(c => c.status).map(c => ({ value: c._id, label: c.name }))}
+                      value={formData.companyId}
+                      onChange={(val) => {
+                        setFormData(prev => ({ ...prev, companyId: val, brandId: '', coatingSpecId: '', coatingShade: '' }));
+                        if (errors.companyId) setErrors(prev => ({ ...prev, companyId: '' }));
+                      }}
+                      placeholder="-- Choose Company --"
+                      isInvalid={!!errors.companyId}
+                    />
+                    {errors.companyId && <div className="text-danger" style={{ fontSize: '0.875em', marginTop: 4 }}>{errors.companyId}</div>}
+                  </div>
+
+                  {/* Brand */}
+                  <div className="col-md-6">
+                    <label className="form-label fw-600 small text-uppercase text-muted">
+                      2. Brand <span className="text-danger">*</span>
+                    </label>
+                    <SearchableSelect
+                      options={availableBrands.map(b => ({ value: b._id, label: b.name }))}
+                      value={formData.brandId}
+                      onChange={(val) => {
+                        setFormData(prev => ({ ...prev, brandId: val, coatingSpecId: '', coatingShade: '' }));
+                        if (errors.brandId) setErrors(prev => ({ ...prev, brandId: '' }));
+                      }}
+                      placeholder="-- Choose Brand --"
+                      disabled={!formData.companyId}
+                      isInvalid={!!errors.brandId}
+                    />
+                    {errors.brandId && <div className="text-danger" style={{ fontSize: '0.875em', marginTop: 4 }}>{errors.brandId}</div>}
+                  </div>
+
+                  {/* Coating Spec */}
+                  <div className="col-md-6">
+                    <label className="form-label fw-600 small text-uppercase text-muted">
+                      3. Coating Spec <span className="text-danger">*</span>
+                    </label>
+                    <SearchableSelect
+                      options={availableSpecs.map(s => ({
+                        value: s._id,
+                        label: `${s.bottleName}${s.variantId ? ` - ${s.variantId.variantName}${s.variantId.variantSize ? ' ' + s.variantId.variantSize : ''}` : ''}`
+                      }))}
+                      value={formData.coatingSpecId}
+                      onChange={(val) => {
+                        setFormData(prev => ({ ...prev, coatingSpecId: val }));
+                        if (errors.coatingSpecId) setErrors(prev => ({ ...prev, coatingSpecId: '' }));
+                      }}
+                      placeholder="-- Choose Coating Spec --"
+                      disabled={!formData.brandId}
+                      isInvalid={!!errors.coatingSpecId}
+                    />
+                    {errors.coatingSpecId && <div className="text-danger" style={{ fontSize: '0.875em', marginTop: 4 }}>{errors.coatingSpecId}</div>}
+                  </div>
+
+                  {/* Coating Shade */}
+                  <div className="col-md-6">
+                    <label className="form-label fw-600 small text-uppercase text-muted">
+                      Coating Shade
+                    </label>
+                    <div className="form-control custom-input-field bg-light fw-bold text-dark d-flex align-items-center" style={{ borderRadius: 12, minHeight: 46 }}>
+                      {selectedSpec?.coatingShade || 'N/A'}
                     </div>
+                  </div>
 
-                    <div className="col-md-6">
-                      <label className="form-label fw-600 small text-uppercase text-muted">
-                        2. Bottle Spec <span className="text-danger">*</span>
-                      </label>
-                      <SearchableSelect
-                        options={availableSpecs.map(s => ({
-                          value: s._id,
-                          label: `${s.bottleName} — ${s.code} (${s.printingTypeId?.name || 'N/A'} / ${s.printingColorId?.name || 'No Color'})`
-                        }))}
-                        value={formData.bottleSpecId}
-                        onChange={(val) => {
-                          setFormData({ ...formData, bottleSpecId: val, variantId: '' });
-                          if (errors.bottleSpecId) setErrors(prev => ({ ...prev, bottleSpecId: '' }));
-                        }}
-                        placeholder="-- Choose Specification --"
-                        disabled={!formData.brandId}
-                        isInvalid={!!errors.bottleSpecId}
-                      />
-                      {errors.bottleSpecId && <div className="text-danger" style={{ fontSize: '0.875em', marginTop: 4 }}>{errors.bottleSpecId}</div>}
+                  {/* Variant Display */}
+                  <div className="col-md-12">
+                    <label className="form-label fw-600 small text-uppercase text-muted">
+                      Variant Details
+                    </label>
+                    <div className="form-control custom-input-field bg-light d-flex align-items-center gap-3 p-2" style={{ borderRadius: 12, minHeight: 60 }}>
+                      {selectedSpec?.variantId ? (
+                        <>
+                          {selectedSpec.variantId.image && (
+                            <img 
+                              src={`${V_URL}${selectedSpec.variantId.image}`} 
+                              alt="Variant" 
+                              style={{ width: 44, height: 44, objectFit: 'cover', borderRadius: 8, border: '1px solid #eee' }} 
+                            />
+                          )}
+                          <div>
+                            <div className="fw-bold text-dark">
+                              {selectedSpec.variantId.variantName} - {selectedSpec.variantId.variantSize}
+                            </div>
+                          </div>
+                        </>
+                      ) : (
+                        <span className="text-muted fw-bold ps-2">N/A</span>
+                      )}
                     </div>
+                  </div>
 
-                    <div className="col-md-4">
-                      <label className="form-label fw-600 small text-uppercase text-muted">
-                        3. Variant <span className="text-danger">*</span>
-                      </label>
-                      <SearchableSelect
-                        options={filteredVariants.map(v => ({
-                          value: v._id,
-                          label: `${v.variantName} — ${v.variantSize || 'N/A'}`
-                        }))}
-                        value={formData.variantId}
-                        onChange={(val) => {
-                          setFormData({ ...formData, variantId: val });
-                          if (errors.variantId) setErrors(prev => ({ ...prev, variantId: '' }));
-                        }}
-                        placeholder="-- Choose Variant --"
-                        disabled={!formData.bottleSpecId}
-                        isInvalid={!!errors.variantId}
-                      />
-                      {errors.variantId && <div className="text-danger" style={{ fontSize: '0.875em', marginTop: 4 }}>{errors.variantId}</div>}
-                    </div>
+                  {/* Operator Name — directly below Coating Spec */}
+                  <div className="col-md-6">
+                    <label className="form-label fw-600 small text-uppercase text-muted">
+                      Operator Name <span className="text-danger">*</span>
+                    </label>
+                    <CreatableSelect
+                      isClearable
+                      options={operators.filter(o => o.status).map(o => ({ value: o._id, label: o.name }))}
+                      value={
+                        formData.operatorId
+                          ? { value: formData.operatorId, label: operators.find(o => o._id === formData.operatorId)?.name || '' }
+                          : null
+                      }
+                      onChange={(selected) => {
+                        setFormData(prev => ({ ...prev, operatorId: selected ? selected.value : '' }));
+                        if (errors.operatorId) setErrors(prev => ({ ...prev, operatorId: '' }));
+                      }}
+                      onCreateOption={(inputValue) => {
+                        dispatch(createOperator({ name: inputValue, status: true })).then((res) => {
+                          if (!res.error) {
+                            Swal.fire({ title: 'Success', text: 'Operator added successfully', icon: 'success', toast: true, position: 'top-end', showConfirmButton: false, timer: 3000 });
+                            setFormData(prev => ({ ...prev, operatorId: res.payload._id }));
+                            if (errors.operatorId) setErrors(prev => ({ ...prev, operatorId: '' }));
+                          } else {
+                            Swal.fire('Error', res.payload || 'Failed to add operator', 'error');
+                          }
+                        });
+                      }}
+                      placeholder="Select or type operator name..."
+                      styles={{
+                        control: (base, state) => ({
+                          ...base,
+                          borderRadius: '12px',
+                          borderColor: errors.operatorId ? '#dc3545' : (state.isFocused ? '#86b7fe' : '#dee2e6'),
+                          boxShadow: state.isFocused ? (errors.operatorId ? '0 0 0 0.25rem rgba(220, 53, 69, 0.25)' : '0 0 0 0.25rem rgba(13, 110, 253, 0.25)') : 'none',
+                          padding: '2px',
+                          '&:hover': {
+                            borderColor: errors.operatorId ? '#dc3545' : (state.isFocused ? '#86b7fe' : '#dee2e6')
+                          }
+                        })
+                      }}
+                    />
+                    {errors.operatorId && <div className="text-danger" style={{ fontSize: '0.875em', marginTop: 4 }}>{errors.operatorId}</div>}
+                  </div>
 
-                    <div className="col-md-4">
-                      <label className="form-label fw-600 small text-uppercase text-muted">
-                        Coating Shade
-                      </label>
-                      <div className="form-control custom-input-field bg-light text-center fw-bold text-dark d-flex align-items-center justify-content-center" style={{ borderRadius: 12 }}>
-                        {formData.variantId ? (variants.find(v => v._id === formData.variantId)?.coatingShade || 'N/A') : 'N/A'}
-                      </div>
-                    </div>
+                  {/* Shift — directly below Coating Shade */}
+                  <div className="col-md-6">
+                    <label className="form-label fw-600 small text-uppercase text-muted">
+                      Shift <span className="text-danger">*</span>
+                    </label>
+                    <SearchableSelect
+                      options={shifts.filter(s => s.status).map(s => ({ value: s._id, label: s.name }))}
+                      value={formData.shift}
+                      onChange={(val) => {
+                        setFormData(prev => ({ ...prev, shift: val }));
+                        if (errors.shift) setErrors(prev => ({ ...prev, shift: '' }));
+                      }}
+                      placeholder="-- Choose Shift --"
+                      isInvalid={!!errors.shift}
+                    />
+                    {errors.shift && <div className="text-danger" style={{ fontSize: '0.875em', marginTop: 4 }}>{errors.shift}</div>}
+                  </div>
 
-                    <div className="col-md-4">
-                      <label className="form-label fw-600 small text-uppercase text-muted">
-                        Operator Name <span className="text-danger">*</span>
-                      </label>
+
+                  <div className="col-12"><hr className="my-4 opacity-50" /></div>
+
+                  {/* Date */}
+                  <div className="col-md-4">
+                    <label className="form-label fw-600 small text-uppercase text-muted">
+                      Production Date <span className="text-danger">*</span>
+                    </label>
+                    <input
+                      type="date"
+                      name="date"
+                      className={`form-control custom-input-field ${errors.date ? 'is-invalid' : ''}`}
+                      required
+                      {...(!isAdmin && { min: minDate, max: maxDate })}
+                      value={formData.date}
+                      onChange={handleChange}
+                      onBlur={handleBlur}
+                      style={{ borderRadius: 12 }}
+                    />
+                    {errors.date && <div className="invalid-feedback">{errors.date}</div>}
+                  </div>
+
+                  {/* Actual Quantity */}
+                  <div className="col-md-4">
+                    <label className="form-label fw-600 small text-uppercase text-muted">
+                      Actual Quantity <span className="text-danger">*</span>
+                    </label>
+                    <input
+                      type="number"
+                      name="actualQuantity"
+                      className={`form-control custom-input-field ${errors.actualQuantity ? 'is-invalid' : ''}`}
+                      required
+                      value={formData.actualQuantity}
+                      onChange={handleChange}
+                      onBlur={handleBlur}
+                      style={{ borderRadius: 12 }}
+                    />
+                    {errors.actualQuantity && <div className="invalid-feedback">{errors.actualQuantity}</div>}
+                  </div>
+
+                  {/* Rejection Quantity */}
+                  <div className="col-md-4">
+                    <label className="form-label fw-600 small text-uppercase text-muted">Rejection Quantity</label>
+                    <input type="number" name="rejectionQuantity" className="form-control custom-input-field" value={formData.rejectionQuantity} onChange={handleChange} style={{ borderRadius: 12 }} />
+                  </div>
+
+                  {/* Rejection Percentage — auto-calculated, read-only */}
+                  <div className="col-md-4">
+                    <label className="form-label fw-600 small text-uppercase text-muted">Rejection %</label>
+                    <div className="input-group">
                       <input
                         type="text"
-                        name="operatorName"
-                        className={`form-control custom-input-field ${errors.operatorName ? 'is-invalid' : ''}`}
-                        required
-                        value={formData.operatorName}
-                        onChange={handleChange}
-                        onBlur={handleBlur}
-                        style={{ borderRadius: 12 }}
+                        className="form-control custom-input-field bg-light"
+                        value={calc.rejectionPercentage}
+                        readOnly
+                        style={{ borderRadius: '12px 0 0 12px' }}
                       />
-                      {errors.operatorName && <div className="invalid-feedback">{errors.operatorName}</div>}
-                    </div>
-
-                    <div className="col-12"><hr className="my-4 opacity-50" /></div>
-
-                    <div className="col-md-4">
-                      <label className="form-label fw-600 small text-uppercase text-muted">
-                        Production Date <span className="text-danger">*</span>
-                      </label>
-                      <input
-                        type="date"
-                        name="date"
-                        className={`form-control custom-input-field ${errors.date ? 'is-invalid' : ''}`}
-                        required
-                        min={minDate}
-                        max={maxDate}
-                        value={formData.date}
-                        onChange={handleChange}
-                        onBlur={handleBlur}
-                        style={{ borderRadius: 12 }}
-                      />
-                      {errors.date && <div className="invalid-feedback">{errors.date}</div>}
-                    </div>
-
-                    <div className="col-md-4">
-                      <label className="form-label fw-600 small text-uppercase text-muted">
-                        Actual Quantity <span className="text-danger">*</span>
-                      </label>
-                      <input
-                        type="number"
-                        name="actualQuantity"
-                        className={`form-control custom-input-field ${errors.actualQuantity ? 'is-invalid' : ''}`}
-                        required
-                        value={formData.actualQuantity}
-                        onChange={handleChange}
-                        onBlur={handleBlur}
-                        style={{ borderRadius: 12 }}
-                      />
-                      {errors.actualQuantity && <div className="invalid-feedback">{errors.actualQuantity}</div>}
-                    </div>
-
-                    <div className="col-md-4">
-                      <label className="form-label fw-600 small text-uppercase text-muted">
-                        Rejection Quantity
-                      </label>
-                      <input
-                        type="number"
-                        name="rejectionQuantity"
-                        className={`form-control custom-input-field ${errors.rejectionQuantity ? 'is-invalid' : ''}`}
-                        value={formData.rejectionQuantity}
-                        onChange={handleChange}
-                        onBlur={handleBlur}
-                        style={{ borderRadius: 12 }}
-                      />
-                      {errors.rejectionQuantity && <div className="invalid-feedback">{errors.rejectionQuantity}</div>}
+                      <span className="input-group-text bg-light fw-bold text-muted" style={{ borderRadius: '0 12px 12px 0', border: '1px solid var(--card-border)' }}>%</span>
                     </div>
                   </div>
 
-                  <div className="mt-5 p-4 rounded-4 d-flex justify-content-around text-center" style={{ background: '#f8fafc', border: '1px solid #e2e8f0' }}>
-                    <div>
-                      <div className="text-muted small text-uppercase fw-bold mb-1">Total Actual</div>
-                      <div className="h2 mb-0 text-success fw-bold">{calc.totalActual}</div>
-                    </div>
-                    <div style={{ width: 1, background: '#cbd5e1' }} />
-                    <div>
-                      <div className="text-muted small text-uppercase fw-bold mb-1">Total Coated Bottle</div>
-                      <div className={`h2 mb-0 fw-bold text-accent`}>{calc.total}</div>
-                    </div>
+                  {/* Bottle Per Box */}
+                  <div className="col-md-4">
+                    <label className="form-label fw-600 small text-uppercase text-muted">
+                      Bottle Per Box <span className="text-danger">*</span>
+                    </label>
+                    <input type="number" name="bottlePerBox" className="form-control custom-input-field" value={formData.bottlePerBox} onChange={handleChange} required style={{ borderRadius: 12 }} />
                   </div>
 
-                  <div className="d-flex gap-3 mt-5 user-form-actions">
-                    <button type="submit" className="btn-accent px-5 py-3 flex-grow-1 rounded-4 shadow-sm" disabled={saving}>
-                      {saving ? (
-                        <><span className="spinner-border spinner-border-sm me-2" /> Saving...</>
-                      ) : (
-                        <><i className="bi bi-check2-circle me-2" /> Save Entry</>
-                      )}
-                    </button>
-                    <button type="button" onClick={() => navigate(`/coating-productions/unit/${unit}`)} className="btn-ghost px-5 py-3 rounded-4">
-                      Cancel
-                    </button>
+                  {/* Rejection Reason */}
+                  <div className="col-md-12">
+                    <label className="form-label fw-600 small text-uppercase text-muted">Rejection Reason</label>
+                    <textarea name="rejectionReason" rows="3" className="form-control custom-input-field" value={formData.rejectionReason} onChange={handleChange} placeholder="Enter rejection reason..." />
                   </div>
-                </form>
-              </div>
+                </div>
+
+                {/* Calculated Summary */}
+                <div className="mt-5 p-4 rounded-4 d-flex justify-content-around text-center" style={{ background: '#f8fafc', border: '1px solid #e2e8f0' }}>
+                  <div>
+                    <div className="text-muted small text-uppercase fw-bold mb-1">Total Actual</div>
+                    <div className="h2 mb-0 text-success fw-bold">{calc.totalActual}</div>
+                  </div>
+                  <div style={{ width: 1, background: '#cbd5e1' }} />
+                  <div>
+                    <div className="text-muted small text-uppercase fw-bold mb-1">Total Coated</div>
+                    <div className="h2 mb-0 fw-bold text-accent">{calc.total}</div>
+                  </div>
+                </div>
+
+                <div className="mt-4 p-4 rounded-4 d-flex justify-content-around text-center" style={{ background: '#f8fafc', border: '1px solid #e2e8f0' }}>
+                  <div>
+                    <div className="text-muted small text-uppercase fw-bold mb-1">Total Boxes</div>
+                    <div className="h2 mb-0 fw-bold text-primary">{calc.totalBoxes}</div>
+                  </div>
+                  <div style={{ width: 1, background: '#cbd5e1' }} />
+                  <div>
+                    <div className="text-muted small text-uppercase fw-bold mb-1">Extra Bottles</div>
+                    <div className="h2 mb-0 fw-bold text-success">{calc.extraBottles}</div>
+                  </div>
+                </div>
+
+                <div className="d-flex gap-3 mt-5 user-form-actions">
+                  <button type="submit" className="btn-accent px-5 py-3 flex-grow-1 rounded-4 shadow-sm" disabled={saving}>
+                    {saving ? <><span className="spinner-border spinner-border-sm me-2" /> Saving...</> : <><i className="bi bi-check2-circle me-2" /> Save Entry</>}
+                  </button>
+                  <button type="button" onClick={() => navigate(`/coating-productions/unit/${unit}`)} className="btn-ghost px-5 py-3 rounded-4">Cancel</button>
+                </div>
+              </form>
             </div>
+          </div>
         </div>
       </div>
     </div>

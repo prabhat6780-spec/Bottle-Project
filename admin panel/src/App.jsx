@@ -18,6 +18,12 @@ import EditCompany from './pages/Company/EditCompany';
 import Brands from './pages/Brands/Brands';
 import AddBrand from './pages/Brands/AddBrand';
 import EditBrand from './pages/Brands/EditBrand';
+import Operators from './pages/Operator/Operators';
+import AddOperator from './pages/Operator/AddOperator';
+import EditOperator from './pages/Operator/EditOperator';
+import Shifts from './pages/Shift/Shifts';
+import AddShift from './pages/Shift/AddShift';
+import EditShift from './pages/Shift/EditShift';
 import BottleSpecs from './pages/BottleSpec/BottleSpecs';
 import AddBottleSpec from './pages/BottleSpec/AddBottleSpec';
 import EditBottleSpec from './pages/BottleSpec/EditBottleSpec';
@@ -35,6 +41,10 @@ import CoatingProductions from './pages/CoatingProduction/CoatingProductions';
 import AddCoatingProduction from './pages/CoatingProduction/AddCoatingProduction';
 import EditCoatingProduction from './pages/CoatingProduction/EditCoatingProduction';
 import ViewCoatingProduction from './pages/CoatingProduction/ViewCoatingProduction';
+import CoatingSpecs from './pages/CoatingSpec/CoatingSpecs';
+import AddCoatingSpec from './pages/CoatingSpec/AddCoatingSpec';
+import EditCoatingSpec from './pages/CoatingSpec/EditCoatingSpec';
+import ViewCoatingSpec from './pages/CoatingSpec/ViewCoatingSpec';
 import Settings from './pages/system/Settings';
 import ChangePassword from './pages/system/ChangePassword';
 import Placeholder from './pages/system/Placeholder';
@@ -47,9 +57,6 @@ import EditPrintingColor from './pages/PrintingColor/EditPrintingColor';
 import CoatingTypes from './pages/CoatingType/CoatingTypes';
 import AddCoatingType from './pages/CoatingType/AddCoatingType';
 import EditCoatingType from './pages/CoatingType/EditCoatingType';
-import CoatingColors from './pages/CoatingColor/CoatingColors';
-import AddCoatingColor from './pages/CoatingColor/AddCoatingColor';
-import EditCoatingColor from './pages/CoatingColor/EditCoatingColor';
 import Login from './pages/system/Login';
 import RoleList from './pages/Roles&Permission/RoleList';
 import CreateRole from './pages/Roles&Permission/CreateRole';
@@ -96,6 +103,12 @@ export default function App() {
               <Route path="/brands" element={<Brands />} />
               <Route path="/brands/add" element={<AddBrand />} />
               <Route path="/brands/edit/:id" element={<EditBrand />} />
+              <Route path="/operators" element={<Operators />} />
+              <Route path="/operators/add" element={<AddOperator />} />
+              <Route path="/operators/edit/:id" element={<EditOperator />} />
+              <Route path="/shifts" element={<Shifts />} />
+              <Route path="/shifts/add" element={<AddShift />} />
+              <Route path="/shifts/edit/:id" element={<EditShift />} />
               <Route path="/bottle-specs" element={<BottleSpecs />} />
               <Route path="/bottle-specs/add" element={<AddBottleSpec />} />
               <Route path="/bottle-specs/edit/:id" element={<EditBottleSpec />} />
@@ -113,6 +126,10 @@ export default function App() {
               <Route path="/coating-productions/add/unit/:unit" element={<AddCoatingProduction />} />
               <Route path="/coating-productions/edit/:id" element={<EditCoatingProduction />} />
               <Route path="/coating-productions/view/:id" element={<ViewCoatingProduction />} />
+              <Route path="/coating-specs" element={<CoatingSpecs />} />
+              <Route path="/coating-specs/add" element={<AddCoatingSpec />} />
+              <Route path="/coating-specs/edit/:id" element={<EditCoatingSpec />} />
+              <Route path="/coating-specs/view/:id" element={<ViewCoatingSpec />} />
               <Route path="/printing-types" element={<PrintingTypes />} />
               <Route path="/printing-types/add" element={<AddPrintingType />} />
               <Route path="/printing-types/edit/:id" element={<EditPrintingType />} />
@@ -122,9 +139,6 @@ export default function App() {
               <Route path="/coating-types" element={<CoatingTypes />} />
               <Route path="/coating-types/add" element={<AddCoatingType />} />
               <Route path="/coating-types/edit/:id" element={<EditCoatingType />} />
-              <Route path="/coating-colors" element={<CoatingColors />} />
-              <Route path="/coating-colors/add" element={<AddCoatingColor />} />
-              <Route path="/coating-colors/edit/:id" element={<EditCoatingColor />} />
               <Route path="/roles" element={<RoleList />} />
               <Route path="/roles/create" element={<CreateRole />} />
               <Route path="/roles/edit/:id" element={<CreateRole />} />

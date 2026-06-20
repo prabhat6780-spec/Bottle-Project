@@ -1,41 +1,42 @@
-import { configureStore } from "@reduxjs/toolkit";
+import { configureStore } from '@reduxjs/toolkit';
 
-import authReducer from "./slices/loginSlice";
-import userReducer from "./slices/userSlice";
-import companyReducer from "./slices/companySlice";
-import brandReducer from "./slices/brandSlice";
-import bottleSpecReducer from "./slices/bottleSpecSlice";
-import variantReducer from "./slices/variantSlice";
-import productionReducer from "./slices/productionSlice";
-import visionReducer from "./slices/visionSlice";
-import roleReducer from "./slices/roleSlice";
-import permissionReducer from "./slices/permissionSlice";
-import printingTypeReducer from "./slices/printingTypeSlice";
-import printingColorReducer from "./slices/printingColorSlice";
-import coatingTypeReducer from "./slices/coatingTypeSlice";
-import coatingColorReducer from "./slices/coatingColorSlice";
-import coatingProductionReducer from "./slices/coatingProductionSlice";
+import bottleSpecReducer from './slices/bottleSpecSlice';
+import brandReducer from './slices/brandSlice';
+import coatingProductionReducer from './slices/coatingProductionSlice';
+import coatingSpecReducer from './slices/coatingSpecSlice';
+import coatingTypeReducer from './slices/coatingTypeSlice';
+import companyReducer from './slices/companySlice';
+import authReducer from './slices/loginSlice';
+import permissionReducer from './slices/permissionSlice';
+import printingColorReducer from './slices/printingColorSlice';
+import printingTypeReducer from './slices/printingTypeSlice';
+import productionReducer from './slices/productionSlice';
+import roleReducer from './slices/roleSlice';
+import userReducer from './slices/userSlice';
+import variantReducer from './slices/variantSlice';
+import visionReducer from './slices/visionSlice';
+
+import operatorReducer from './slices/operatorSlice';
+import shiftReducer from './slices/shiftSlice';
 
 export const store = configureStore({
-
   reducer: {
-
+    operators: operatorReducer,
+    shifts: shiftReducer,
     auth: authReducer,
-    users: userReducer,
-    companies: companyReducer,
-    brands: brandReducer,
     bottleSpecs: bottleSpecReducer,
-    variants: variantReducer,
-    productions: productionReducer,
-    vision: visionReducer,
-    roles: roleReducer,
-    permissions: permissionReducer,
-    printingType: printingTypeReducer,
-    printingColor: printingColorReducer,
-    coatingType: coatingTypeReducer,
-    coatingColor: coatingColorReducer,
+    brands: brandReducer,
     coatingProductions: coatingProductionReducer,
-
+    coatingSpecs: coatingSpecReducer,
+    coatingType: coatingTypeReducer,
+    companies: companyReducer,
+    permissions: permissionReducer,
+    printingColor: printingColorReducer,
+    printingType: printingTypeReducer,
+    productions: productionReducer,
+    roles: roleReducer,
+    users: userReducer,
+    variants: variantReducer,
+    vision: visionReducer,
   },
-
 });

@@ -20,6 +20,7 @@ export default function SearchableSelect({
   disabled = false,
   isInvalid = false,
   style = {},
+  onAddOption = null,
 }) {
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState('');
@@ -202,6 +203,29 @@ export default function SearchableSelect({
                   {o.label}
                 </div>
               ))
+            )}
+            
+            {onAddOption && (
+              <div
+                onClick={() => {
+                  setOpen(false);
+                  onAddOption(search);
+                  setSearch('');
+                }}
+                style={{
+                  padding: '9px 14px',
+                  cursor: 'pointer',
+                  fontSize: 13,
+                  color: '#0d6efd',
+                  fontWeight: 600,
+                  borderTop: '1px solid #f5f5f5',
+                  background: 'transparent',
+                }}
+                onMouseEnter={(e) => (e.currentTarget.style.background = '#f8fafc')}
+                onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
+              >
+                <i className="bi bi-plus-circle me-2" /> Add New {search ? `"${search}"` : ''}
+              </div>
             )}
           </div>
         </div>

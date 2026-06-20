@@ -1,35 +1,44 @@
-import {createSlice, createAsyncThunk,} from "@reduxjs/toolkit";
+import { createSlice, createAsyncThunk, } from "@reduxjs/toolkit";
 
 import API from "../../services/api";
 
-// ================= GET SPECS =================
-export const fetchBottleSpecs = createAsyncThunk(
-  "bottleSpecs/fetchBottleSpecs",
-  async (params, { rejectWithValue }) => {
-    try {
-      const queryParams = new URLSearchParams(params || {});
-      // Only apply the printing type filter when NOT fetching all (e.g. list page).
-      // When pagination:'false' is passed from forms that need all specs for suggestions,
-      // skip the type filter so coating specs are also included in name suggestions.
-      if (!queryParams.has('type')) {
-        queryParams.set('type', 'printing');
-      }
-      const url = `/bottle-spec?${queryParams.toString()}`;
-      const response = await API.get(url);
-      return response.data;
-    } catch (error) {
-      return rejectWithValue(
-        error.response?.data?.message || "Failed to fetch specs"
-      );
-    }
-  }
-);
-
-// ================= CREATE SPEC =================
-export const createBottleSpec =
+// ================= GET operators =================
+export const fetchOperators =
   createAsyncThunk(
 
-    "bottleSpecs/createBottleSpec",
+    "operators/fetchoperators",
+
+    async (params, { rejectWithValue }) => {
+
+      try {
+
+        const response =
+          await API.get("/operator", {
+            params,
+          });
+
+        return response.data;
+
+      } catch (error) {
+
+        return rejectWithValue(
+
+          error.response?.data?.message ||
+          "Failed to fetch operators"
+
+        );
+
+      }
+
+    }
+
+  );
+
+// ================= CREATE operator =================
+export const createOperator =
+  createAsyncThunk(
+
+    "operators/createoperator",
 
     async (
       formData,
@@ -40,11 +49,8 @@ export const createBottleSpec =
 
         const response =
           await API.post(
-
-            "/bottle-spec",
-
+            "/operator",
             formData
-
           );
 
         return response.data;
@@ -54,7 +60,7 @@ export const createBottleSpec =
         return rejectWithValue(
 
           error.response?.data?.message ||
-          "Failed to create spec"
+          "Failed to create operator"
 
         );
 
@@ -64,11 +70,11 @@ export const createBottleSpec =
 
   );
 
-// ================= UPDATE SPEC =================
-export const updateBottleSpec =
+// ================= UPDATE operator =================
+export const updateOperator =
   createAsyncThunk(
 
-    "bottleSpecs/updateBottleSpec",
+    "operators/updateoperator",
 
     async (
       { id, formData },
@@ -80,7 +86,7 @@ export const updateBottleSpec =
         const response =
           await API.put(
 
-            `/bottle-spec/${id}`,
+            `/operator/${id}`,
 
             formData
 
@@ -93,7 +99,7 @@ export const updateBottleSpec =
         return rejectWithValue(
 
           error.response?.data?.message ||
-          "Failed to update spec"
+          "Failed to update operator"
 
         );
 
@@ -103,11 +109,11 @@ export const updateBottleSpec =
 
   );
 
-// ================= DELETE SPEC =================
-export const deleteBottleSpec =
+// ================= DELETE operator =================
+export const deleteOperator =
   createAsyncThunk(
 
-    "bottleSpecs/deleteBottleSpec",
+    "operators/deleteoperator",
 
     async (
       id,
@@ -117,7 +123,7 @@ export const deleteBottleSpec =
       try {
 
         await API.delete(
-          `/bottle-spec/${id}`
+          `/operator/${id}`
         );
 
         return id;
@@ -127,7 +133,7 @@ export const deleteBottleSpec =
         return rejectWithValue(
 
           error.response?.data?.message ||
-          "Failed to delete spec"
+          "Failed to delete operator"
 
         );
 
@@ -137,17 +143,24 @@ export const deleteBottleSpec =
 
   );
 
-const bottleSpecSlice = createSlice({
+const operatorSlice = createSlice({
 
-  name: "bottleSpecs",
+  name: "operators",
 
   initialState: {
-    bottleSpecs: [],
+
+    operators: [],
+
     loading: false,
+
     error: null,
+
     page: 1,
+
     totalPages: 1,
+
     total: 0,
+
   },
 
   reducers: {},
@@ -158,7 +171,7 @@ const bottleSpecSlice = createSlice({
 
       // ================= FETCH =================
       .addCase(
-        fetchBottleSpecs.pending,
+        fetchOperators.pending,
         (state) => {
 
           state.loading = true;
@@ -167,22 +180,23 @@ const bottleSpecSlice = createSlice({
       )
 
       .addCase(
-        fetchBottleSpecs.fulfilled,
+        fetchOperators.fulfilled,
         (state, action) => {
           state.loading = false;
-          if (action.payload.success) {
-            state.bottleSpecs = action.payload.data || [];
-            state.total = action.payload.total || 0;
-            if (action.payload.page !== undefined) state.page = action.payload.page;
-            if (action.payload.totalPages !== undefined) state.totalPages = action.payload.totalPages;
-          } else {
-            state.bottleSpecs = Array.isArray(action.payload) ? action.payload : [];
+          state.operators = action.payload.data || [];
+          state.total = action.payload.total || 0;
+          // Only update pagination if backend returned paginated data
+          if (action.payload.page !== undefined) {
+            state.page = action.payload.page;
+          }
+          if (action.payload.totalPages !== undefined) {
+            state.totalPages = action.payload.totalPages;
           }
         }
       )
 
       .addCase(
-        fetchBottleSpecs.rejected,
+        fetchOperators.rejected,
         (state, action) => {
 
           state.loading = false;
@@ -195,7 +209,7 @@ const bottleSpecSlice = createSlice({
 
       // ================= CREATE =================
       .addCase(
-        createBottleSpec.pending,
+        createOperator.pending,
         (state) => {
 
           state.loading = true;
@@ -204,12 +218,12 @@ const bottleSpecSlice = createSlice({
       )
 
       .addCase(
-        createBottleSpec.fulfilled,
+        createOperator.fulfilled,
         (state, action) => {
 
           state.loading = false;
 
-          state.bottleSpecs.push(
+          state.operators.push(
             action.payload
           );
 
@@ -217,7 +231,7 @@ const bottleSpecSlice = createSlice({
       )
 
       .addCase(
-        createBottleSpec.rejected,
+        createOperator.rejected,
         (state, action) => {
 
           state.loading = false;
@@ -230,7 +244,7 @@ const bottleSpecSlice = createSlice({
 
       // ================= UPDATE =================
       .addCase(
-        updateBottleSpec.pending,
+        updateOperator.pending,
         (state) => {
 
           state.loading = true;
@@ -239,28 +253,28 @@ const bottleSpecSlice = createSlice({
       )
 
       .addCase(
-        updateBottleSpec.fulfilled,
+        updateOperator.fulfilled,
         (state, action) => {
 
           state.loading = false;
 
-          state.bottleSpecs =
-            state.bottleSpecs.map(
-              (spec) =>
+          state.operators =
+            state.operators.map(
+              (operator) =>
 
-                spec._id ===
-                action.payload._id
+                operator._id ===
+                  action.payload._id
 
                   ? action.payload
 
-                  : spec
+                  : operator
             );
 
         }
       )
 
       .addCase(
-        updateBottleSpec.rejected,
+        updateOperator.rejected,
         (state, action) => {
 
           state.loading = false;
@@ -273,7 +287,7 @@ const bottleSpecSlice = createSlice({
 
       // ================= DELETE =================
       .addCase(
-        deleteBottleSpec.pending,
+        deleteOperator.pending,
         (state) => {
 
           state.loading = true;
@@ -282,16 +296,16 @@ const bottleSpecSlice = createSlice({
       )
 
       .addCase(
-        deleteBottleSpec.fulfilled,
+        deleteOperator.fulfilled,
         (state, action) => {
 
           state.loading = false;
 
-          state.bottleSpecs =
-            state.bottleSpecs.filter(
-              (spec) =>
+          state.operators =
+            state.operators.filter(
+              (operator) =>
 
-                spec._id !==
+                operator._id !==
                 action.payload
             );
 
@@ -299,7 +313,7 @@ const bottleSpecSlice = createSlice({
       )
 
       .addCase(
-        deleteBottleSpec.rejected,
+        deleteOperator.rejected,
         (state, action) => {
 
           state.loading = false;
@@ -314,4 +328,4 @@ const bottleSpecSlice = createSlice({
 
 });
 
-export default bottleSpecSlice.reducer;
+export default operatorSlice.reducer;

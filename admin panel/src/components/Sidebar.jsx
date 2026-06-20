@@ -14,27 +14,30 @@ const navItems = [
     section: 'Management',
     links: [
       { to: '/users', icon: 'bi-people-fill', label: 'Users', action: 'sidebar', subject: 'user' },
+      { to: '/operators', icon: 'bi-person-badge-fill', label: 'Operator Name', action: 'sidebar', subject: 'operator' },
+      { to: '/shifts', icon: 'bi-clock-fill', label: 'Shift', action: 'sidebar', subject: 'shift' },
       { to: '/companies', icon: 'bi-building-fill', label: 'Companies', action: 'sidebar', subject: 'company' },
       { to: '/brands', icon: 'bi-award-fill', label: 'Brands', action: 'sidebar', subject: 'brand' },
       { to: '/printing-types', icon: 'bi-printer-fill', label: 'Printing Types', action: 'sidebar', subject: 'printing-type' },
       { to: '/printing-colors', icon: 'bi-palette-fill', label: 'Printing Colors', action: 'sidebar', subject: 'printing-color' },
-      { to: '/coating-types', icon: 'bi-brush-fill', label: 'Coating Types', action: 'sidebar', subject: 'coating-type' },
-      { to: '/coating-colors', icon: 'bi-droplet-half', label: 'Coating Colors', action: 'sidebar', subject: 'coating-color' },
       { to: '/bottle-specs', icon: 'bi-droplet-fill', label: 'Bottle Specs', action: 'sidebar', subject: 'bottlespec' },
       { to: '/variants', icon: 'bi-layers-fill', label: 'Variants', action: 'sidebar', subject: 'variant' },
       { to: '/productions', icon: 'bi-box-seam-fill', label: 'Printing Production', action: 'sidebar', subject: 'production' },
+      { to: '/coating-types', icon: 'bi-brush-fill', label: 'Coating Types', action: 'sidebar', subject: 'coating-type' },
+      { to: '/coating-specs', icon: 'bi-shield-shaded', label: 'Coating Specs', action: 'sidebar', subject: 'coatingspec' },
       { 
         icon: 'bi-box-fill', 
         label: 'Coating Production', 
         action: 'sidebar', 
         subject: 'coatingproduction',
         subLinks: [
-          { to: '/coating-productions/unit/1', label: '1 Unit' },
-          { to: '/coating-productions/unit/2', label: '2 Unit' },
-          { to: '/coating-productions/unit/3', label: '3 Unit' },
-          { to: '/coating-productions/unit/4', label: '4 Unit' },
+          { to: '/coating-productions/unit/1', label: '1 Unit', icon: 'bi-1-circle-fill' },
+          { to: '/coating-productions/unit/2', label: '2 Unit', icon: 'bi-2-circle-fill' },
+          { to: '/coating-productions/unit/3', label: '3 Unit', icon: 'bi-3-circle-fill' },
+          { to: '/coating-productions/unit/4', label: '4 Unit', icon: 'bi-4-circle-fill' },
         ]
       },
+      
     ],
   },
   {
@@ -118,6 +121,7 @@ export default function Sidebar({ collapsed, onClose }) {
                               className={({ isActive }) => `nav-item nav-sub-item ${isActive ? 'active' : ''}`}
                               style={{ padding: '0.5rem 1rem', marginTop: '0.2rem' }}
                             >
+                              {sub.icon && <i className={`bi ${sub.icon} nav-icon`} />}
                               <span className="nav-label">{sub.label}</span>
                             </NavLink>
                           ))}

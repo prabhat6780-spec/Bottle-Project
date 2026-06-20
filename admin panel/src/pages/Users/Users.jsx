@@ -18,21 +18,17 @@ export default function Users() {
   const [searchParams, setSearchParams] = useSearchParams();
   const currentPage = Number(searchParams.get("page")) || 1;
   const dispatch = useDispatch();
-  const {
-
-    users,
-
-    loading,
-
-    error,
-
-    page,
-
-    total, totalPages
-
-  } = useSelector(
-    (state) => state.users
-  );
+const {
+  users,
+  loading,
+  error,
+  page,
+  total,
+  totalPages,
+  activeCount,
+  inactiveCount,
+  pendingCount
+} = useSelector((state) => state.users);
 
   const [search, setSearch] = useState('');
   const [filter, setFilter] = useState('all');
@@ -133,10 +129,10 @@ export default function Users() {
 
       <div className="row g-3 mb-4">
         {[
-          { label: 'Total Users', value: users.length, icon: 'bi-people-fill', color: 'purple' },
-          { label: 'Active', value: users.filter(u => u.status === 'active').length, icon: 'bi-person-check-fill', color: 'green' },
-          { label: 'Inactive', value: users.filter(u => u.status === 'inactive').length, icon: 'bi-person-dash-fill', color: 'orange' },
-          { label: 'Pending', value: users.filter(u => u.status === 'pending').length, icon: 'bi-hourglass-split', color: 'teal' },
+          { label: 'Total Users', value: total, icon: 'bi-people-fill', color: 'purple' },
+          { label: 'Active', value: activeCount, icon: 'bi-person-check-fill', color: 'green' },
+{ label: 'Inactive', value: inactiveCount, icon: 'bi-person-dash-fill', color: 'orange' },
+{ label: 'Pending', value: pendingCount, icon: 'bi-hourglass-split', color: 'teal' },
         ].map((c, i) => (
           <div className="col-6 col-md-3" key={i}>
             <div className={`stat-card ${c.color}`}>
@@ -149,7 +145,7 @@ export default function Users() {
       </div>
 
       <div className="dash-card">
-        <div className="dash-card-header d-flex align-items-center justify-content-between flex-wrap gap-3 users-dash-toolbar">
+        <div className="dash-card-header d-flex align-items-center justify-content-between flex-wrap gap-3 users-dash-toolbar" style={{ flexWrap: 'wrap' }}>
           <div className="d-flex align-items-center gap-2">
             <span style={{ fontSize: 13, color: 'var(--text-secondary)' }}>Show</span>
             <select
@@ -166,7 +162,7 @@ export default function Users() {
           </div>
 
           <div className="d-flex gap-2 flex-wrap ms-auto">
-            <div className="search-input-wrapper" style={{ minWidth: 240 }}>
+            <div className="search-input-wrapper companies-search-wrap">
               <i className="bi bi-search" />
               <input
                 type="text"
@@ -193,18 +189,18 @@ export default function Users() {
 
         <div className="users-list-mobile">
           {users.map((u, i) => (
-            <div key={u._id} className="users-mobile-card">
-              <div className="d-flex align-items-start gap-3">
+            <div key={u._id} className="companies-mobile-card brands-mobile-card" style={{ overflow: 'hidden' }}>
+              <div className="d-flex align-items-start gap-3 w-100 min-w-0" style={{ overflow: 'hidden' }}>
                 <div
-                  className="users-mobile-avatar"
-                  style={{ background: avatarColors[i % avatarColors.length] }}
+                  className="companies-mobile-avatar"
+                  style={{ background: avatarColors[i % avatarColors.length], flexShrink: 0 }}
                 >
                   {u.name?.charAt(0).toUpperCase() || 'U'}
                 </div>
                 <div className="flex-grow-1 min-w-0">
-                  <div className="fw-semibold text-truncate">{u.name}</div>
-                  <div className="small text-muted text-truncate">{u.email}</div>
-                  <div className="d-flex flex-wrap align-items-center gap-2 mt-2">
+                  <div className="fw-semibold text-truncate">{u.name || <span className="text-muted fst-italic">No Name</span>}</div>
+                  <div className="small text-muted" style={{ wordBreak: 'break-all', overflowWrap: 'anywhere' }}>{u.email}</div>
+                  <div className="d-flex flex-wrap align-items-center gap-2 mt-1">
                     {u.role ? (
                       <span style={roleBadgeStyle(u.role.name)}>{u.role.name}</span>
                     ) : (
@@ -219,35 +215,35 @@ export default function Users() {
                   </div>
                 </div>
               </div>
-              <div className="users-mobile-actions">
-                <Link to={`/users/view/${u._id}`} className="topbar-btn users-mobile-action-btn" title="View Details">
-                  <i className="bi bi-eye" />
+              <div className="companies-mobile-actions brands-mobile-actions">
+                <Link to={`/users/view/${u._id}`} className="btn btn-sm btn-outline-info border-0 rounded-3 shadow-none companies-mobile-action-btn" title="View Details">
+                  <i className="bi bi-eye fs-6" />
                 </Link>
                 <Can I="manage" a="User">
-                  <Link to={`/users/edit/${u._id}`} className="topbar-btn users-mobile-action-btn" title="Edit">
-                    <i className="bi bi-pencil-square" />
+                  <Link to={`/users/edit/${u._id}`} className="btn btn-sm btn-outline-primary border-0 rounded-3 shadow-none companies-mobile-action-btn" title="Edit">
+                    <i className="bi bi-pencil-square fs-6" />
                   </Link>
                   <button
                     type="button"
                     onClick={() => handleDelete(u._id, u.name)}
-                    className="topbar-btn users-mobile-action-btn users-mobile-action-danger"
+                    className="btn btn-sm btn-outline-danger border-0 rounded-3 shadow-none companies-mobile-action-btn"
                     title="Delete"
                   >
-                    <i className="bi bi-trash" />
+                    <i className="bi bi-trash fs-6" />
                   </button>
                 </Can>
               </div>
             </div>
           ))}
           {users.length === 0 && !loading && (
-            <div className="users-mobile-empty">
-              <i className="bi bi-search" />
+            <div className="companies-mobile-empty">
+              <i className="bi bi-search d-block mb-2" style={{ fontSize: 32 }} />
               No matching users found
             </div>
           )}
         </div>
 
-        <div className="users-list-desktop" style={{ overflowX: 'auto' }}>
+        <div className="users-list-desktop table-responsive" style={{ overflowX: 'auto' }}>
           <table className="data-table">
             <thead>
               <tr>
@@ -337,35 +333,51 @@ export default function Users() {
             Showing <b>{total === 0 ? 0 : (currentPage - 1) * entries + 1}</b> to <b>{Math.min(currentPage * entries, total)}</b> of <b>{total}</b> entries
           </span>
 
-          <div className="pagination-container d-flex gap-1 align-items-center">
+          <div className="pagination-container d-flex gap-1 align-items-center flex-wrap justify-content-center">
             <button
               className={`btn btn-sm btn-ghost ${currentPage === 1 ? 'disabled' : ''}`}
-              onClick={() => {
-                if (currentPage > 1) {
-                  setSearchParams({ page: currentPage - 1 });
-                }
-              }}
+              onClick={() => { if (currentPage > 1) setSearchParams({ page: currentPage - 1 }); }}
             >
               Previous
             </button>
 
-            {Array.from({ length: totalPages }, (_, i) => i + 1).map((p) => (
-              <button
-                key={p}
-                className={`btn btn-sm ${currentPage === p ? 'btn-accent' : 'btn-ghost'}`}
-                onClick={() => setSearchParams({ page: p })}
-              >
-                {p}
-              </button>
-            ))}
+            {(() => {
+              const pages = [];
+              const delta = 2;
+              const left = currentPage - delta;
+              const right = currentPage + delta;
+
+              // Always show page 1
+              pages.push(1);
+
+              // Left ellipsis
+              if (left > 2) pages.push('...');
+
+              // Window around current page
+              for (let i = Math.max(2, left); i <= Math.min(totalPages - 1, right); i++) {
+                pages.push(i);
+              }
+
+              // Right ellipsis
+              if (right < totalPages - 1) pages.push('...');
+
+              // Always show last page
+              if (totalPages > 1) pages.push(totalPages);
+
+              return pages.map((p, idx) =>
+                p === '...'
+                  ? <span key={`ellipsis-${idx}`} className="px-2 text-muted" style={{ fontSize: 13 }}>…</span>
+                  : <button
+                      key={p}
+                      className={`btn btn-sm ${currentPage === p ? 'btn-accent' : 'btn-ghost'}`}
+                      onClick={() => setSearchParams({ page: p })}
+                    >{p}</button>
+              );
+            })()}
 
             <button
               className={`btn btn-sm btn-ghost ${currentPage === totalPages || totalPages === 0 ? 'disabled' : ''}`}
-              onClick={() => {
-                if (currentPage < totalPages) {
-                  setSearchParams({ page: currentPage + 1 });
-                }
-              }}
+              onClick={() => { if (currentPage < totalPages) setSearchParams({ page: currentPage + 1 }); }}
             >
               Next
             </button>

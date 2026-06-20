@@ -10,9 +10,17 @@ import API from '../../services/api';
 import Swal from 'sweetalert2';
 import SearchableSelect from '../../components/SearchableSelect';
 
+const getIsAdmin = (user) => {
+  const roleName = typeof user?.role === 'object' ? user?.role?.name : user?.role;
+  return roleName?.toLowerCase() === 'admin';
+};
+
 export default function AddProduction() {
   const navigate = useNavigate();
   const dispatch = useDispatch();
+
+  const { user: authUser } = useSelector((state) => state.auth);
+  const isAdmin = getIsAdmin(authUser);
 
   const { brands } = useSelector((state) => state.brands);
   const { bottleSpecs: specs } = useSelector((state) => state.bottleSpecs);
@@ -532,8 +540,7 @@ export default function AddProduction() {
                         name="date"
                         className={`form-control custom-input-field ${errors.date ? 'is-invalid' : ''}`}
                         required
-                        min={minDate}
-                        max={maxDate}
+                        {...(!isAdmin && { min: minDate, max: maxDate })}
                         value={formData.date}
                         onChange={handleChange}
                         onBlur={handleBlur}

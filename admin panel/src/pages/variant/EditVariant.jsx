@@ -1,16 +1,18 @@
 import { useState, useEffect } from 'react';
-import { useNavigate, useParams, Link } from 'react-router-dom';
+import { useNavigate, useParams, Link, useLocation } from 'react-router-dom';
 import API from '../../services/api.js';
 import { useDispatch, useSelector } from 'react-redux';
 import { fetchBottleSpecs } from '../../redux/slices/bottleSpecSlice.js';
 import { updateVariant } from '../../redux/slices/variantSlice.js';
 import Swal from 'sweetalert2';
 import SearchableSelect from '../../components/SearchableSelect.jsx';
+import CoatingShadeSelect from '../../components/CoatingShadeSelect.jsx';
 import { V_URL } from '../../../Baseurl.js';
 
 export default function EditVariant() {
   const { id } = useParams();
   const navigate = useNavigate();
+  const location = useLocation();
   const dispatch = useDispatch();
   const { bottleSpecs } = useSelector((state) => state.bottleSpecs);
   const { variants, loading } = useSelector((state) => state.variants);
@@ -76,11 +78,18 @@ export default function EditVariant() {
           if (res.data?.success && res.data?.data?.detectedName) {
             setFormData(prev => ({ ...prev, detectedTextColor: res.data.data.detectedName }));
           } else {
+            // API responded but no text color found — not an error
             setFormData(prev => ({ ...prev, detectedTextColor: 'Not Detected' }));
           }
         } catch (err) {
           console.error("Color analysis error:", err);
-          setFormData(prev => ({ ...prev, detectedTextColor: 'Analysis Failed' }));
+          // If server returned a structured response (e.g. 404/500), still show Not Detected
+          const serverMsg = err.response?.data?.message;
+          if (serverMsg) {
+            setFormData(prev => ({ ...prev, detectedTextColor: 'Not Detected' }));
+          } else {
+            setFormData(prev => ({ ...prev, detectedTextColor: 'Not Detected' }));
+          }
         } finally {
           setAnalyzingColor(false);
         }
@@ -135,7 +144,20 @@ export default function EditVariant() {
     dispatch(updateVariant({ id, formData: submitData })).then((res) => {
       if (!res.error) {
         Swal.fire('Updated!', 'Variant updated successfully!', 'success');
-        navigate('/variants');
+        if (location.state?.returnTo) {
+          // Return to coating spec form, passing back the coating shade from this variant
+          navigate(location.state.returnTo, {
+            state: {
+              restoredFormData: {
+                ...location.state.savedFormData,
+                coatingShade: formData.coatingShade || location.state.savedFormData?.coatingShade || ''
+              },
+              newVariantId: id
+            }
+          });
+        } else {
+          navigate('/variants');
+        }
       } else {
         Swal.fire('Error!', res.payload || 'Failed to update variant.', 'error');
       }
@@ -245,14 +267,9 @@ export default function EditVariant() {
                     <label className="form-label fw-600 small text-uppercase text-muted">
                       Coating Shade
                     </label>
-                    <input
-                      type="text"
-                      name="coatingShade"
-                      className="form-control custom-input-field"
-                      placeholder="e.g. Glossy Blue, Matte White"
+                    <CoatingShadeSelect
                       value={formData.coatingShade}
-                      onChange={handleChange}
-                      style={{ borderRadius: 12 }}
+                      onChange={(val) => setFormData(prev => ({ ...prev, coatingShade: val }))}
                     />
                   </div>
 

@@ -1,17 +1,18 @@
 import { useState, useEffect } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate, Link, useLocation } from 'react-router-dom';
 import API from '../../services/api';
 import { useDispatch, useSelector } from 'react-redux';
 import { fetchBottleSpecs } from '../../redux/slices/bottleSpecSlice';
-import { createVariant } from '../../redux/slices/variantSlice';
+import { createVariant, fetchVariants } from '../../redux/slices/variantSlice';
 import Swal from 'sweetalert2';
 import SearchableSelect from '../../components/SearchableSelect';
+import CoatingShadeSelect from '../../components/CoatingShadeSelect';
 
 export default function AddVariant() {
   const navigate = useNavigate();
   const dispatch = useDispatch();
   const { bottleSpecs } = useSelector((state) => state.bottleSpecs);
-  const { loading } = useSelector((state) => state.variants);
+  const { loading, variants } = useSelector((state) => state.variants);
 
   const [formData, setFormData] = useState({
     variantName: '',
@@ -73,11 +74,18 @@ export default function AddVariant() {
           if (res.data?.success && res.data?.data?.detectedName) {
             setFormData(prev => ({ ...prev, detectedTextColor: res.data.data.detectedName }));
           } else {
+            // API responded but no text color found — not an error
             setFormData(prev => ({ ...prev, detectedTextColor: 'Not Detected' }));
           }
         } catch (err) {
           console.error("Color analysis error:", err);
-          setFormData(prev => ({ ...prev, detectedTextColor: 'Analysis Failed' }));
+          // If server returned a structured response (e.g. 404/500), still show Not Detected
+          const serverMsg = err.response?.data?.message;
+          if (serverMsg) {
+            setFormData(prev => ({ ...prev, detectedTextColor: 'Not Detected' }));
+          } else {
+            setFormData(prev => ({ ...prev, detectedTextColor: 'Not Detected' }));
+          }
         } finally {
           setAnalyzingColor(false);
         }
@@ -94,9 +102,19 @@ export default function AddVariant() {
     if (errors[name]) setErrors(prev => ({ ...prev, [name]: '' }));
   };
 
+  const location = useLocation();
+
   useEffect(() => {
     dispatch(fetchBottleSpecs({ pagination: 'false' }));
-  }, [dispatch]);
+    dispatch(fetchVariants({ pagination: 'false' }));
+    if (location.state?.autoSelectSpecId) {
+      setFormData(prev => ({ 
+        ...prev, 
+        bottleSpecId: location.state.autoSelectSpecId,
+        coatingShade: location.state.autoSelectCoatingShade || prev.coatingShade
+      }));
+    }
+  }, [dispatch, location.state]);
 
   const handleSubmit = (e) => {
     e.preventDefault();
@@ -104,6 +122,23 @@ export default function AddVariant() {
     // Validate all mandatory fields
     const specError = validateField('bottleSpecId', formData.bottleSpecId);
     if (specError) return Swal.fire('Validation Error', specError, 'error');
+
+    // Duplicate check: same bottleSpecId + same variantName (case-insensitive)
+    if (formData.variantName && formData.bottleSpecId) {
+      const isDuplicate = variants.some(v =>
+        v.bottleSpecId?._id === formData.bottleSpecId &&
+        v.variantName?.trim().toLowerCase() === formData.variantName.trim().toLowerCase()
+      );
+      if (isDuplicate) {
+        const specName = selectedSpec?.bottleName || 'this bottle specification';
+        return Swal.fire({
+          icon: 'error',
+          title: 'Duplicate Entry',
+          html: `Variant <b>"${formData.variantName}"</b> already exists under<br/><b>${specName}</b>.<br/><span class="text-muted small">Please use a different variant name.</span>`,
+          confirmButtonColor: '#e91e63'
+        });
+      }
+    }
 
     const submitData = new FormData();
     for (const key in formData) {
@@ -115,9 +150,32 @@ export default function AddVariant() {
     dispatch(createVariant(submitData)).then((res) => {
       if (!res.error) {
         Swal.fire('Success!', `Variant "${formData.variantName}" added!`, 'success');
-        navigate('/variants');
+        if (location.state?.returnTo) {
+          navigate(location.state.returnTo, {
+            state: {
+              restoredFormData: {
+                ...location.state.savedFormData,
+                // If the variant had a coating shade, bring it back to the coating spec form
+                coatingShade: formData.coatingShade || location.state.savedFormData?.coatingShade || ''
+              },
+              newVariantId: res.payload._id
+            }
+          });
+        } else {
+          navigate('/variants');
+        }
       } else {
-        Swal.fire('Error!', res.payload || 'Failed to add variant.', 'error');
+        // Check if it's a duplicate error from the backend (409)
+        const msg = res.payload || 'Failed to add variant.';
+        const isDuplicateErr = msg.toLowerCase().includes('already exists');
+        Swal.fire({
+          icon: isDuplicateErr ? 'error' : 'error',
+          title: isDuplicateErr ? 'Duplicate Entry' : 'Error',
+          html: isDuplicateErr
+            ? `Variant <b>"${formData.variantName}"</b> already exists under<br/><b>${selectedSpec?.bottleName || 'this bottle specification'}</b>.<br/><span class="text-muted small">Please use a different variant name.</span>`
+            : msg,
+          confirmButtonColor: '#e91e63'
+        });
       }
     });
   };
@@ -225,14 +283,9 @@ export default function AddVariant() {
                     <label className="form-label fw-600 small text-uppercase text-muted">
                       Coating Shade
                     </label>
-                    <input
-                      type="text"
-                      name="coatingShade"
-                      className="form-control custom-input-field"
-                      placeholder="e.g. Glossy Blue, Matte White"
+                    <CoatingShadeSelect
                       value={formData.coatingShade}
-                      onChange={handleChange}
-                      style={{ borderRadius: 12 }}
+                      onChange={(val) => setFormData(prev => ({ ...prev, coatingShade: val }))}
                     />
                   </div>
 
