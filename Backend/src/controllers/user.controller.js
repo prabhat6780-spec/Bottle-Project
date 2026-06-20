@@ -98,13 +98,32 @@ exports.getUsers = async (req, res) => {
 
     const total = await User.countDocuments(filter);
 
-    res.json({
-      success: true,
-      data: users,
-      page: parsedPage,
-      totalPages: Math.ceil(total / parsedLimit),
-      total,
-    });
+    // ADD THESE LINES HERE
+const activeCount = await User.countDocuments({
+  isDeleted: { $ne: true },
+  status: "active",
+});
+
+const inactiveCount = await User.countDocuments({
+  isDeleted: { $ne: true },
+  status: "inactive",
+});
+
+const pendingCount = await User.countDocuments({
+  isDeleted: { $ne: true },
+  status: "pending",
+});
+
+res.json({
+  success: true,
+  data: users,
+  page: parsedPage,
+  totalPages: Math.ceil(total / parsedLimit),
+  total,
+  activeCount,
+  inactiveCount,
+  pendingCount,
+});
 
   } catch (err) {
 

@@ -11,40 +11,58 @@ const coatingProductionSchema = new mongoose.Schema({
     ref: "Brand",
     required: true,
   },
-  bottleSpecId: {
+  coatingSpecId: {
     type: mongoose.Schema.Types.ObjectId,
     ref: "BottleSpec",
     required: true,
   },
-  variantId: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: "Variant",
+  coatingShade: {
+    type: String,
     required: true,
   },
-  operatorName: {
-    type: String,
+  shift: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "Shift",
+    required: true,
+  },
+  operatorId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "Operator",
     required: true,
   },
   date: {
     type: String,
     required: true,
   },
-  actualQuantity: {
-    type: Number,
-    required: true,
-  },
-  rejectionQuantity: {
-    type: Number,
-    required: true,
-  },
-  totalActualCoatedBottle: {
-    type: Number,
-    required: true,
-  },
-  totalBottleCoated: {
-    type: Number,
-    required: true,
-  },
+actualQuantity: {
+  type: Number,
+  required: true,
+},
+
+rejectionQuantity: {
+  type: Number,
+  required: true,
+},
+
+bottlePerBox: {
+  type: Number,
+  required: true,
+},
+
+rejectionReason: {
+  type: String,
+  default: "",
+},
+
+totalActualCoatedBottle: {
+  type: Number,
+  required: true,
+},
+
+totalBottleCoated: {
+  type: Number,
+  required: true,
+},
   isDeleted: {
     type: Boolean,
     default: false

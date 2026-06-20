@@ -2,6 +2,7 @@ const express = require("express");
 const cors = require("cors");
 const cookieParser = require("cookie-parser");
 const app = express();
+
 // Add all your allowed domains in this array
 const allowedOrigins = [
   "http://localhost:5173",
@@ -27,10 +28,7 @@ app.use(cookieParser());
 app.use(express.json({ limit: "50mb" }));
 app.use(express.urlencoded({ limit: "50mb", extended: true }));
 
-
 app.use("/uploads", express.static("uploads"));
-
-
 
 app.use("/api/auth", require("./routes/auth.routes"));
 app.use("/api/users", require("./routes/user.routes"));
@@ -46,8 +44,9 @@ app.use("/api/vision", require("./routes/vision.routes"));
 app.use("/api/printing-type", require("./routes/printingType.routes"));
 app.use("/api/printing-color", require("./routes/printingColor.routes"));
 app.use("/api/coating-type", require("./routes/coatingType.routes"));
-app.use("/api/coating-color", require("./routes/coatingColor.routes"));
-app.use("/api/text-color", require("./routes/textcolor.routes"))
+app.use("/api/text-color", require("./routes/textcolor.routes"));
+app.use("/api/operator", require("./routes/operator.routes"));
+app.use("/api/shift", require("./routes/shift.routes"));
 
 // Added testing routes for the browser
 app.get("/", (req, res) => {

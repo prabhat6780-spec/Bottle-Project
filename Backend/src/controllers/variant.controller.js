@@ -1,12 +1,5 @@
 const Variant = require("../models/Variant");
-
-let detectTextColor;
-try {
-  detectTextColor = require('../services/textColor').detectTextColor;
-} catch (error) {
-  // Silent fallback: sharp missing binaries on Windows
-  detectTextColor = async () => null;
-}
+const { detectTextColor } = require('../services/textColor');
 
 
 // ✅ CREATE
@@ -23,6 +16,21 @@ exports.createVariant = async (req, res) => {
     }
     if (body.coatingShade && typeof body.coatingShade === 'string') {
       body.coatingShade = body.coatingShade.trim();
+    }
+
+    // Duplicate check: same bottleSpecId + same variantName (case-insensitive)
+    if (body.bottleSpecId && body.variantName) {
+      const existing = await Variant.findOne({
+        bottleSpecId: body.bottleSpecId,
+        variantName: { $regex: new RegExp(`^${body.variantName.trim()}$`, 'i') },
+        isDeleted: { $ne: true }
+      });
+      if (existing) {
+        return res.status(409).json({
+          success: false,
+          message: `Variant "${body.variantName}" already exists for this bottle specification. Please use a different variant name.`
+        });
+      }
     }
 
     if (req.file) {

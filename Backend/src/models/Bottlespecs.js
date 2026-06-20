@@ -16,31 +16,50 @@ const bottleSpecSchema = new mongoose.Schema({
     type: String,   // e.g. Q20
   },
 
+  // Printing specific fields
   printingTypeId: {
     type: mongoose.Schema.Types.ObjectId,
-    ref: "PrintingType",
-    required: true
+    ref: "PrintingType"
   },
 
   printingColorId: {
     type: mongoose.Schema.Types.ObjectId,
-    ref: "PrintingColor",
-    required: true
+    ref: "PrintingColor"
   },
 
+  // Coating specific fields
   coatingTypeId: {
     type: mongoose.Schema.Types.ObjectId,
-    ref: "CoatingType",
+    ref: "CoatingType"
   },
 
-  coatingColorId: {
+  variantId: {
     type: mongoose.Schema.Types.ObjectId,
-    ref: "CoatingColor",
+    ref: "Variant",
+    default: null
+  },
+
+  coatingShade: {
+    type: String,
+    default: null
+  },
+
+  image: {
+    type: String,
+    default: null
   },
 
   status: {
     type: Boolean,
     default: true
+  },
+  isCoating: {
+    type: Boolean,
+    default: false
+  },
+  isPrinting: {
+    type: Boolean,
+    default: false
   },
   isDeleted: {
     type: Boolean,

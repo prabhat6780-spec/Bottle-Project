@@ -1,50 +1,75 @@
 const CoatingProduction = require("../models/CoatingProduction");
-const mongoose = require("mongoose");
 
 // ✅ CREATE
 const addProduction = async (req, res) => {
   try {
-    const { unit, variantId, brandId, bottleSpecId, operatorName, actualQuantity, rejectionQuantity, totalActualCoatedBottle, totalBottleCoated, date: reqDate } = req.body;
+    const {
+      unit,
+      brandId,
+      coatingSpecId,
+      coatingShade,
+      shift,
+      operatorId,
+      actualQuantity,
+      rejectionQuantity,
+      bottlePerBox,
+      rejectionReason,
+      totalActualCoatedBottle,
+      totalBottleCoated,
+      date: reqDate
+    } = req.body;
 
-    if (!unit || !variantId || !brandId || !bottleSpecId || !operatorName || actualQuantity === undefined || rejectionQuantity === undefined || totalActualCoatedBottle === undefined || totalBottleCoated === undefined) {
-      return res.status(400).json({
-        message: "All fields are required",
-      });
+    if (
+      !unit ||
+      !brandId ||
+      !coatingSpecId ||
+      !coatingShade ||
+      !shift ||
+      !operatorId ||
+      !bottlePerBox ||
+      actualQuantity === undefined ||
+      rejectionQuantity === undefined
+    ) {
+      return res.status(400).json({ message: "All required fields must be provided" });
     }
 
     const date = reqDate || new Date().toISOString().split("T")[0];
 
-    // Prevent duplicate entry for same variant + date + unit
-    const exists = await CoatingProduction.findOne({ unit, variantId, date, isDeleted: { $ne: true } });
+    // Prevent duplicate entry for same coatingSpec + date + unit + shift
+    const exists = await CoatingProduction.findOne({ unit, coatingSpecId, date, shift, isDeleted: { $ne: true } });
     if (exists) {
       return res.status(400).json({
-        message: `Coating production already exists for this variant in Unit ${unit} today`,
+        message: `Coating production for Shift ${shift} already exists for this spec in Unit ${unit} on ${date}`,
       });
     }
 
     const production = await CoatingProduction.create({
       unit,
-      variantId,
       brandId,
-      bottleSpecId,
-      operatorName,
+      coatingSpecId,
+      coatingShade,
+      shift,
+      operatorId,
       date,
       actualQuantity,
       rejectionQuantity,
+      bottlePerBox,
+      rejectionReason,
       totalActualCoatedBottle,
       totalBottleCoated
     });
 
     const populated = await CoatingProduction.findById(production._id)
-      .populate("variantId")
       .populate({
         path: "brandId",
         populate: { path: "companyId" }
       })
       .populate({
-        path: "bottleSpecId",
-        populate: ["printingTypeId", "printingColorId", "coatingTypeId", "coatingColorId"]
-      });
+        path: "coatingSpecId",
+        populate: ["coatingTypeId"]
+      })
+      .populate("shift")
+      .populate("operatorId");
 
     res.status(201).json({ success: true, data: populated });
 
@@ -58,11 +83,10 @@ const getAllProduction = async (req, res) => {
   try {
     const {
       unit,
-      variantId,
-      companyId,
       brandId,
-      bottleSpecId,
+      coatingSpecId,
       date,
+      companyId,
       search = "",
       limit = 10,
       page = 1,
@@ -78,11 +102,28 @@ const getAllProduction = async (req, res) => {
     let filter = { isDeleted: { $ne: true } };
 
     if (unit) filter.unit = Number(unit);
-    if (variantId) filter.variantId = variantId;
+    if (req.query.shift) filter.shift = req.query.shift;
     if (brandId) filter.brandId = brandId;
-    if (bottleSpecId) filter.bottleSpecId = bottleSpecId;
     if (date) filter.date = date;
-    
+
+    if (req.query.variantId) {
+      const BottleSpec = require("../models/Bottlespecs");
+      const specsWithVariant = await BottleSpec.find({ variantId: req.query.variantId }).select('_id');
+      const specIds = specsWithVariant.map(s => s._id);
+      
+      if (coatingSpecId) {
+         if (!specIds.map(id => id.toString()).includes(coatingSpecId.toString())) {
+             filter.coatingSpecId = null; // Force empty result
+         } else {
+             filter.coatingSpecId = coatingSpecId;
+         }
+      } else {
+         filter.coatingSpecId = { $in: specIds };
+      }
+    } else if (coatingSpecId) {
+      filter.coatingSpecId = coatingSpecId;
+    }
+
     if (startDate || endDate) {
       filter.date = {};
       if (startDate) filter.date.$gte = startDate;
@@ -90,15 +131,16 @@ const getAllProduction = async (req, res) => {
     }
 
     let productions = await CoatingProduction.find(filter)
-      .populate("variantId")
       .populate({
         path: "brandId",
         populate: { path: "companyId" }
       })
       .populate({
-        path: "bottleSpecId",
-        populate: ["printingTypeId", "printingColorId", "coatingTypeId", "coatingColorId"]
+        path: "coatingSpecId",
+        populate: ["coatingTypeId"]
       })
+      .populate("shift")
+      .populate("operatorId")
       .sort({ createdAt: -1 });
 
     if (companyId) {
@@ -110,16 +152,18 @@ const getAllProduction = async (req, res) => {
       productions = productions.filter((p) => {
         const brandName = p.brandId?.name?.toLowerCase() || "";
         const companyName = p.brandId?.companyId?.name?.toLowerCase() || "";
-        const variantName = p.variantId?.variantName?.toLowerCase() || "";
-        const bottleName = p.bottleSpecId?.bottleName?.toLowerCase() || "";
-        const opName = p.operatorName?.toLowerCase() || "";
+        const bottleName = p.coatingSpecId?.bottleName?.toLowerCase() || "";
+        const opName = p.operatorId?.name?.toLowerCase() || "";
+        const shade = p.coatingShade?.toLowerCase() || "";
+        const shiftName = p.shift?.name?.toLowerCase() || "";
 
         return (
           brandName.includes(searchText) ||
           companyName.includes(searchText) ||
-          variantName.includes(searchText) ||
           bottleName.includes(searchText) ||
-          opName.includes(searchText)
+          opName.includes(searchText) ||
+          shade.includes(searchText) ||
+          shiftName.includes(searchText)
         );
       });
     }
@@ -127,11 +171,7 @@ const getAllProduction = async (req, res) => {
     const total = productions.length;
 
     if (pagination === "false") {
-      return res.json({
-        success: true,
-        data: productions,
-        total,
-      });
+      return res.json({ success: true, data: productions, total });
     }
 
     const paginatedProductions = productions.slice(skip, skip + parsedLimit);
@@ -153,15 +193,16 @@ const getSingleProduction = async (req, res) => {
   try {
     const { id } = req.params;
     const production = await CoatingProduction.findById(id)
-      .populate("variantId")
       .populate({
         path: "brandId",
         populate: { path: "companyId" }
       })
       .populate({
-        path: "bottleSpecId",
-        populate: ["printingTypeId", "printingColorId", "coatingTypeId", "coatingColorId"]
-      });
+        path: "coatingSpecId",
+        populate: ["coatingTypeId"]
+      })
+      .populate("shift")
+      .populate("operatorId");
 
     if (!production || production.isDeleted) {
       return res.status(404).json({ message: "Production log not found" });
@@ -177,41 +218,46 @@ const getSingleProduction = async (req, res) => {
 const updateProduction = async (req, res) => {
   try {
     const { id } = req.params;
-    const { unit, variantId, brandId, bottleSpecId, operatorName, actualQuantity, rejectionQuantity, totalActualCoatedBottle, totalBottleCoated, date } = req.body;
+    const {
+      unit, brandId, coatingSpecId, coatingShade, shift, operatorId,
+      actualQuantity, rejectionQuantity, totalActualCoatedBottle,
+      totalBottleCoated, date, bottlePerBox, rejectionReason
+    } = req.body;
 
     const existingProduction = await CoatingProduction.findById(id);
     if (!existingProduction || existingProduction.isDeleted) {
       return res.status(404).json({ message: "Production log not found" });
     }
 
-    if (unit && variantId && date) {
+    if (unit && coatingSpecId && date && shift) {
       const duplicate = await CoatingProduction.findOne({
         _id: { $ne: id },
         unit,
-        variantId,
+        coatingSpecId,
         date,
+        shift,
         isDeleted: { $ne: true }
       });
-
       if (duplicate) {
-        return res.status(400).json({ message: `Coating production already exists for this variant in Unit ${unit} on ${date}` });
+        return res.status(400).json({ message: `Coating production for Shift ${shift} already exists for this spec in Unit ${unit} on ${date}` });
       }
     }
 
     const updated = await CoatingProduction.findByIdAndUpdate(
       id,
-      { unit, variantId, brandId, bottleSpecId, operatorName, actualQuantity, rejectionQuantity, totalActualCoatedBottle, totalBottleCoated, date },
+      { unit, brandId, coatingSpecId, coatingShade, shift, operatorId, actualQuantity, rejectionQuantity, totalActualCoatedBottle, totalBottleCoated, date, bottlePerBox, rejectionReason },
       { new: true }
     )
-      .populate("variantId")
       .populate({
         path: "brandId",
         populate: { path: "companyId" }
       })
       .populate({
-        path: "bottleSpecId",
-        populate: ["printingTypeId", "printingColorId", "coatingTypeId", "coatingColorId"]
-      });
+        path: "coatingSpecId",
+        populate: ["coatingTypeId"]
+      })
+      .populate("shift")
+      .populate("operatorId");
 
     res.status(200).json({ success: true, data: updated });
   } catch (err) {
@@ -224,7 +270,7 @@ const deleteProduction = async (req, res) => {
   try {
     const { id } = req.params;
     const production = await CoatingProduction.findByIdAndUpdate(id, { isDeleted: true }, { new: true });
-    
+
     if (!production) {
       return res.status(404).json({ message: "Production log not found" });
     }
