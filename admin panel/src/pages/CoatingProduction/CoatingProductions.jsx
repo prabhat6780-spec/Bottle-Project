@@ -234,7 +234,7 @@ export default function CoatingProductions() {
           'Total Boxes': totalBoxes,
           'Extra Bottles': extraBottles,
           'Rejection Reason': p.rejectionReason || 'N/A',
-          'Rejection Percentage': p.rejectionPercentage || '0.00'
+          'Rejection Percentage': p.totalBottleCoated > 0 ? `${((Number(p.rejectionQuantity) || 0) / Number(p.totalBottleCoated) * 100).toFixed(2)}%` : '0.00%'
         };
       });
 

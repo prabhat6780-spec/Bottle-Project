@@ -232,8 +232,29 @@ exports.getBottleCodes = async (req, res) => {
 // POST /api/bottle-spec/migrate-flags
 exports.migrateFlags = async (req, res) => {
   try {
-    // Records with no isPrinting AND no isCoating are old printing specs — mark them isPrinting=true
-    const result = await BottleSpec.updateMany(
+    // Records with coatingTypeId set → they are coating specs
+    const coatingResult = await BottleSpec.updateMany(
+      {
+        isDeleted: { $ne: true },
+        isCoating: { $ne: true },
+        coatingTypeId: { $exists: true, $ne: null }
+      },
+      { $set: { isCoating: true, isPrinting: false } }
+    );
+
+    // Records with printingTypeId set (and no coatingTypeId) → printing specs
+    const printingResult = await BottleSpec.updateMany(
+      {
+        isDeleted: { $ne: true },
+        isPrinting: { $ne: true },
+        isCoating: { $ne: true },
+        printingTypeId: { $exists: true, $ne: null }
+      },
+      { $set: { isPrinting: true } }
+    );
+
+    // Remaining records with neither flag → treat as printing specs
+    const remainingResult = await BottleSpec.updateMany(
       {
         isDeleted: { $ne: true },
         isPrinting: { $ne: true },
@@ -241,9 +262,15 @@ exports.migrateFlags = async (req, res) => {
       },
       { $set: { isPrinting: true } }
     );
+
     res.json({
       success: true,
-      message: `Migration complete. ${result.modifiedCount} records updated with isPrinting=true.`
+      message: `Migration complete.`,
+      details: {
+        coatingSpecsUpdated: coatingResult.modifiedCount,
+        printingSpecsUpdated: printingResult.modifiedCount,
+        remainingUpdated: remainingResult.modifiedCount
+      }
     });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });

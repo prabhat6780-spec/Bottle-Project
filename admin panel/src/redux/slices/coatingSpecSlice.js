@@ -7,18 +7,48 @@ export const fetchCoatingSpecs = createAsyncThunk(
   async (params, { rejectWithValue }) => {
     try {
       const queryParams = new URLSearchParams(params || {});
-      // Only apply the coating type filter when the caller hasn't specified a type.
-      // Forms that fetch all specs for bottle name suggestions should pass type:'all'
-      // or simply not pass a type to get everything.
-      if (!queryParams.has('type')) {
-        queryParams.set('type', 'coating');
+      // Remove type filter — fetch all specs without backend type filtering.
+      // Works for old live data (no isCoating flag) and new data (isCoating:true).
+      queryParams.delete('type');
+
+      // If paginated fetch, always use pagination:false so we can filter client-side
+      // then re-paginate. For list pages that pass explicit page/limit we slice manually.
+      const isPaginated = queryParams.get('pagination') !== 'false';
+      const requestedPage = parseInt(queryParams.get('page') || '1');
+      const requestedLimit = parseInt(queryParams.get('limit') || '10');
+
+      if (isPaginated) {
+        // Fetch all so we can filter coating specs accurately, then paginate client-side
+        queryParams.set('pagination', 'false');
+        queryParams.delete('page');
+        queryParams.delete('limit');
       }
-      // 'all' is a special value meaning no type filter — remove it before sending
-      if (queryParams.get('type') === 'all') {
-        queryParams.delete('type');
-      }
+
       const url = `/bottle-spec?${queryParams.toString()}`;
       const response = await API.get(url);
+
+      if (response.data?.success && Array.isArray(response.data?.data)) {
+        // Filter: coating specs have a coatingTypeId set (works for old + new data)
+        const coatingOnly = response.data.data.filter(
+          s => s.coatingTypeId !== null && s.coatingTypeId !== undefined
+        );
+
+        if (!isPaginated) {
+          return { ...response.data, data: coatingOnly, total: coatingOnly.length };
+        }
+
+        // Re-paginate client-side
+        const total = coatingOnly.length;
+        const skip = (requestedPage - 1) * requestedLimit;
+        const paged = coatingOnly.slice(skip, skip + requestedLimit);
+        return {
+          success: true,
+          data: paged,
+          total,
+          page: requestedPage,
+          totalPages: Math.ceil(total / requestedLimit)
+        };
+      }
       return response.data;
     } catch (error) {
       return rejectWithValue(error.response?.data?.message || "Failed to fetch specs");
