@@ -25,6 +25,14 @@ export default function EditProduction() {
   const { productions, loading } = useSelector((state) => state.productions);
   const { user: authUser } = useSelector((state) => state.auth);
 
+  const hasDateValidation = (user, permissionName) => {
+    if (typeof user?.role === 'object' && Array.isArray(user.role.permissions)) {
+      return user.role.permissions.some(p => (p.name || p) === permissionName);
+    }
+    return false;
+  };
+  const enforceValidation = hasDateValidation(authUser, 'production-date-validation');
+
   // Admins can edit any date; regular users are restricted to yesterday/today/tomorrow
   const isAdmin = getIsAdmin(authUser);
 
@@ -135,8 +143,10 @@ export default function EditProduction() {
         totalPrinted: record.totalPrinted || '',
         bottlePerBox: record.bottlePerBox || 50,
       });
-      // Admins are never locked out of any record, regardless of date
-      if (!isAdmin && recordDate && recordDate < minDate) {
+      // If the permission is ON, the lock is ENABLED for old records.
+      // If the permission is OFF, the lock is DISABLED (anyone can edit).
+      const hasLockPermission = hasDateValidation(authUser, 'production-record-unlock');
+      if (hasLockPermission && recordDate && recordDate < minDate) {
         setIsLocked(true);
       } else {
         setIsLocked(false);
@@ -311,7 +321,7 @@ export default function EditProduction() {
                       name="date"
                       className={`form-control custom-input-field ${errors.date ? 'is-invalid' : ''}`}
                       required
-                      {...(!isAdmin && { min: minDate, max: maxDate })}
+                      {...(enforceValidation && { min: minDate, max: maxDate })}
                       value={formData.date}
                       onChange={handleChange}
                       onBlur={handleBlur}

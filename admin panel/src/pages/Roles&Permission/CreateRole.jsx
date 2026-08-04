@@ -96,6 +96,10 @@ export default function CreateRole() {
     if (subject === 'bottlespecdetail') subject = 'bottlespec';
     if (subject === 'productiondetail') subject = 'production';
     if (subject === 'coatingproductiondetail') subject = 'coatingproduction';
+    if (p.name === 'production-date-validation') subject = 'production';
+    if (p.name === 'coating-production-date-validation') subject = 'coatingproduction';
+    if (p.name === 'production-record-unlock') subject = 'production';
+    if (p.name === 'coating-production-record-unlock') subject = 'coatingproduction';
 
     if (!acc[subject]) acc[subject] = [];
     acc[subject].push(p);

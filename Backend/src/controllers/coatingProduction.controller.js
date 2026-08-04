@@ -1,5 +1,48 @@
 const CoatingProduction = require("../models/CoatingProduction");
 
+const hasDateValidationPermission = (user, permissionName) => {
+  if (user && user.role && Array.isArray(user.role.permissions)) {
+    return user.role.permissions.some(p => p.name === permissionName);
+  }
+  return false;
+};
+
+const validateDateConstraint = (user, date, permissionName) => {
+  if (hasDateValidationPermission(user, permissionName)) {
+    const today = new Date();
+    const tomorrow = new Date(today);
+    tomorrow.setDate(today.getDate() + 1);
+    const maxDate = tomorrow.toISOString().split('T')[0];
+
+    const yesterday = new Date(today);
+    yesterday.setDate(today.getDate() - 1);
+    const minDate = yesterday.toISOString().split('T')[0];
+
+    if (date < minDate || date > maxDate) {
+      return false;
+    }
+  }
+  return true;
+};
+
+const checkRecordLockConstraint = (user, existingDate, unlockPermissionName) => {
+  const hasLockPermission = user && user.role && Array.isArray(user.role.permissions) && user.role.permissions.some(p => p.name === unlockPermissionName);
+  
+  if (!hasLockPermission) return true; // Permission OFF -> No lock, can edit any record.
+
+  const today = new Date();
+  const yesterday = new Date(today);
+  yesterday.setDate(today.getDate() - 1);
+  const minDate = yesterday.toISOString().split('T')[0];
+
+  const recordDate = new Date(existingDate).toISOString().split('T')[0];
+
+  if (recordDate < minDate) {
+    return false; // Permission ON -> Old records are locked.
+  }
+  return true;
+};
+
 // ✅ CREATE
 const addProduction = async (req, res) => {
   try {
@@ -34,6 +77,10 @@ const addProduction = async (req, res) => {
     }
 
     const date = reqDate || new Date().toISOString().split("T")[0];
+
+    if (!validateDateConstraint(req.user, date, 'coating-production-date-validation')) {
+      return res.status(400).json({ message: "Invalid date. You are only allowed to select Yesterday, Today, or Tomorrow." });
+    }
 
     // Prevent duplicate entry for same coatingSpec + date + unit + shift
     const exists = await CoatingProduction.findOne({ unit, coatingSpecId, date, shift, isDeleted: { $ne: true } });
@@ -110,15 +157,15 @@ const getAllProduction = async (req, res) => {
       const BottleSpec = require("../models/Bottlespecs");
       const specsWithVariant = await BottleSpec.find({ variantId: req.query.variantId }).select('_id');
       const specIds = specsWithVariant.map(s => s._id);
-      
+
       if (coatingSpecId) {
-         if (!specIds.map(id => id.toString()).includes(coatingSpecId.toString())) {
-             filter.coatingSpecId = null; // Force empty result
-         } else {
-             filter.coatingSpecId = coatingSpecId;
-         }
+        if (!specIds.map(id => id.toString()).includes(coatingSpecId.toString())) {
+          filter.coatingSpecId = null; // Force empty result
+        } else {
+          filter.coatingSpecId = coatingSpecId;
+        }
       } else {
-         filter.coatingSpecId = { $in: specIds };
+        filter.coatingSpecId = { $in: specIds };
       }
     } else if (coatingSpecId) {
       filter.coatingSpecId = coatingSpecId;
@@ -227,6 +274,14 @@ const updateProduction = async (req, res) => {
     const existingProduction = await CoatingProduction.findById(id);
     if (!existingProduction || existingProduction.isDeleted) {
       return res.status(404).json({ message: "Production log not found" });
+    }
+
+    if (!checkRecordLockConstraint(req.user, existingProduction.date, 'coating-production-record-unlock')) {
+      return res.status(403).json({ message: "Record Locked - This production record is older than yesterday and can no longer be edited." });
+    }
+
+    if (date && date !== existingProduction.date && !validateDateConstraint(req.user, date, 'coating-production-date-validation')) {
+      return res.status(400).json({ message: "Invalid date. You are only allowed to select Yesterday, Today, or Tomorrow." });
     }
 
     if (unit && coatingSpecId && date && shift) {

@@ -10,9 +10,11 @@ import API from '../../services/api';
 import Swal from 'sweetalert2';
 import SearchableSelect from '../../components/SearchableSelect';
 
-const getIsAdmin = (user) => {
-  const roleName = typeof user?.role === 'object' ? user?.role?.name : user?.role;
-  return roleName?.toLowerCase() === 'admin';
+const hasDateValidation = (user, permissionName) => {
+  if (typeof user?.role === 'object' && Array.isArray(user.role.permissions)) {
+    return user.role.permissions.some(p => (p.name || p) === permissionName);
+  }
+  return false;
 };
 
 export default function AddProduction() {
@@ -20,7 +22,7 @@ export default function AddProduction() {
   const dispatch = useDispatch();
 
   const { user: authUser } = useSelector((state) => state.auth);
-  const isAdmin = getIsAdmin(authUser);
+  const enforceValidation = hasDateValidation(authUser, 'production-date-validation');
 
   const { brands } = useSelector((state) => state.brands);
   const { bottleSpecs: specs } = useSelector((state) => state.bottleSpecs);
@@ -540,7 +542,7 @@ export default function AddProduction() {
                         name="date"
                         className={`form-control custom-input-field ${errors.date ? 'is-invalid' : ''}`}
                         required
-                        {...(!isAdmin && { min: minDate, max: maxDate })}
+                        {...(enforceValidation && { min: minDate, max: maxDate })}
                         value={formData.date}
                         onChange={handleChange}
                         onBlur={handleBlur}

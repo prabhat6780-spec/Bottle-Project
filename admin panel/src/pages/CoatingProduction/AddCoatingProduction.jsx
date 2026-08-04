@@ -12,9 +12,11 @@ import SearchableSelect from '../../components/SearchableSelect';
 import CreatableSelect from 'react-select/creatable';
 import { V_URL } from '../../../Baseurl.js';
 
-const getIsAdmin = (user) => {
-  const roleName = typeof user?.role === 'object' ? user?.role?.name : user?.role;
-  return roleName?.toLowerCase() === 'admin';
+const hasDateValidation = (user, permissionName) => {
+  if (typeof user?.role === 'object' && Array.isArray(user.role.permissions)) {
+    return user.role.permissions.some(p => (p.name || p) === permissionName);
+  }
+  return false;
 };
 
 export default function AddCoatingProduction() {
@@ -23,7 +25,7 @@ export default function AddCoatingProduction() {
   const dispatch = useDispatch();
 
   const { user: authUser } = useSelector((state) => state.auth);
-  const isAdmin = getIsAdmin(authUser);
+  const enforceValidation = hasDateValidation(authUser, 'coating-production-date-validation');
 
   const { companies } = useSelector((state) => state.companies);
   const { brands } = useSelector((state) => state.brands);
@@ -352,7 +354,7 @@ export default function AddCoatingProduction() {
                       name="date"
                       className={`form-control custom-input-field ${errors.date ? 'is-invalid' : ''}`}
                       required
-                      {...(!isAdmin && { min: minDate, max: maxDate })}
+                      {...(enforceValidation && { min: minDate, max: maxDate })}
                       value={formData.date}
                       onChange={handleChange}
                       onBlur={handleBlur}

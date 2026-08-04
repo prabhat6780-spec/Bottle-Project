@@ -1,4 +1,7 @@
 const BottleSpec = require("../models/Bottlespecs");
+const Variant = require("../models/Variant");
+const Brand = require("../models/Brand");
+const Company = require("../models/Company");
 
 // CREATE
 exports.createSpec = async (req, res) => {
@@ -104,10 +107,40 @@ exports.getSpecs = async (req, res) => {
 
     if (search && search.trim() !== "") {
       const regex = new RegExp(search.trim(), "i");
+      
+      const matchingCompanies = await Company.find({
+        isDeleted: { $ne: true },
+        name: { $regex: regex }
+      }).select('_id');
+      const companyIds = matchingCompanies.map(c => c._id);
+
+      const matchingBrands = await Brand.find({
+        isDeleted: { $ne: true },
+        $or: [
+          { name: { $regex: regex } },
+          { companyId: { $in: companyIds } }
+        ]
+      }).select('_id');
+      const brandIds = matchingBrands.map(b => b._id);
+
+      const matchingVariants = await Variant.find({
+        isDeleted: { $ne: true },
+        $or: [
+          { variantName: { $regex: regex } },
+          { variantSize: { $regex: regex } }
+        ]
+      }).select('_id bottleSpecId');
+      
+      const variantIds = matchingVariants.map(v => v._id);
+      const parentSpecIds = matchingVariants.map(v => v.bottleSpecId).filter(id => id);
+
       const searchCondition = {
         $or: [
           { bottleName: { $regex: regex } },
-          { code: { $regex: regex } }
+          { code: { $regex: regex } },
+          { variantId: { $in: variantIds } },
+          { _id: { $in: parentSpecIds } },
+          { brandId: { $in: brandIds } }
         ]
       };
       // Merge search with existing $and (type filter) if present, otherwise use $or directly

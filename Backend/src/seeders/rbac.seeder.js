@@ -21,15 +21,20 @@ const seedRBAC = async () => {
       "create-company", "edit-company", "delete-company", "sidebar-company", "read-company",
       "create-operator", "edit-operator", "delete-operator", "sidebar-operator", "read-operator",
       "create-shift", "edit-shift", "delete-shift", "sidebar-shift", "read-shift",
-      "use-vision", "manage-all"
+      "use-vision", "manage-all",
+      "production-date-validation", "coating-production-date-validation",
+      "production-record-unlock", "coating-production-record-unlock"
     ];
 
-    // Create permissions if they don't exist
+    // Create permissions if they don't exist, and restore if softly deleted
     const permissions = await Promise.all(
       permissionsData.map(async (name) => {
         let p = await Permission.findOne({ name });
         if (!p) {
-          p = await Permission.create({ name });
+          p = await Permission.create({ name, isDeleted: false });
+        } else if (p.isDeleted) {
+          p.isDeleted = false;
+          await p.save();
         }
         return p;
       })

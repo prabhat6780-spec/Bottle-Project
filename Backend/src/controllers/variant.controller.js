@@ -1,4 +1,7 @@
 const Variant = require("../models/Variant");
+const BottleSpec = require("../models/Bottlespecs");
+const Brand = require("../models/Brand");
+const Company = require("../models/Company");
 const { detectTextColor } = require('../services/textColor');
 
 
@@ -78,9 +81,36 @@ exports.getVariants = async (req, res) => {
 
     if (search && search.trim() !== "") {
       const regex = new RegExp(search.trim(), "i");
+      
+      const matchingCompanies = await Company.find({
+        isDeleted: { $ne: true },
+        name: { $regex: regex }
+      }).select('_id');
+      const companyIds = matchingCompanies.map(c => c._id);
+
+      const matchingBrands = await Brand.find({
+        isDeleted: { $ne: true },
+        $or: [
+          { name: { $regex: regex } },
+          { companyId: { $in: companyIds } }
+        ]
+      }).select('_id');
+      const brandIds = matchingBrands.map(b => b._id);
+
+      const matchingSpecs = await BottleSpec.find({
+        isDeleted: { $ne: true },
+        $or: [
+          { bottleName: { $regex: regex } },
+          { code: { $regex: regex } },
+          { brandId: { $in: brandIds } }
+        ]
+      }).select('_id');
+      const specIds = matchingSpecs.map(s => s._id);
+
       query.$or = [
         { variantName: { $regex: regex } },
-        { variantSize: { $regex: regex } }
+        { variantSize: { $regex: regex } },
+        { bottleSpecId: { $in: specIds } }
       ];
     }
 

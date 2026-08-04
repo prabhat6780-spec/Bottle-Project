@@ -1,6 +1,48 @@
 const Production = require("../models/Production");
 const mongoose = require("mongoose");
 
+const hasDateValidationPermission = (user, permissionName) => {
+  if (user && user.role && Array.isArray(user.role.permissions)) {
+    return user.role.permissions.some(p => p.name === permissionName);
+  }
+  return false;
+};
+
+const validateDateConstraint = (user, date, permissionName) => {
+  if (hasDateValidationPermission(user, permissionName)) {
+    const today = new Date();
+    const tomorrow = new Date(today);
+    tomorrow.setDate(today.getDate() + 1);
+    const maxDate = tomorrow.toISOString().split('T')[0];
+
+    const yesterday = new Date(today);
+    yesterday.setDate(today.getDate() - 1);
+    const minDate = yesterday.toISOString().split('T')[0];
+
+    if (date < minDate || date > maxDate) {
+      return false;
+    }
+  }
+  return true;
+};
+
+const checkRecordLockConstraint = (user, existingDate, unlockPermissionName) => {
+  const hasLockPermission = user && user.role && Array.isArray(user.role.permissions) && user.role.permissions.some(p => p.name === unlockPermissionName);
+  
+  if (!hasLockPermission) return true; // Permission OFF -> No lock, can edit any record.
+
+  const today = new Date();
+  const yesterday = new Date(today);
+  yesterday.setDate(today.getDate() - 1);
+  const minDate = yesterday.toISOString().split('T')[0];
+
+  const recordDate = new Date(existingDate).toISOString().split('T')[0];
+
+  if (recordDate < minDate) {
+    return false; // Permission ON -> Old records are locked.
+  }
+  return true;
+};
 
 // ✅ CREATE (with duplicate prevention)
 const addProduction = async (req, res) => {
@@ -14,6 +56,10 @@ const addProduction = async (req, res) => {
     }
 
     const date = reqDate || new Date().toISOString().split("T")[0];
+
+    if (!validateDateConstraint(req.user, date, 'production-date-validation')) {
+      return res.status(400).json({ message: "Invalid date. You are only allowed to select Yesterday, Today, or Tomorrow." });
+    }
 
     // 🚫 Prevent duplicate entry for same variant + date
     const exists = await Production.findOne({ variantId, date, isDeleted: { $ne: true } });
@@ -298,6 +344,19 @@ const getProductionById = async (req, res) => {
 const updateProduction = async (req, res) => {
   try {
     const { totalPrinted, bottlePerBox, date, brandId, bottleSpecId, variantId } = req.body;
+
+    const existingProduction = await Production.findById(req.params.id);
+    if (!existingProduction) {
+      return res.status(404).json({ message: "Production not found" });
+    }
+
+    if (!checkRecordLockConstraint(req.user, existingProduction.date, 'production-record-unlock')) {
+      return res.status(403).json({ message: "Record Locked - This production record is older than yesterday and can no longer be edited." });
+    }
+
+    if (date && date !== existingProduction.date && !validateDateConstraint(req.user, date, 'production-date-validation')) {
+      return res.status(400).json({ message: "Invalid date. You are only allowed to select Yesterday, Today, or Tomorrow." });
+    }
 
     if (!totalPrinted || !bottlePerBox) {
       return res.status(400).json({

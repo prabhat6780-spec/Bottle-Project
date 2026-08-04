@@ -30,6 +30,14 @@ export default function EditCoatingProduction() {
   const { operators } = useSelector((state) => state.operators);
   const { shifts } = useSelector((state) => state.shifts);
 
+  const hasDateValidation = (user, permissionName) => {
+    if (typeof user?.role === 'object' && Array.isArray(user.role.permissions)) {
+      return user.role.permissions.some(p => (p.name || p) === permissionName);
+    }
+    return false;
+  };
+  const enforceValidation = hasDateValidation(authUser, 'coating-production-date-validation');
+
   const isAdmin = getIsAdmin(authUser);
 
   const today = new Date();
@@ -91,7 +99,10 @@ export default function EditCoatingProduction() {
         bottlePerBox: record.bottlePerBox || '',
         rejectionReason: record.rejectionReason || '',
       });
-      if (!isAdmin && recordDate && recordDate < minDate) {
+      // If the permission is ON, the lock is ENABLED for old records.
+      // If the permission is OFF, the lock is DISABLED (anyone can edit).
+      const hasLockPermission = hasDateValidation(authUser, 'coating-production-record-unlock');
+      if (hasLockPermission && recordDate && recordDate < minDate) {
         setIsLocked(true);
       } else {
         setIsLocked(false);
@@ -180,6 +191,15 @@ export default function EditCoatingProduction() {
     const shiftError = validateField('shift', formData.shift);
     const printedError = validateField('actualQuantity', formData.actualQuantity);
     const bottleError = validateField('bottlePerBox', formData.bottlePerBox);
+
+    const record = productions.find(p => p._id === id);
+    const originalDate = record?.date ? new Date(record.date).toISOString().split('T')[0] : '';
+
+    if (enforceValidation && formData.date !== originalDate) {
+      if (formData.date < minDate || formData.date > maxDate) {
+        return Swal.fire('Validation Error', 'Invalid date. You are only allowed to select Yesterday, Today, or Tomorrow.', 'error');
+      }
+    }
 
     if (brandError || specError || shadeError || dateError || opError || shiftError || printedError || bottleError) {
       return Swal.fire('Validation Error', 'Please fill all required fields.', 'error');
@@ -379,7 +399,7 @@ export default function EditCoatingProduction() {
 
                     <div className="col-md-4">
                       <label className="form-label fw-600 small text-uppercase text-muted">Production Date <span className="text-danger">*</span></label>
-                      <input type="date" name="date" className={`form-control custom-input-field ${errors.date ? 'is-invalid' : ''}`} required {...(!isAdmin && { min: minDate, max: maxDate })} value={formData.date} onChange={handleChange} onBlur={handleBlur} style={{ borderRadius: 12 }} />
+                      <input type="date" name="date" className={`form-control custom-input-field ${errors.date ? 'is-invalid' : ''}`} required {...(enforceValidation && { min: minDate, max: maxDate })} value={formData.date} onChange={handleChange} onBlur={handleBlur} style={{ borderRadius: 12 }} />
                       {errors.date && <div className="invalid-feedback">{errors.date}</div>}
                     </div>
 
@@ -448,7 +468,7 @@ export default function EditCoatingProduction() {
 
                 <div className="d-flex gap-2 mt-5 user-form-actions">
                   {!isLocked && (
-                    <button type="submit" className="btn-accent px-5 py-3 flex-grow-1" disabled={loading}>
+                    <button type="submit" formNoValidate className="btn-accent px-5 py-3 flex-grow-1" disabled={loading}>
                       {loading ? <><span className="spinner-border spinner-border-sm me-2" />Updating...</> : <><i className="bi bi-check2-circle me-2" /> Update Coating Production Log</>}
                     </button>
                   )}
