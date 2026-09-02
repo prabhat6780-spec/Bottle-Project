@@ -15,9 +15,13 @@ import roleReducer from './slices/roleSlice';
 import userReducer from './slices/userSlice';
 import variantReducer from './slices/variantSlice';
 import visionReducer from './slices/visionSlice';
+import formulaReducer from './slices/formulaSlice';
+import rawMaterialReducer from './slices/rawMaterialSlice';
+import sgLabelReducer from './slices/sgLabelSlice';
 
 import operatorReducer from './slices/operatorSlice';
 import shiftReducer from './slices/shiftSlice';
+import stockEntryReducer from './slices/stockEntrySlice';
 
 export const store = configureStore({
   reducer: {
@@ -38,5 +42,9 @@ export const store = configureStore({
     users: userReducer,
     variants: variantReducer,
     vision: visionReducer,
+    formulas: formulaReducer,
+    rawMaterials: rawMaterialReducer,
+    sgLabels: sgLabelReducer,
+    stockEntries: stockEntryReducer,
   },
 });

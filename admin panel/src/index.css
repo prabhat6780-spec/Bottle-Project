@@ -870,7 +870,7 @@ body {
   background: var(--card-bg);
   border: 1px solid var(--card-border);
   border-radius: 16px;
-  overflow: hidden;
+  overflow: visible;
 }
 
 .dash-card-header {
@@ -879,6 +879,8 @@ body {
   justify-content: space-between;
   padding: 18px 22px;
   border-bottom: 1px solid var(--card-border);
+  border-top-left-radius: 16px;
+  border-top-right-radius: 16px;
 }
 
 .dash-card-title {
@@ -1158,6 +1160,24 @@ body {
   border-color: var(--accent);
   color: var(--accent);
   background: rgba(99, 102, 241, 0.08);
+}
+
+/* Print Styles */
+@media screen {
+  .print-only {
+    display: none !important;
+  }
+}
+
+@media print {
+  body, html {
+    margin: 0;
+    padding: 0;
+    background: white;
+  }
+  .no-print, .sidebar, .navbar {
+    display: none !important;
+  }
 }
 
 /* Toggle */

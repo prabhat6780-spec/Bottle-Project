@@ -64,6 +64,7 @@ export const deleteCoatingProduction = createAsyncThunk(
 const coatingProductionSlice = createSlice({
   name: "coatingProductions",
   initialState: {
+    searchTerm: "",
     coatingProductions: [],
     singleProduction: null,
     loading: false,
@@ -73,6 +74,7 @@ const coatingProductionSlice = createSlice({
     total: 0,
   },
   reducers: {
+    setSearchTerm: (state, action) => { state.searchTerm = action.payload; },
     clearCoatingProductions: (state) => {
       state.coatingProductions = [];
     },
@@ -163,5 +165,5 @@ const coatingProductionSlice = createSlice({
   },
 });
 
-export const { clearCoatingProductions, clearSingleCoatingProduction } = coatingProductionSlice.actions;
+export const { clearCoatingProductions, clearSingleCoatingProduction, setSearchTerm } = coatingProductionSlice.actions;
 export default coatingProductionSlice.reducer;

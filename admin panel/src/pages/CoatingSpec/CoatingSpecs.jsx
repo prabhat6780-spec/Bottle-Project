@@ -1,19 +1,20 @@
 import { useState, useEffect } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
-import { fetchCoatingSpecs, deleteCoatingSpec } from '../../redux/slices/coatingSpecSlice';
+import { fetchCoatingSpecs, deleteCoatingSpec, setSearchTerm } from '../../redux/slices/coatingSpecSlice';
 import { Can } from '../../context/AbilityContext';
 import Swal from 'sweetalert2';
 import { V_URL } from '../../../Baseurl.js';
 
 export default function CoatingSpecs() {
   const dispatch = useDispatch();
-  const { coatingSpecs: specs, loading, total, totalPages } = useSelector((state) => state.coatingSpecs);
+  const { coatingSpecs: specs, loading, total, totalPages, page, searchTerm } = useSelector((state) => state.coatingSpecs);
 
   const [searchParams, setSearchParams] = useSearchParams();
-  const currentPage = Number(searchParams.get("page")) || 1;
+  const urlPage = searchParams.get('page') || '';
+  const currentPage = Number(urlPage) || page || 1;
   const [itemsPerPage, setItemsPerPage] = useState(10);
-  const [search, setSearch] = useState('');
+  const search = searchTerm || "";
 
   useEffect(() => {
     dispatch(fetchCoatingSpecs({
@@ -66,8 +67,8 @@ export default function CoatingSpecs() {
         <div className="dash-card-header d-flex align-items-center justify-content-between p-3 border-bottom bg-white companies-dash-toolbar">
           <div className="d-flex align-items-center gap-2 text-muted small fw-500">
             <span>Show</span>
-            <select 
-              className="form-select form-select-sm shadow-none border-light-subtle bg-light" 
+            <select
+              className="form-select form-select-sm shadow-none border-light-subtle bg-light"
               style={{ width: 70, borderRadius: 8, cursor: 'pointer' }}
               value={itemsPerPage}
               onChange={(e) => setItemsPerPage(Number(e.target.value))}
@@ -85,7 +86,11 @@ export default function CoatingSpecs() {
               className="form-control form-control-sm border-light-subtle bg-light ps-5 py-2 shadow-none"
               placeholder="Search specifications..."
               value={search}
-              onChange={e => { setSearch(e.target.value); setSearchParams({ page: 1 }); }}
+              onChange={(e) => {
+
+                dispatch(setSearchTerm(e.target.value));
+                setSearchParams({ page: 1 });
+              }}
               style={{ borderRadius: 10, fontSize: 13 }}
             />
           </div>
@@ -166,7 +171,7 @@ export default function CoatingSpecs() {
               </tr>
             </thead>
             <tbody>
-               {specs.map((s, index) => (
+              {specs.map((s, index) => (
                 <tr key={s._id} className="align-middle transition-all hover-bg-light border-bottom">
                   <td className="py-3 ps-5 text-start">
                     <span className="text-muted fw-bold" style={{ fontSize: 13 }}>{String((currentPage - 1) * itemsPerPage + index + 1).padStart(2, '0')}</span>

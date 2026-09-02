@@ -80,9 +80,16 @@ exports.createSpec = async (req, res) => {
 // GET
 exports.getSpecs = async (req, res) => {
   try {
-    const { page, limit, search, pagination, type } = req.query;
+    let { page, limit, search, pagination = "true", type } = req.query;
 
-    const parsedPage = parseInt(page) || 1;
+    let parsedPage = 1;
+    if (page && page !== '') {
+      parsedPage = parseInt(page) || 1;
+      res.cookie('bottleSpecsPage', parsedPage, { maxAge: 86400000, httpOnly: true });
+    } else if (req.cookies && req.cookies.bottleSpecsPage) {
+      parsedPage = parseInt(req.cookies.bottleSpecsPage) || 1;
+    }
+
     const parsedLimit = parseInt(limit) || 10;
     const skip = (parsedPage - 1) * parsedLimit;
 
@@ -106,18 +113,30 @@ exports.getSpecs = async (req, res) => {
     }
 
     if (search && search.trim() !== "") {
-      const regex = new RegExp(search.trim(), "i");
+      const searchWord = search.trim();
+      
+      const searchTokens = searchWord.split(/[\W_]+/).filter(Boolean);
+      let regexStr = "";
+      
+      if (searchTokens.length > 0) {
+        const escapeRegExp = (str) => str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        regexStr = searchTokens.map(escapeRegExp).join('[\\W_]+');
+      } else {
+        regexStr = searchWord.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      }
+      
+      const wholeWordRegex = new RegExp(`(?:^|\\W)${regexStr}(?:\\W|$)`, "i");
       
       const matchingCompanies = await Company.find({
         isDeleted: { $ne: true },
-        name: { $regex: regex }
+        name: { $regex: wholeWordRegex }
       }).select('_id');
       const companyIds = matchingCompanies.map(c => c._id);
 
       const matchingBrands = await Brand.find({
         isDeleted: { $ne: true },
         $or: [
-          { name: { $regex: regex } },
+          { name: { $regex: wholeWordRegex } },
           { companyId: { $in: companyIds } }
         ]
       }).select('_id');
@@ -126,8 +145,8 @@ exports.getSpecs = async (req, res) => {
       const matchingVariants = await Variant.find({
         isDeleted: { $ne: true },
         $or: [
-          { variantName: { $regex: regex } },
-          { variantSize: { $regex: regex } }
+          { variantName: { $regex: wholeWordRegex } },
+          { variantSize: { $regex: wholeWordRegex } }
         ]
       }).select('_id bottleSpecId');
       
@@ -136,8 +155,8 @@ exports.getSpecs = async (req, res) => {
 
       const searchCondition = {
         $or: [
-          { bottleName: { $regex: regex } },
-          { code: { $regex: regex } },
+          { bottleName: { $regex: wholeWordRegex } },
+          { code: { $regex: wholeWordRegex } },
           { variantId: { $in: variantIds } },
           { _id: { $in: parentSpecIds } },
           { brandId: { $in: brandIds } }

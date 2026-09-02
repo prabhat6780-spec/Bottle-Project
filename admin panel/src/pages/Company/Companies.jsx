@@ -2,14 +2,12 @@ import { useState, useEffect, useMemo } from 'react';
 import { Link, useSearchParams, } from 'react-router-dom';
 import { Can } from '../../context/AbilityContext';
 import { useDispatch, useSelector } from 'react-redux';
-import { fetchCompanies, deleteCompany } from '../../redux/slices/companySlice';
+import {fetchCompanies, deleteCompany, setSearchTerm} from '../../redux/slices/companySlice';
 import Swal from 'sweetalert2';
 
 export default function Companies() {
   const dispatch = useDispatch();
-  const {
-
-    companies,
+  const { companies,
 
     loading,
 
@@ -17,19 +15,12 @@ export default function Companies() {
 
     totalPages,
 
-    total,
-
-  } = useSelector(
-    (state) => state.companies
-  );
-  const [search, setSearch] = useState('');
-  const [searchParams, setSearchParams] =
-    useSearchParams();
-
-  const currentPage =
-    Number(searchParams.get("page")) || 1;
+    total, searchTerm } = useSelector((state) => state.companies);
+  const search = searchTerm || "";
+  const [searchParams, setSearchParams] = useSearchParams();
+  const urlPage = searchParams.get('page') || '';
+  const currentPage = Number(urlPage) || page || 1;
   const [itemsPerPage, setItemsPerPage] = useState(10);
-
 
 
 
@@ -57,7 +48,7 @@ export default function Companies() {
 
     dispatch(fetchCompanies({
 
-      page: currentPage,
+      page: urlPage,
 
       limit: itemsPerPage,
 
@@ -69,7 +60,7 @@ export default function Companies() {
 
     dispatch,
 
-    currentPage,
+    urlPage,
 
     itemsPerPage,
 
@@ -135,14 +126,14 @@ export default function Companies() {
               placeholder="Search companies..."
               value={search}
               onChange={(e) => {
+                const val = e.target.value;
                 setSearchParams({ page: 1 });
-                setSearch(e.target.value);
+                dispatch(setSearchTerm(val));
               }}
               style={{ borderRadius: 10, fontSize: 13 }}
             />
           </div>
         </div>
-
         <div className="companies-list-mobile">
           {companies.map((b, index) => (
             <div key={b._id} className="companies-mobile-card brands-mobile-card">

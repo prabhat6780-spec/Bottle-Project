@@ -2,21 +2,26 @@ import { useState, useEffect } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { Can } from '../../context/AbilityContext';
 import { useDispatch, useSelector } from 'react-redux';
-import { fetchCoatingTypes, deleteCoatingType } from '../../redux/slices/coatingTypeSlice';
+import {fetchCoatingTypes, deleteCoatingType, setSearchTerm} from '../../redux/slices/coatingTypeSlice';
 import Swal from 'sweetalert2';
 
 export default function CoatingTypes() {
   const dispatch = useDispatch();
-  const { items, loading, totalPages, total } = useSelector((state) => state.coatingType);
+  const { items, loading, totalPages, total, searchTerm } = useSelector((state) => state.coatingType);
 
   const [searchParams, setSearchParams] = useSearchParams();
-  const currentPage = Number(searchParams.get('page')) || 1;
+  const urlPage = searchParams.get('page') || '';
+  const currentPage = Number(urlPage) || 1;
   const [itemsPerPage, setItemsPerPage] = useState(10);
-  const [search, setSearch] = useState('');
+  const search = searchTerm || "";
 
   useEffect(() => {
-    dispatch(fetchCoatingTypes({ page: currentPage, limit: itemsPerPage, search }));
-  }, [dispatch, currentPage, itemsPerPage, search]);
+    dispatch(fetchCoatingTypes({
+      page: urlPage,
+      limit: itemsPerPage,
+      search,
+    }));
+  }, [dispatch, urlPage, itemsPerPage, search]);
 
   const handleDelete = (id, name) => {
     Swal.fire({
@@ -87,7 +92,11 @@ export default function CoatingTypes() {
               className="form-control form-control-sm border-light-subtle bg-light ps-5 py-2 shadow-none"
               placeholder="Search coating types..."
               value={search}
-              onChange={e => { setSearch(e.target.value); setSearchParams({ page: 1 }); }}
+              onChange={(e) => { 
+                
+                dispatch(setSearchTerm(e.target.value));
+                setSearchParams({ page: 1 }); 
+              }}
               style={{ borderRadius: 10, fontSize: 13 }}
             />
           </div>

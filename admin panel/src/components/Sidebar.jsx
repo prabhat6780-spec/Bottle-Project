@@ -16,6 +16,7 @@ const navItems = [
       { to: '/users', icon: 'bi-people-fill', label: 'Users', action: 'sidebar', subject: 'user' },
       { to: '/operators', icon: 'bi-person-badge-fill', label: 'Operator Name', action: 'sidebar', subject: 'operator' },
       { to: '/shifts', icon: 'bi-clock-fill', label: 'Shift', action: 'sidebar', subject: 'shift' },
+      { to: '/raw-materials', icon: 'bi-box-seam', label: 'Raw Material', action: 'sidebar', subject: 'raw-material' },
       { to: '/companies', icon: 'bi-building-fill', label: 'Companies', action: 'sidebar', subject: 'company' },
       { to: '/brands', icon: 'bi-award-fill', label: 'Brands', action: 'sidebar', subject: 'brand' },
       { to: '/printing-types', icon: 'bi-printer-fill', label: 'Printing Types', action: 'sidebar', subject: 'printing-type' },
@@ -25,10 +26,10 @@ const navItems = [
       { to: '/productions', icon: 'bi-box-seam-fill', label: 'Printing Production', action: 'sidebar', subject: 'production' },
       { to: '/coating-types', icon: 'bi-brush-fill', label: 'Coating Types', action: 'sidebar', subject: 'coating-type' },
       { to: '/coating-specs', icon: 'bi-shield-shaded', label: 'Coating Specs', action: 'sidebar', subject: 'coatingspec' },
-      { 
-        icon: 'bi-box-fill', 
-        label: 'Coating Production', 
-        action: 'sidebar', 
+      {
+        icon: 'bi-box-fill',
+        label: 'Coating Production',
+        action: 'sidebar',
         subject: 'coatingproduction',
         subLinks: [
           { to: '/coating-productions/unit/1', label: '1 Unit', icon: 'bi-1-circle-fill' },
@@ -37,7 +38,10 @@ const navItems = [
           { to: '/coating-productions/unit/4', label: '4 Unit', icon: 'bi-4-circle-fill' },
         ]
       },
-      
+      { to: '/formulas', icon: 'bi-funnel-fill', label: 'Formula', action: 'sidebar', subject: 'formula' },
+      { to: '/stock-summary', icon: 'bi-box-seam', label: 'Stock Entry', action: 'sidebar', subject: 'stock_entry' },
+      { to: '/sg-labels', icon: 'bi-tags-fill', label: 'SG Label', action: 'sidebar', subject: 'sg-label' },
+
     ],
   },
   {
@@ -100,15 +104,13 @@ export default function Sidebar({ collapsed, onClose }) {
                   const isExpanded = expandedMenus[link.label];
                   return (
                     <div key={link.label} className="nav-item-container">
-                      <div 
-                        className="nav-item" 
+                      <div
+                        className="nav-item"
                         onClick={() => toggleMenu(link.label)}
-                        style={{ cursor: 'pointer', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}
+                        style={{ cursor: 'pointer' }}
                       >
-                        <div style={{ display: 'flex', alignItems: 'center' }}>
-                          <i className={`bi ${link.icon} nav-icon`} />
-                          <span className="nav-label">{link.label}</span>
-                        </div>
+                        <i className={`bi ${link.icon} nav-icon me-2`} />
+                        <span className="nav-label">{link.label}</span>
                         <i className={`bi bi-chevron-${isExpanded ? 'down' : 'right'} ms-auto`} style={{ fontSize: '0.8rem' }} />
                       </div>
                       {isExpanded && (
@@ -121,7 +123,7 @@ export default function Sidebar({ collapsed, onClose }) {
                               className={({ isActive }) => `nav-item nav-sub-item ${isActive ? 'active' : ''}`}
                               style={{ padding: '0.5rem 1rem', marginTop: '0.2rem' }}
                             >
-                              {sub.icon && <i className={`bi ${sub.icon} nav-icon`} />}
+                              {sub.icon && <i className={`bi ${sub.icon} nav-icon me-2`} />}
                               <span className="nav-label">{sub.label}</span>
                             </NavLink>
                           ))}
@@ -130,7 +132,7 @@ export default function Sidebar({ collapsed, onClose }) {
                     </div>
                   );
                 }
-                
+
                 return (
                   <NavLink
                     key={link.to}
@@ -139,7 +141,7 @@ export default function Sidebar({ collapsed, onClose }) {
                     onClick={onClose}
                     className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}
                   >
-                    <i className={`bi ${link.icon} nav-icon`} />
+                    <i className={`bi ${link.icon} nav-icon me-2`} />
                     <span className="nav-label">{link.label}</span>
                     {link.badge && <span className="nav-badge">{link.badge}</span>}
                   </NavLink>

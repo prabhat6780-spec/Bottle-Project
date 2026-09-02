@@ -28,9 +28,16 @@ exports.createCoatingType = async (req, res) => {
 // ✅ GET
 exports.getCoatingTypes = async (req, res) => {
   try {
-    const { page, limit, search, pagination } = req.query;
+    let { page, limit, search, pagination = "true" } = req.query;
 
-    const parsedPage = parseInt(page) || 1;
+    let parsedPage = 1;
+    if (page && page !== '') {
+      parsedPage = parseInt(page) || 1;
+      res.cookie('coatingTypesPage', parsedPage, { maxAge: 86400000, httpOnly: true });
+    } else if (req.cookies.coatingTypesPage) {
+      parsedPage = parseInt(req.cookies.coatingTypesPage) || 1;
+    }
+
     const parsedLimit = parseInt(limit) || 10;
     const skip = (parsedPage - 1) * parsedLimit;
 

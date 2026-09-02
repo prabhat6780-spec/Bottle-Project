@@ -2,6 +2,7 @@ const Variant = require("../models/Variant");
 const BottleSpec = require("../models/Bottlespecs");
 const Brand = require("../models/Brand");
 const Company = require("../models/Company");
+const SgLabel = require("../models/SgLabel");
 const { detectTextColor } = require('../services/textColor');
 
 
@@ -54,6 +55,18 @@ exports.createVariant = async (req, res) => {
     }
 
     const variant = await Variant.create(body);
+
+    // Auto-generate SG Label for the new variant
+    if (variant.bottleSpecId && variant.coatingShade) {
+      await SgLabel.create({
+        bottleId: variant.bottleSpecId,
+        coatingShade: variant.coatingShade,
+        variantId: variant._id,
+        detectedTextColor: variant.detectedTextColor && variant.detectedTextColor !== 'Not Detected' ? variant.detectedTextColor : null,
+        isDeleted: false
+      });
+    }
+
     const populated = await Variant.findById(variant._id).populate({
       path: "bottleSpecId",
       populate: [
@@ -71,27 +84,52 @@ exports.createVariant = async (req, res) => {
 // ✅ GET ALL
 exports.getVariants = async (req, res) => {
   try {
-    const { page, limit, search, pagination } = req.query;
+    let { page, limit, search, pagination } = req.query;
 
-    const parsedPage = parseInt(page) || 1;
+    let parsedPage = 1;
+    if (page && page !== '') {
+      parsedPage = parseInt(page) || 1;
+      res.cookie('variantPage', parsedPage, { maxAge: 86400000, httpOnly: true }); // Save to cookie
+    } else if (req.cookies.variantPage) {
+      parsedPage = parseInt(req.cookies.variantPage) || 1;
+    }
+
     const parsedLimit = parseInt(limit) || 10;
     const skip = (parsedPage - 1) * parsedLimit;
 
     let query = { isDeleted: { $ne: true } };
 
     if (search && search.trim() !== "") {
-      const regex = new RegExp(search.trim(), "i");
+      const searchWord = search.trim();
       
+      // Split into alphanumeric words to allow flexible matching of spaces/special chars
+      const searchTokens = searchWord.split(/[\W_]+/).filter(Boolean);
+      let regexStr = "";
+      
+      if (searchTokens.length > 0) {
+        // Escape each token and join with a pattern that matches any space or special character
+        const escapeRegExp = (str) => str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        regexStr = searchTokens.map(escapeRegExp).join('[\\W_]+');
+      } else {
+        // Fallback for purely special character searches
+        regexStr = searchWord.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      }
+      
+      // (?:^|\W) acts like \b but supports matching next to special characters
+      const wholeWordRegex = new RegExp(`(?:^|\\W)${regexStr}(?:\\W|$)`, "i");
+      
+      // Search companies with whole word match
       const matchingCompanies = await Company.find({
         isDeleted: { $ne: true },
-        name: { $regex: regex }
+        name: { $regex: wholeWordRegex }
       }).select('_id');
       const companyIds = matchingCompanies.map(c => c._id);
-
+      
+      // Search brands matching brand name OR matching companyId
       const matchingBrands = await Brand.find({
         isDeleted: { $ne: true },
         $or: [
-          { name: { $regex: regex } },
+          { name: { $regex: wholeWordRegex } },
           { companyId: { $in: companyIds } }
         ]
       }).select('_id');
@@ -100,16 +138,14 @@ exports.getVariants = async (req, res) => {
       const matchingSpecs = await BottleSpec.find({
         isDeleted: { $ne: true },
         $or: [
-          { bottleName: { $regex: regex } },
-          { code: { $regex: regex } },
+          { bottleName: { $regex: wholeWordRegex } },
           { brandId: { $in: brandIds } }
         ]
       }).select('_id');
       const specIds = matchingSpecs.map(s => s._id);
 
       query.$or = [
-        { variantName: { $regex: regex } },
-        { variantSize: { $regex: regex } },
+        { variantName: { $regex: wholeWordRegex } },
         { bottleSpecId: { $in: specIds } }
       ];
     }

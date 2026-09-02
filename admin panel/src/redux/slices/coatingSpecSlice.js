@@ -102,6 +102,7 @@ export const deleteCoatingSpec = createAsyncThunk(
 const coatingSpecSlice = createSlice({
   name: "coatingSpecs",
   initialState: {
+    searchTerm: "",
     coatingSpecs: [],
     loading: false,
     error: null,
@@ -109,7 +110,8 @@ const coatingSpecSlice = createSlice({
     totalPages: 1,
     total: 0,
   },
-  reducers: {},
+  reducers: {
+    setSearchTerm: (state, action) => { state.searchTerm = action.payload; },},
   extraReducers: (builder) => {
     builder
       // ================= FETCH =================
@@ -172,4 +174,5 @@ const coatingSpecSlice = createSlice({
   },
 });
 
+export const { setSearchTerm } = coatingSpecSlice.actions;
 export default coatingSpecSlice.reducer;

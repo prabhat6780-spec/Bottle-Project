@@ -2,7 +2,7 @@ import { useState, useMemo, useEffect } from 'react';
 import { Link, useNavigate, useSearchParams, } from 'react-router-dom';
 import { Can } from '../../context/AbilityContext';
 import { useDispatch, useSelector } from 'react-redux';
-import { fetchUsers, deleteUser } from '../../redux/slices/userSlice';
+import {fetchUsers, deleteUser, setSearchTerm} from '../../redux/slices/userSlice';
 import Swal from 'sweetalert2';
 
 const avatarColors = [
@@ -16,21 +16,21 @@ const avatarColors = [
 export default function Users() {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
-  const currentPage = Number(searchParams.get("page")) || 1;
+  const urlPage = searchParams.get('page') || '';
   const dispatch = useDispatch();
-const {
-  users,
+const { users,
   loading,
   error,
-  page,
+  page: reduxPage,
   total,
   totalPages,
   activeCount,
   inactiveCount,
-  pendingCount
-} = useSelector((state) => state.users);
+  pendingCount, searchTerm } = useSelector((state) => state.users);
 
-  const [search, setSearch] = useState('');
+  const currentPage = Number(urlPage) || reduxPage || 1;
+
+  const search = searchTerm || "";
   const [filter, setFilter] = useState('all');
   const [sortConfig, setSortConfig] = useState({ key: 'name', direction: 'asc' });
   const [entries, setEntries] = useState(10);
@@ -39,7 +39,7 @@ const {
 
     dispatch(fetchUsers({
 
-      page: currentPage,
+      page: urlPage,
 
       limit: entries,
 
@@ -58,7 +58,7 @@ const {
 
     dispatch,
 
-    currentPage,
+    urlPage,
 
     entries,
 
@@ -169,7 +169,11 @@ const {
                 className="search-input"
                 placeholder="Search users..."
                 value={search}
-                onChange={e => { setSearch(e.target.value); setSearchParams({ page: 1 }); }}
+                onChange={(e) => { 
+                const val = e.target.value;
+                dispatch(setSearchTerm(val));
+                setSearchParams({ page: 1 }); 
+              }}
               />
             </div>
             <div className="btn-group">

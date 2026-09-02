@@ -61,16 +61,47 @@ exports.createPrintingColor = async (req, res) => {
 // ✅ GET
 exports.getPrintingColors = async (req, res) => {
   try {
-    const { page, limit, search, pagination } = req.query;
+    let { page, limit, search, pagination = "true" } = req.query;
 
-    const parsedPage = parseInt(page) || 1;
+    let parsedPage = 1;
+    if (page && page !== '') {
+      parsedPage = parseInt(page) || 1;
+      res.cookie('printingColorsPage', parsedPage, { maxAge: 86400000, httpOnly: true });
+    } else if (req.cookies.printingColorsPage) {
+      parsedPage = parseInt(req.cookies.printingColorsPage) || 1;
+    }
+
     const parsedLimit = parseInt(limit) || 10;
     const skip = (parsedPage - 1) * parsedLimit;
 
     let query = { isDeleted: { $ne: true } };
 
     if (search && search.trim() !== "") {
-      query.name = { $regex: new RegExp(search.trim(), "i") };
+      const searchWord = search.trim();
+      const searchTokens = searchWord.split(/[\W_]+/).filter(Boolean);
+      let regexStr = "";
+      
+      if (searchTokens.length > 0) {
+        const escapeRegExp = (str) => str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        regexStr = searchTokens.map(escapeRegExp).join('[\\W_]+');
+      } else {
+        regexStr = searchWord.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      }
+      
+      const wholeWordRegex = new RegExp(`(?:^|\\W)${regexStr}(?:\\W|$)`, "i");
+
+      const PrintingType = require("../models/PrintingType");
+      const matchingTypes = await PrintingType.find({ 
+        name: { $regex: wholeWordRegex }, 
+        isDeleted: { $ne: true } 
+      }).select('_id');
+      
+      const typeIds = matchingTypes.map(t => t._id);
+
+      query.$or = [
+        { name: { $regex: wholeWordRegex } },
+        { printingTypeId: { $in: typeIds } }
+      ];
     }
 
     const total = await PrintingColor.countDocuments(query);

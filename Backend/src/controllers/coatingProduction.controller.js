@@ -128,22 +128,30 @@ const addProduction = async (req, res) => {
 // ✅ GET ALL
 const getAllProduction = async (req, res) => {
   try {
-    const {
-      unit,
+    let {
+      page,
+      limit,
+      search,
+      companyId,
       brandId,
       coatingSpecId,
-      date,
-      companyId,
-      search = "",
-      limit = 10,
-      page = 1,
+      variantId,
+      unit,
+      shift,
       startDate,
       endDate,
-      pagination = "true",
+      pagination
     } = req.query;
 
-    const parsedLimit = parseInt(limit);
-    const parsedPage = parseInt(page);
+    let parsedPage = 1;
+    if (page && page !== '') {
+      parsedPage = parseInt(page) || 1;
+      res.cookie('coatingProductionsPage', parsedPage, { maxAge: 86400000, httpOnly: true });
+    } else if (req.cookies.coatingProductionsPage) {
+      parsedPage = parseInt(req.cookies.coatingProductionsPage) || 1;
+    }
+
+    const parsedLimit = parseInt(limit) || 10;
     const skip = (parsedPage - 1) * parsedLimit;
 
     let filter = { isDeleted: { $ne: true } };
@@ -151,7 +159,6 @@ const getAllProduction = async (req, res) => {
     if (unit) filter.unit = Number(unit);
     if (req.query.shift) filter.shift = req.query.shift;
     if (brandId) filter.brandId = brandId;
-    if (date) filter.date = date;
 
     if (req.query.variantId) {
       const BottleSpec = require("../models/Bottlespecs");
@@ -184,7 +191,7 @@ const getAllProduction = async (req, res) => {
       })
       .populate({
         path: "coatingSpecId",
-        populate: ["coatingTypeId"]
+        populate: ["coatingTypeId", "variantId"]
       })
       .populate("shift")
       .populate("operatorId")
@@ -194,23 +201,38 @@ const getAllProduction = async (req, res) => {
       productions = productions.filter(p => p.brandId?.companyId?._id?.toString() === companyId);
     }
 
-    if (search) {
-      const searchText = search.toLowerCase();
+    if (search && search.trim() !== "") {
+      const searchWord = search.trim();
+      
+      const searchTokens = searchWord.split(/[\W_]+/).filter(Boolean);
+      let regexStr = "";
+      
+      if (searchTokens.length > 0) {
+        const escapeRegExp = (str) => str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        regexStr = searchTokens.map(escapeRegExp).join('[\\W_]+');
+      } else {
+        regexStr = searchWord.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      }
+      
+      const wholeWordRegex = new RegExp(`(?:^|\\W)${regexStr}(?:\\W|$)`, "i");
+
       productions = productions.filter((p) => {
-        const brandName = p.brandId?.name?.toLowerCase() || "";
-        const companyName = p.brandId?.companyId?.name?.toLowerCase() || "";
-        const bottleName = p.coatingSpecId?.bottleName?.toLowerCase() || "";
-        const opName = p.operatorId?.name?.toLowerCase() || "";
-        const shade = p.coatingShade?.toLowerCase() || "";
-        const shiftName = p.shift?.name?.toLowerCase() || "";
+        const brandName = p.brandId?.name || "";
+        const companyName = p.brandId?.companyId?.name || "";
+        const bottleName = p.coatingSpecId?.bottleName || "";
+        const variantName = p.coatingSpecId?.variantId?.variantName || "";
+        const opName = p.operatorId?.name || "";
+        const shade = p.coatingShade || "";
+        const shiftName = p.shift?.name || "";
 
         return (
-          brandName.includes(searchText) ||
-          companyName.includes(searchText) ||
-          bottleName.includes(searchText) ||
-          opName.includes(searchText) ||
-          shade.includes(searchText) ||
-          shiftName.includes(searchText)
+          wholeWordRegex.test(brandName) ||
+          wholeWordRegex.test(companyName) ||
+          wholeWordRegex.test(bottleName) ||
+          wholeWordRegex.test(variantName) ||
+          wholeWordRegex.test(opName) ||
+          wholeWordRegex.test(shade) ||
+          wholeWordRegex.test(shiftName)
         );
       });
     }

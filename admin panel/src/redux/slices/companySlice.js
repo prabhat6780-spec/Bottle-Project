@@ -148,6 +148,7 @@ const companySlice = createSlice({
   name: "companies",
 
   initialState: {
+    searchTerm: "",
 
     companies: [],
 
@@ -163,7 +164,8 @@ const companySlice = createSlice({
 
   },
 
-  reducers: {},
+  reducers: {
+    setSearchTerm: (state, action) => { state.searchTerm = action.payload; },},
 
   extraReducers: (builder) => {
 
@@ -328,4 +330,5 @@ const companySlice = createSlice({
 
 });
 
+export const { setSearchTerm } = companySlice.actions;
 export default companySlice.reducer;

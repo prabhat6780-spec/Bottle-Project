@@ -28,9 +28,16 @@ exports.createPrintingType = async (req, res) => {
 // ✅ GET
 exports.getPrintingTypes = async (req, res) => {
   try {
-    const { page, limit, search, pagination } = req.query;
+    let { page, limit, search, pagination = "true" } = req.query;
 
-    const parsedPage = parseInt(page) || 1;
+    let parsedPage = 1;
+    if (page && page !== '') {
+      parsedPage = parseInt(page) || 1;
+      res.cookie('printingTypesPage', parsedPage, { maxAge: 86400000, httpOnly: true });
+    } else if (req.cookies.printingTypesPage) {
+      parsedPage = parseInt(req.cookies.printingTypesPage) || 1;
+    }
+
     const parsedLimit = parseInt(limit) || 10;
     const skip = (parsedPage - 1) * parsedLimit;
 

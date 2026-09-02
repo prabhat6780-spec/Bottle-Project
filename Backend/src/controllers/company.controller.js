@@ -31,15 +31,17 @@ exports.createCompany = async (req, res) => {
 exports.getCompanies = async (req, res) => {
   try {
 
-    const {
-      page = 1,
-      limit = 10,
-      search = "",
-      pagination = "true"
-    } = req.query;
+    let { page, limit, search, pagination = "true" } = req.query;
 
-    const parsedPage = parseInt(page);
-    const parsedLimit = parseInt(limit);
+    let parsedPage = 1;
+    if (page && page !== '') {
+      parsedPage = parseInt(page) || 1;
+      res.cookie('companiesPage', parsedPage, { maxAge: 86400000, httpOnly: true });
+    } else if (req.cookies.companiesPage) {
+      parsedPage = parseInt(req.cookies.companiesPage) || 1;
+    }
+
+    const parsedLimit = parseInt(limit) || 10;
 
     const skip =
       (parsedPage - 1) * parsedLimit;

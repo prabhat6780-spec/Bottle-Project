@@ -2,14 +2,12 @@ import { useState, useEffect, useMemo } from 'react';
 import { Link, useSearchParams, } from 'react-router-dom';
 import { Can } from '../../context/AbilityContext';
 import { useDispatch, useSelector } from 'react-redux';
-import { fetchShifts, deleteShift } from '../../redux/slices/shiftSlice';
+import {fetchShifts, deleteShift, setSearchTerm} from '../../redux/slices/shiftSlice';
 import Swal from 'sweetalert2';
 
 export default function Shifts() {
   const dispatch = useDispatch();
-  const {
-
-    shifts,
+  const { shifts,
 
     loading,
 
@@ -17,17 +15,11 @@ export default function Shifts() {
 
     totalPages,
 
-    total,
-
-  } = useSelector(
-    (state) => state.shifts
-  );
-  const [search, setSearch] = useState('');
-  const [searchParams, setSearchParams] =
-    useSearchParams();
-
-  const currentPage =
-    Number(searchParams.get("page")) || 1;
+    total, searchTerm } = useSelector((state) => state.shifts);
+  const search = searchTerm || "";
+  const [searchParams, setSearchParams] = useSearchParams();
+  const urlPage = searchParams.get('page') || '';
+  const currentPage = Number(urlPage) || page || 1;
   const [itemsPerPage, setItemsPerPage] = useState(10);
 
 
@@ -57,7 +49,7 @@ export default function Shifts() {
 
     dispatch(fetchShifts({
 
-      page: currentPage,
+      page: urlPage,
 
       limit: itemsPerPage,
 
@@ -69,7 +61,7 @@ export default function Shifts() {
 
     dispatch,
 
-    currentPage,
+    urlPage,
 
     itemsPerPage,
 
@@ -135,14 +127,14 @@ export default function Shifts() {
               placeholder="Search shifts..."
               value={search}
               onChange={(e) => {
+                const val = e.target.value;
+                dispatch(setSearchTerm(val));
                 setSearchParams({ page: 1 });
-                setSearch(e.target.value);
               }}
               style={{ borderRadius: 10, fontSize: 13 }}
             />
           </div>
         </div>
-
         <div className="companies-list-mobile">
           {shifts.map((b, index) => (
             <div key={b._id} className="shifts-mobile-card brands-mobile-card">

@@ -47,6 +47,11 @@ app.use("/api/coating-type", require("./routes/coatingType.routes"));
 app.use("/api/text-color", require("./routes/textcolor.routes"));
 app.use("/api/operator", require("./routes/operator.routes"));
 app.use("/api/shift", require("./routes/shift.routes"));
+app.use("/api/formula", require("./routes/formula.routes"));
+app.use("/api/raw-material", require("./routes/rawMaterial.routes"));
+app.use("/api/sg-label", require("./routes/sgLabel.routes"));
+app.use("/api/stock-entry", require("./routes/stockEntry.routes"));
+app.use("/api/invoice-vision", require("./routes/invoiceVision.routes"));
 
 // Added testing routes for the browser
 app.get("/", (req, res) => {

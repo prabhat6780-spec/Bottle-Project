@@ -3,11 +3,11 @@ import Select from 'react-select';
 import { Link, useSearchParams } from 'react-router-dom';
 import { Can } from '../../context/AbilityContext.js';
 import { useDispatch, useSelector } from 'react-redux';
-import { fetchProductions, deleteProduction, clearProductions } from '../../redux/slices/productionSlice.js';
-import { fetchBrands } from '../../redux/slices/brandSlice.js';
-import { fetchBottleSpecs } from '../../redux/slices/bottleSpecSlice.js';
-import { fetchCompanies } from '../../redux/slices/companySlice.js';
-import { fetchVariants } from '../../redux/slices/variantSlice.js';
+import {fetchProductions, deleteProduction, clearProductions, setSearchTerm} from '../../redux/slices/productionSlice.js';
+import {fetchBrands} from '../../redux/slices/brandSlice.js';
+import {fetchBottleSpecs} from '../../redux/slices/bottleSpecSlice.js';
+import {fetchCompanies} from '../../redux/slices/companySlice.js';
+import {fetchVariants} from '../../redux/slices/variantSlice.js';
 import Swal from 'sweetalert2';
 import * as XLSX from 'xlsx';
 import { V_URL } from '../../../Baseurl.js';
@@ -60,82 +60,44 @@ export default function Productions() {
   const dispatch = useDispatch();
   const [searchParams, setSearchParams] =
     useSearchParams();
-  const {
-    productions,
+  const { productions,
     loading,
     page,
     totalPages,
-    total,
-  } = useSelector(
-    (state) => state.productions
-  );
+    total, searchTerm } = useSelector((state) => state.productions);
   const { brands } = useSelector((state) => state.brands);
   const { companies } = useSelector((state) => state.companies);
   const { bottleSpecs } = useSelector((state) => state.bottleSpecs);
   const { variants } = useSelector((state) => state.variants);
-  const [search, setSearch] = useState('');
+  const search = searchTerm || "";
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
   const [selectedCompany, setSelectedCompany] = useState('');
   const [selectedBrand, setSelectedBrand] = useState('');
   const [selectedSpec, setSelectedSpec] = useState('');
   const [selectedVariant, setSelectedVariant] = useState('');
+  const urlPage = searchParams.get('page') || '';
+  const currentPage = Number(urlPage) || page || 1;
   const [limit, setLimit] = useState(10);
-  const currentPage =
-    Number(searchParams.get("page")) || 1;
-
+  
   const maxFilterDate = toIsoDate(new Date());
 
 
   useEffect(() => {
-
     dispatch(clearProductions());
-
     dispatch(fetchProductions({
-
-      page: currentPage,
-
+      page: urlPage,
       limit,
-
       companyId: selectedCompany,
-
       brandId: selectedBrand,
-
       bottleSpecId: selectedSpec,
-
       variantId: selectedVariant,
-
       search,
-
       startDate,
-
       endDate,
-
     }));
+  }, [dispatch, urlPage, limit, search, startDate, endDate, selectedCompany, selectedBrand, selectedSpec, selectedVariant]);
 
-  }, [
-
-    dispatch,
-
-    currentPage,
-
-    limit,
-
-    search,
-
-    startDate,
-
-    endDate,
-
-    selectedCompany,
-
-    selectedBrand,
-
-    selectedSpec,
-
-    selectedVariant,
-
-  ]);
   useEffect(() => {
     dispatch(fetchBrands({ pagination: false }));
     dispatch(fetchBottleSpecs({ pagination: false }));
@@ -565,11 +527,9 @@ export default function Productions() {
                   placeholder="Search logs..."
                   value={search}
                   onChange={(e) => {
-
+                    const val = e.target.value;
+                    dispatch(setSearchTerm(val));
                     setSearchParams({ page: 1 });
-
-                    setSearch(e.target.value);
-
                   }}
                   style={{ borderRadius: 10, height: 38 }}
                 />
@@ -580,7 +540,7 @@ export default function Productions() {
                 type="button"
                 onClick={() => {
 
-                  setSearch('');
+                  dispatch(setSearchTerm(''));
 
                   setStartDate('');
 
@@ -608,7 +568,6 @@ export default function Productions() {
           </div>
         </div>
       </div>
-
       <div className="dash-card">
         <div className="dash-card-header d-flex align-items-center justify-content-between p-3 border-bottom bg-white companies-dash-toolbar">
           <div className="d-flex align-items-center gap-2 text-muted small fw-500">

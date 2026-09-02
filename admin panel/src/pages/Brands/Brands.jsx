@@ -1,41 +1,26 @@
 import { useState, useEffect, useMemo } from 'react';
-import { Link, useSearchParams, } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import { Can } from '../../context/AbilityContext';
 import { useDispatch, useSelector } from 'react-redux';
-import { fetchBrands, deleteBrand } from '../../redux/slices/brandSlice';
+import {fetchBrands, deleteBrand, setSearchTerm} from '../../redux/slices/brandSlice';
 import Swal from 'sweetalert2';
 
 export default function Brands() {
   const dispatch = useDispatch();
-  const { brands, loading, page, totalPages, total, } = useSelector((state) => state.brands);
-  const [search, setSearch] = useState('');
+  const { brands, loading, page, totalPages, total, searchTerm } = useSelector((state) => state.brands);
+  const search = searchTerm || '';
   const [searchParams, setSearchParams] = useSearchParams();
-  const currentPage = Number(searchParams.get("page")) || 1;
+  const urlPage = searchParams.get('page') || '';
+  const currentPage = Number(urlPage) || page || 1;
   const [itemsPerPage, setItemsPerPage] = useState(10);
 
   useEffect(() => {
-
     dispatch(fetchBrands({
-
       page: currentPage,
-
       limit: itemsPerPage,
-
       search,
-
     }));
-
-  }, [
-
-    dispatch,
-
-    currentPage,
-
-    itemsPerPage,
-
-    search,
-
-  ]);
+  }, [dispatch, currentPage, itemsPerPage, search]);
 
   const handleDeleteBrand = (id, name) => {
     Swal.fire({
@@ -54,8 +39,6 @@ export default function Brands() {
       }
     });
   };
-
-
 
   const isItemActive = (b) =>
     b.status === true || b.status === 'active' || b.status === undefined;
@@ -115,21 +98,14 @@ export default function Brands() {
               placeholder="Search brands..."
               value={search}
               onChange={(e) => {
-
-                setSearchParams({
-                  page: 1,
-                });
-
-                setSearch(
-                  e.target.value
-                );
-
+                const val = e.target.value;
+                dispatch(setSearchTerm(val));
+                setSearchParams({ page: 1 });
               }}
               style={{ borderRadius: 10, fontSize: 13 }}
             />
           </div>
         </div>
-
         <div className="companies-list-mobile">
           {brands.map((b, index) => (
             <div key={b._id} className="companies-mobile-card brands-mobile-card">

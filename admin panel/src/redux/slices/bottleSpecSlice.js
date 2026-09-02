@@ -142,6 +142,7 @@ const bottleSpecSlice = createSlice({
   name: "bottleSpecs",
 
   initialState: {
+    searchTerm: "",
     bottleSpecs: [],
     loading: false,
     error: null,
@@ -150,7 +151,8 @@ const bottleSpecSlice = createSlice({
     total: 0,
   },
 
-  reducers: {},
+  reducers: {
+    setSearchTerm: (state, action) => { state.searchTerm = action.payload; },},
 
   extraReducers: (builder) => {
 
@@ -314,4 +316,5 @@ const bottleSpecSlice = createSlice({
 
 });
 
+export const { setSearchTerm } = bottleSpecSlice.actions;
 export default bottleSpecSlice.reducer;

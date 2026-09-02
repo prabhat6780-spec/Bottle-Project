@@ -148,6 +148,7 @@ const shiftSlice = createSlice({
   name: "shifts",
 
   initialState: {
+    searchTerm: "",
 
     shifts: [],
 
@@ -163,7 +164,8 @@ const shiftSlice = createSlice({
 
   },
 
-  reducers: {},
+  reducers: {
+    setSearchTerm: (state, action) => { state.searchTerm = action.payload; },},
 
   extraReducers: (builder) => {
 
@@ -328,4 +330,5 @@ const shiftSlice = createSlice({
 
 });
 
+export const { setSearchTerm } = shiftSlice.actions;
 export default shiftSlice.reducer;

@@ -191,6 +191,7 @@ const productionSlice = createSlice({
   name: "productions",
 
   initialState: {
+    searchTerm: "",
 
     productions: [],
 
@@ -210,6 +211,7 @@ const productionSlice = createSlice({
   },
 
   reducers: {
+    setSearchTerm: (state, action) => { state.searchTerm = action.payload; },
 
     clearProductions: (state) => {
 
@@ -444,8 +446,6 @@ const productionSlice = createSlice({
 
 });
 
-export const {
-  clearProductions,
-} = productionSlice.actions;
+export const { clearProductions, setSearchTerm } = productionSlice.actions;
 
 export default productionSlice.reducer;

@@ -39,15 +39,25 @@ exports.getUsers = async (req, res) => {
 
   try {
 
-    const {
-      page = 1,
-      limit = 10,
-      search = "",
+    let {
+      page,
+      limit,
+      search,
       status = "all",
       sortKey = "name",
       sortDirection = "asc",
       pagination = "true",
     } = req.query;
+
+    let parsedPage = 1;
+    if (page && page !== '') {
+      parsedPage = parseInt(page) || 1;
+      res.cookie('usersPage', parsedPage, { maxAge: 86400000, httpOnly: true });
+    } else if (req.cookies.usersPage) {
+      parsedPage = parseInt(req.cookies.usersPage) || 1;
+    }
+
+    const parsedLimit = parseInt(limit) || 10;
 
     let filter = {
       isDeleted: { $ne: true },
@@ -85,8 +95,6 @@ exports.getUsers = async (req, res) => {
     }
 
     // WITH PAGINATION
-    const parsedPage = parseInt(page);
-    const parsedLimit = parseInt(limit);
     const skip = (parsedPage - 1) * parsedLimit;
 
     const users = await User.find(filter)

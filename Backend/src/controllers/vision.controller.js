@@ -7,7 +7,10 @@ try {
   // Optional: image similarity disabled when sharp is unavailable
 }
 
+const pdfParse = require("pdf-parse");
 const Variant = require("../models/Variant");
+const RawMaterial = require("../models/RawMaterial");
+const { parseInvoiceData } = require("../services/invoiceVision.service");
 const {
   getVisionConfig,
   buildOcrCorrectionMap,

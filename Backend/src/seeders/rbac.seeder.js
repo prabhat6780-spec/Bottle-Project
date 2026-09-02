@@ -18,9 +18,13 @@ const seedRBAC = async () => {
       "create-printing-type", "edit-printing-type", "delete-printing-type", "sidebar-printing-type", "read-printing-type",
       "create-printing-color", "edit-printing-color", "delete-printing-color", "sidebar-printing-color", "read-printing-color",
       "create-coating-type", "edit-coating-type", "delete-coating-type", "sidebar-coating-type", "read-coating-type",
+      "create-raw-material", "edit-raw-material", "delete-raw-material", "sidebar-raw-material", "read-raw-material",
       "create-company", "edit-company", "delete-company", "sidebar-company", "read-company",
       "create-operator", "edit-operator", "delete-operator", "sidebar-operator", "read-operator",
       "create-shift", "edit-shift", "delete-shift", "sidebar-shift", "read-shift",
+      "create-sg-label", "edit-sg-label", "delete-sg-label", "sidebar-sg-label", "read-sg-label",
+      "create-formula", "edit-formula", "delete-formula", "sidebar-formula", "read-formula",
+      "create-stock_entry", "edit-stock_entry", "delete-stock_entry", "sidebar-stock_entry", "read-stock_entry", "rate-stock_entry", "ledger-stock_entry", "stockout-stock_entry",
       "use-vision", "manage-all",
       "production-date-validation", "coating-production-date-validation",
       "production-record-unlock", "coating-production-record-unlock"
@@ -57,9 +61,12 @@ const seedRBAC = async () => {
           "create-bottlespec", "edit-bottlespec", "sidebar-bottlespec", "read-bottlespec", "read-bottlespecdetail",
           "read-printing-type", "read-printing-color", "read-coating-type",
           "create-variant", "edit-variant", "sidebar-variant", "read-variant",
+          "create-formula", "edit-formula", "sidebar-formula", "read-formula",
           "create-production", "edit-production", "sidebar-production", "read-production", "read-productiondetail", "use-vision",
           "create-coatingproduction", "edit-coatingproduction", "sidebar-coatingproduction", "read-coatingproduction", "read-coatingproductiondetail",
-          "create-coatingspec", "edit-coatingspec", "sidebar-coatingspec", "read-coatingspec"
+          "create-coatingspec", "edit-coatingspec", "sidebar-coatingspec", "read-coatingspec",
+          "create-sg-label", "edit-sg-label", "delete-sg-label", "sidebar-sg-label", "read-sg-label",
+          "create-stock_entry", "edit-stock_entry", "delete-stock_entry", "sidebar-stock_entry", "read-stock_entry", "rate-stock_entry", "ledger-stock_entry", "stockout-stock_entry"
         ]
       },
       {
@@ -70,18 +77,18 @@ const seedRBAC = async () => {
           "sidebar-bottlespec", "read-bottlespec",
           "read-printing-type", "read-printing-color", "read-coating-type",
           "sidebar-variant", "read-variant",
+          "sidebar-formula", "read-formula",
           "sidebar-production", "read-production", "create-production", "use-vision",
           "sidebar-coatingproduction", "read-coatingproduction", "create-coatingproduction",
           "sidebar-coatingspec", "read-coatingspec",
-          "show-user", "read-user"
+          "show-user", "read-user",
+          "sidebar-stock_entry", "read-stock_entry"
         ]
       }
     ];
 
     // Create roles
     for (const roleData of rolesData) {
-      const existingRole = await Role.findOne({ name: roleData.name });
-      
       let rolePermissions = [];
       if (roleData.permissionIds) {
         rolePermissions = roleData.permissionIds;
@@ -89,30 +96,11 @@ const seedRBAC = async () => {
         rolePermissions = dbPermissions.filter(p => roleData.permissionNames.includes(p.name)).map(p => p._id);
       }
 
-      if (roleData.name === "Admin") {
-        // Always update Admin to ensure it has all permissions
-        await Role.findOneAndUpdate(
-          { name: "Admin" },
-          { name: "Admin", permissions: rolePermissions },
-          { upsert: true, returnDocument: 'after' }
-        );
-      } else {
-        // Update or create the role with default base permissions
-        if (existingRole) {
-          // Merge existing permissions with the required ones to avoid losing UI changes, 
-          // but for simplicity right now, we will just ensure the base ones are added.
-          const existingIds = existingRole.permissions.map(p => p.toString());
-          const newIds = rolePermissions.map(p => p.toString());
-          const mergedIds = [...new Set([...existingIds, ...newIds])];
-          
-          await Role.findByIdAndUpdate(existingRole._id, { permissions: mergedIds });
-        } else {
-          await Role.create({
-            name: roleData.name,
-            permissions: rolePermissions
-          });
-        }
-      }
+      await Role.findOneAndUpdate(
+        { name: roleData.name },
+        { name: roleData.name, permissions: rolePermissions },
+        { upsert: true, returnDocument: 'after' }
+      );
     }
 
     // 3. Migrate existing users

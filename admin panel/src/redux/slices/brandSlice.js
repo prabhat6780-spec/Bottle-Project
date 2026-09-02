@@ -151,6 +151,7 @@ const brandSlice = createSlice({
   name: "brands",
 
   initialState: {
+    searchTerm: "",
 
     brands: [],
 
@@ -165,7 +166,8 @@ const brandSlice = createSlice({
     total: 0,
 
   },
-  reducers: {},
+  reducers: {
+    setSearchTerm: (state, action) => { state.searchTerm = action.payload; },},
 
   extraReducers: (builder) => {
 
@@ -330,4 +332,5 @@ const brandSlice = createSlice({
 
 });
 
+export const { setSearchTerm } = brandSlice.actions;
 export default brandSlice.reducer;

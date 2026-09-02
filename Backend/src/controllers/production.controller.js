@@ -107,38 +107,30 @@ const getAllProduction = async (req, res) => {
 
   try {
 
-    const {
-
-      variantId,
+    let {
+      page,
+      limit,
+      search,
       companyId,
       brandId,
       bottleSpecId,
-
+      variantId,
       date,
-
-      search = "",
-
-      limit = 10,
-
-      page = 1,
-
       startDate,
       endDate,
-
       pagination = "true",
-
     } = req.query;
 
-    // ================= PAGINATION =================
+    let parsedPage = 1;
+    if (page && page !== '') {
+      parsedPage = parseInt(page) || 1;
+      res.cookie('productionsPage', parsedPage, { maxAge: 86400000, httpOnly: true });
+    } else if (req.cookies.productionsPage) {
+      parsedPage = parseInt(req.cookies.productionsPage) || 1;
+    }
 
-    const parsedLimit =
-      parseInt(limit);
-
-    const parsedPage =
-      parseInt(page);
-
-    const skip =
-      (parsedPage - 1) * parsedLimit;
+    const parsedLimit = parseInt(limit) || 10;
+    const skip = (parsedPage - 1) * parsedLimit;
 
     // ================= FILTER =================
 
@@ -227,51 +219,35 @@ const getAllProduction = async (req, res) => {
     }
 
     // ================= SEARCH =================
+    if (search && search.trim() !== "") {
+      const searchWord = search.trim();
+      const searchTokens = searchWord.split(/[\W_]+/).filter(Boolean);
+      let regexStr = "";
+      
+      if (searchTokens.length > 0) {
+        const escapeRegExp = (str) => str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        regexStr = searchTokens.map(escapeRegExp).join('[\\W_]+');
+      } else {
+        regexStr = searchWord.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      }
+      
+      const wholeWordRegex = new RegExp(`(?:^|\\W)${regexStr}(?:\\W|$)`, "i");
 
-    if (search) {
+      productions = productions.filter((p) => {
+        const brandName = p.brandId?.name || "";
+        const companyName = p.brandId?.companyId?.name || "";
+        const variantName = p.variantId?.variantName || "";
+        const productName = p.variantId?.productName || "";
+        const bottleName = p.bottleSpecId?.bottleName || "";
 
-      const searchText =
-        search.toLowerCase();
-
-      productions =
-        productions.filter((p) => {
-
-          const brandName =
-            p.brandId?.name
-              ?.toLowerCase() || "";
-
-          const companyName =
-            p.brandId?.companyId?.name
-              ?.toLowerCase() || "";
-
-          const variantName =
-            p.variantId?.variantName
-              ?.toLowerCase() || "";
-
-          const productName =
-            p.variantId?.productName
-              ?.toLowerCase() || "";
-
-          const bottleName =
-            p.bottleSpecId?.bottleName
-              ?.toLowerCase() || "";
-
-          return (
-
-            brandName.includes(searchText) ||
-
-            companyName.includes(searchText) ||
-
-            variantName.includes(searchText) ||
-
-            productName.includes(searchText) ||
-
-            bottleName.includes(searchText)
-
-          );
-
-        });
-
+        return (
+          wholeWordRegex.test(brandName) ||
+          wholeWordRegex.test(companyName) ||
+          wholeWordRegex.test(variantName) ||
+          wholeWordRegex.test(productName) ||
+          wholeWordRegex.test(bottleName)
+        );
+      });
     }
 
     // ================= TOTAL COUNT & PAGINATION =================

@@ -148,6 +148,7 @@ const operatorSlice = createSlice({
   name: "operators",
 
   initialState: {
+    searchTerm: "",
 
     operators: [],
 
@@ -163,7 +164,8 @@ const operatorSlice = createSlice({
 
   },
 
-  reducers: {},
+  reducers: {
+    setSearchTerm: (state, action) => { state.searchTerm = action.payload; },},
 
   extraReducers: (builder) => {
 
@@ -328,4 +330,5 @@ const operatorSlice = createSlice({
 
 });
 
+export const { setSearchTerm } = operatorSlice.actions;
 export default operatorSlice.reducer;

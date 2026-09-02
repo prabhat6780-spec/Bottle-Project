@@ -2,26 +2,26 @@ import { useState, useEffect } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { Can } from '../../context/AbilityContext.js';
 import { useDispatch, useSelector } from 'react-redux';
-import { fetchVariants, deleteVariant } from '../../redux/slices/variantSlice.js';
+import { fetchVariants, deleteVariant, setSearchTerm } from '../../redux/slices/variantSlice.js';
 import Swal from 'sweetalert2';
 import { V_URL } from '../../../Baseurl.js';
 
 export default function Variants() {
   const dispatch = useDispatch();
-  const { variants, loading, page, totalPages, total } = useSelector((state) => state.variants);
-  
+  const { variants, loading, page, totalPages, total, searchTerm } = useSelector((state) => state.variants);
+  const search = searchTerm || '';
   const [searchParams, setSearchParams] = useSearchParams();
-  const currentPage = Number(searchParams.get("page")) || 1;
+  const urlPage = searchParams.get("page") || '';
+  const currentPage = Number(urlPage) || page || 1;
   const [itemsPerPage, setItemsPerPage] = useState(10);
-  const [search, setSearch] = useState('');
 
   useEffect(() => {
     dispatch(fetchVariants({
-      page: currentPage,
+      page: urlPage,
       limit: itemsPerPage,
       search,
     }));
-  }, [dispatch, currentPage, itemsPerPage, search]);
+  }, [dispatch, urlPage, itemsPerPage, search]);
 
   const handleDelete = (id, name) => {
     Swal.fire({
@@ -83,7 +83,7 @@ export default function Variants() {
               className="form-control form-control-sm border-light-subtle bg-light ps-5 py-2 shadow-none"
               placeholder="Search variants..."
               value={search}
-              onChange={e => { setSearch(e.target.value); setSearchParams({ page: 1 }); }}
+              onChange={e => { dispatch(setSearchTerm(e.target.value)); setSearchParams({ page: 1 }); }}
               style={{ borderRadius: 10, fontSize: 13 }}
             />
           </div>

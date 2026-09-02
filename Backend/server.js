@@ -3,6 +3,7 @@ require("dotenv").config();
 const connectDB=require("./src/config/db");
 const seedRBAC = require("./src/seeders/rbac.seeder");
 
+
 connectDB().then(() => {
     seedRBAC();
 });

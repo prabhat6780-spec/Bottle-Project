@@ -2,25 +2,26 @@ import { useState, useEffect } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { Can } from '../../context/AbilityContext';
 import { useDispatch, useSelector } from 'react-redux';
-import { fetchPrintingColors, deletePrintingColor } from '../../redux/slices/printingColorSlice';
+import {fetchPrintingColors, deletePrintingColor, setSearchTerm} from '../../redux/slices/printingColorSlice';
 import Swal from 'sweetalert2';
 
 export default function PrintingColors() {
   const dispatch = useDispatch();
-  const { items, loading, page, totalPages, total } = useSelector((state) => state.printingColor);
+  const { items, loading, page, totalPages, total, searchTerm } = useSelector((state) => state.printingColor);
   
   const [searchParams, setSearchParams] = useSearchParams();
-  const currentPage = Number(searchParams.get("page")) || 1;
+  const urlPage = searchParams.get('page') || '';
+  const currentPage = Number(urlPage) || page || 1;
   const [itemsPerPage, setItemsPerPage] = useState(10);
-  const [search, setSearch] = useState('');
+  const search = searchTerm || "";
 
   useEffect(() => {
     dispatch(fetchPrintingColors({
-      page: currentPage,
+      page: urlPage,
       limit: itemsPerPage,
       search,
     }));
-  }, [dispatch, currentPage, itemsPerPage, search]);
+  }, [dispatch, urlPage, itemsPerPage, search]);
 
   const handleDelete = (id, name) => {
     Swal.fire({
@@ -87,7 +88,11 @@ export default function PrintingColors() {
               className="form-control form-control-sm border-light-subtle bg-light ps-5 py-2 shadow-none"
               placeholder="Search printing colors..."
               value={search}
-              onChange={e => { setSearch(e.target.value); setSearchParams({ page: 1 }); }}
+              onChange={(e) => { 
+                
+                dispatch(setSearchTerm(e.target.value));
+                setSearchParams({ page: 1 }); 
+              }}
               style={{ borderRadius: 10, fontSize: 13 }}
             />
           </div>

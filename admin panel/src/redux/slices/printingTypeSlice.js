@@ -40,6 +40,7 @@ export const deletePrintingType = createAsyncThunk('printingType/delete', async 
 const printingTypeSlice = createSlice({
   name: 'printingType',
   initialState: {
+    searchTerm: "",
     items: [],
     loading: false,
     error: null,
@@ -47,6 +48,7 @@ const printingTypeSlice = createSlice({
     totalPages: 1,
     total: 0,
   },
+  reducers: { setSearchTerm: (state, action) => { state.searchTerm = action.payload; } },
   extraReducers: (builder) => {
     builder
       .addCase(fetchPrintingTypes.pending, (state) => { state.loading = true; })
@@ -82,4 +84,5 @@ const printingTypeSlice = createSlice({
   },
 });
 
+export const { setSearchTerm } = printingTypeSlice.actions;
 export default printingTypeSlice.reducer;

@@ -40,6 +40,7 @@ export const deleteCoatingType = createAsyncThunk('coatingType/delete', async (i
 const coatingTypeSlice = createSlice({
   name: 'coatingType',
   initialState: {
+    searchTerm: "",
     items: [],
     loading: false,
     error: null,
@@ -47,6 +48,7 @@ const coatingTypeSlice = createSlice({
     totalPages: 1,
     total: 0,
   },
+  reducers: { setSearchTerm: (state, action) => { state.searchTerm = action.payload; } },
   extraReducers: (builder) => {
     builder
       .addCase(fetchCoatingTypes.pending, (state) => { state.loading = true; })
@@ -78,4 +80,5 @@ const coatingTypeSlice = createSlice({
   },
 });
 
+export const { setSearchTerm } = coatingTypeSlice.actions;
 export default coatingTypeSlice.reducer;

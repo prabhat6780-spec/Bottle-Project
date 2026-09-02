@@ -4,10 +4,11 @@ import { Link, useSearchParams } from 'react-router-dom';
 import { Can } from '../../context/AbilityContext.js';
 import { useDispatch, useSelector } from 'react-redux';
 import { useParams } from 'react-router-dom';
-import { fetchCoatingProductions, deleteCoatingProduction, clearCoatingProductions } from '../../redux/slices/coatingProductionSlice.js';
-import { fetchBrands } from '../../redux/slices/brandSlice.js';
-import { fetchCoatingSpecs } from '../../redux/slices/coatingSpecSlice.js';
-import { fetchCompanies } from '../../redux/slices/companySlice.js';
+import {fetchCoatingProductions, deleteCoatingProduction, clearCoatingProductions, setSearchTerm} from '../../redux/slices/coatingProductionSlice.js';
+import {fetchBrands} from '../../redux/slices/brandSlice.js';
+import {fetchCoatingSpecs} from '../../redux/slices/coatingSpecSlice.js';
+import {fetchCompanies} from '../../redux/slices/companySlice.js';
+import {fetchShifts} from '../../redux/slices/shiftSlice.js';
 import Swal from 'sweetalert2';
 import * as XLSX from 'xlsx';
 import { V_URL } from '../../../Baseurl.js';
@@ -49,19 +50,18 @@ export default function CoatingProductions() {
   const { unit } = useParams();
   const dispatch = useDispatch();
   const [searchParams, setSearchParams] = useSearchParams();
-  const {
-    coatingProductions: productions,
+  const { coatingProductions: productions,
     loading,
     page,
     totalPages,
-    total,
-  } = useSelector((state) => state.coatingProductions);
+    total, searchTerm } = useSelector((state) => state.coatingProductions);
 
   const { brands } = useSelector((state) => state.brands);
   const { companies } = useSelector((state) => state.companies);
   const { coatingSpecs } = useSelector((state) => state.coatingSpecs);
+  const { shifts } = useSelector((state) => state.shifts || { shifts: [] });
 
-  const [search, setSearch] = useState('');
+  const search = searchTerm || "";
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
   const [selectedCompany, setSelectedCompany] = useState('');
@@ -80,13 +80,15 @@ export default function CoatingProductions() {
   // Units are fixed 1-4 per the model enum
   const allUnits = [1, 2, 3, 4];
 
+  const urlPage = searchParams.get('page') || '';
+  const currentPage = Number(urlPage) || page || 1;
+
   const [limit, setLimit] = useState(10);
-  const currentPage = Number(searchParams.get("page")) || 1;
 
   useEffect(() => {
     dispatch(clearCoatingProductions());
     dispatch(fetchCoatingProductions({
-      page: currentPage,
+      page: urlPage,
       limit,
       // Empty string = All Units (no filter); otherwise filter by selected unit
       ...(selectedUnit !== '' ? { unit: selectedUnit } : {}),
@@ -99,12 +101,13 @@ export default function CoatingProductions() {
       startDate,
       endDate,
     }));
-  }, [dispatch, currentPage, limit, search, startDate, endDate, selectedCompany, selectedBrand, selectedSpec, selectedVariant, selectedShift, selectedUnit]);
+  }, [dispatch, urlPage, limit, search, startDate, endDate, selectedCompany, selectedBrand, selectedSpec, selectedVariant, selectedShift, selectedUnit]);
 
   useEffect(() => {
     dispatch(fetchBrands({ pagination: 'false' }));
     dispatch(fetchCoatingSpecs({ pagination: 'false' }));
     dispatch(fetchCompanies({ pagination: 'false' }));
+    dispatch(fetchShifts({ pagination: 'false' }));
   }, [dispatch]);
 
   const handleDelete = (id) => {
@@ -399,8 +402,8 @@ export default function CoatingProductions() {
             <div className="col-12 col-sm-6 col-md-4 col-lg-3">
               <label className="small text-muted fw-bold mb-1 d-block">Shift</label>
               <Select
-                options={[{ value: '', label: 'All Shifts' }]} // We should fetch shifts from Redux if we want a full filter dropdown, but we can leave it simple for now or fetch it later
-                value={selectedShift ? { value: selectedShift, label: `Shift ${selectedShift}` } : { value: '', label: 'All Shifts' }}
+                options={[{ value: '', label: 'All Shifts' }, ...shifts.map(s => ({ value: s._id, label: `Shift ${s.name}` }))]}
+                value={selectedShift ? { value: selectedShift, label: shifts.find(s => s._id === selectedShift) ? `Shift ${shifts.find(s => s._id === selectedShift).name}` : 'Unknown' } : { value: '', label: 'All Shifts' }}
                 onChange={(option) => { setSearchParams({ page: 1 }); setSelectedShift(option.value); }}
                 classNamePrefix="react-select"
                 menuPortalTarget={document.body}
@@ -416,7 +419,11 @@ export default function CoatingProductions() {
                   className="form-control form-control-sm border-light-subtle bg-light ps-5 shadow-none w-100"
                   placeholder="Search logs..."
                   value={search}
-                  onChange={(e) => { setSearchParams({ page: 1 }); setSearch(e.target.value); }}
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    dispatch(setSearchTerm(val));
+                    setSearchParams({ page: 1 });
+                  }}
                   style={{ borderRadius: 10, height: 38 }}
                 />
               </div>
@@ -425,7 +432,7 @@ export default function CoatingProductions() {
               <button
                 type="button"
                 onClick={() => {
-                  setSearch(''); setStartDate(''); setEndDate(''); setSelectedCompany(''); setSelectedBrand(''); setSelectedSpec(''); setSelectedVariant(''); setSelectedShift(''); setSelectedUnit(unit || ''); setSearchParams({ page: 1 });
+                  dispatch(setSearchTerm('')); setStartDate(''); setEndDate(''); setSelectedCompany(''); setSelectedBrand(''); setSelectedSpec(''); setSelectedVariant(''); setSelectedShift(''); setSelectedUnit(unit || ''); setSearchParams({ page: 1 });
                 }}
                 className="btn btn-sm btn-light border-light-subtle w-100"
                 style={{ borderRadius: 10, fontWeight: 600, height: 38 }}

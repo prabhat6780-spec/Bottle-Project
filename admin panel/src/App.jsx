@@ -32,6 +32,24 @@ import Variants from './pages/variant/Variants';
 import AddVariant from './pages/variant/AddVariant';
 import EditVariant from './pages/variant/EditVariant';
 import VariantDetail from './pages/variant/VariantDetail';
+import Formulas from './pages/Formula/Formulas';
+import AddFormula from './pages/Formula/AddFormula';
+import EditFormula from './pages/Formula/EditFormula';
+import ViewFormula from './pages/Formula/ViewFormula';
+
+import SgLabels from './pages/SgLabel/SgLabels';
+import AddSgLabel from './pages/SgLabel/AddSgLabel';
+import EditSgLabel from './pages/SgLabel/EditSgLabel';
+import RawMaterials from './pages/RawMaterial/RawMaterials';
+import AddRawMaterial from './pages/RawMaterial/AddRawMaterial';
+import EditRawMaterial from './pages/RawMaterial/EditRawMaterial';
+import ViewRawMaterial from './pages/RawMaterial/ViewRawMaterial';
+import StockSummary from './pages/StockEntry/StockSummary';
+import StockInvoices from './pages/StockEntry/StockInvoices';
+import MaterialHistory from './pages/StockEntry/MaterialHistory';
+import AddStockIn from './pages/StockEntry/AddStockIn';
+import ViewStockIn from './pages/StockEntry/ViewStockIn';
+import EditStockIn from './pages/StockEntry/EditStockIn';
 import Productions from './pages/Production/Productions';
 import Production from './pages/Production/Production';
 import AddProduction from './pages/Production/AddProduction';
@@ -117,6 +135,23 @@ export default function App() {
               <Route path="/variants/add" element={<AddVariant />} />
               <Route path="/variants/edit/:id" element={<EditVariant />} />
               <Route path="/variants/view/:id" element={<VariantDetail />} />
+              <Route path="/formulas" element={<Formulas />} />
+              <Route path="/formulas/add" element={<AddFormula />} />
+              <Route path="/formulas/edit/:id" element={<EditFormula />} />
+              <Route path="/formulas/view/:id" element={<ViewFormula />} />
+              <Route path="/sg-labels" element={<SgLabels />} />
+              <Route path="/sg-labels/add" element={<AddSgLabel />} />
+              <Route path="/sg-labels/edit/:id" element={<EditSgLabel />} />
+              <Route path="/raw-materials" element={<RawMaterials />} />
+              <Route path="/raw-materials/add" element={<AddRawMaterial />} />
+              <Route path="/raw-materials/edit/:id" element={<EditRawMaterial />} />
+              <Route path="/raw-materials/view/:id" element={<ViewRawMaterial />} />
+              <Route path="/stock-summary" element={<StockSummary />} />
+              <Route path="/stock-invoices" element={<StockInvoices />} />
+              <Route path="/stock-history" element={<MaterialHistory />} />
+              <Route path="/stock-entries/add" element={<AddStockIn />} />
+              <Route path="/stock-entries/view/:id" element={<ViewStockIn />} />
+              <Route path="/stock-entries/edit/:id" element={<EditStockIn />} />
               <Route path="/productions" element={<Productions />} />
               <Route path="/production" element={<Production />} />
               <Route path="/productions/add" element={<AddProduction />} />

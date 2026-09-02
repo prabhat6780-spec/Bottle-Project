@@ -217,11 +217,16 @@ const userSlice = createSlice({
     total: 0,
     activeCount: 0,
     inactiveCount: 0,
-    pendingCount: 0
+    pendingCount: 0,
+    searchTerm: ""
 
   },
 
-  reducers: {},
+  reducers: {
+    setSearchTerm(state, action) {
+      state.searchTerm = action.payload;
+    }
+  },
 
   extraReducers: (builder) => {
 
@@ -393,5 +398,7 @@ const userSlice = createSlice({
   },
 
 });
+
+export const { setSearchTerm } = userSlice.actions;
 
 export default userSlice.reducer;

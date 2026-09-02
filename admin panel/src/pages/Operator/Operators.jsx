@@ -2,14 +2,12 @@ import { useState, useEffect, useMemo } from 'react';
 import { Link, useSearchParams, } from 'react-router-dom';
 import { Can } from '../../context/AbilityContext';
 import { useDispatch, useSelector } from 'react-redux';
-import { fetchOperators, deleteOperator } from '../../redux/slices/operatorSlice';
+import {fetchOperators, deleteOperator, setSearchTerm} from '../../redux/slices/operatorSlice';
 import Swal from 'sweetalert2';
 
 export default function Operators() {
   const dispatch = useDispatch();
-  const {
-
-    operators,
+  const { operators,
 
     loading,
 
@@ -17,17 +15,11 @@ export default function Operators() {
 
     totalPages,
 
-    total,
-
-  } = useSelector(
-    (state) => state.operators
-  );
-  const [search, setSearch] = useState('');
-  const [searchParams, setSearchParams] =
-    useSearchParams();
-
-  const currentPage =
-    Number(searchParams.get("page")) || 1;
+    total, searchTerm } = useSelector((state) => state.operators);
+  const search = searchTerm || "";
+  const [searchParams, setSearchParams] = useSearchParams();
+  const urlPage = searchParams.get('page') || '';
+  const currentPage = Number(urlPage) || page || 1;
   const [itemsPerPage, setItemsPerPage] = useState(10);
 
 
@@ -35,7 +27,7 @@ export default function Operators() {
 
   const handledeleteOperator = (id, name) => {
     Swal.fire({
-      title: 'Delete operator?',
+      title: 'Delete Operator?',
       text: `Are you sure you want to delete "${name}"?`,
       icon: 'warning',
       showCancelButton: true,
@@ -44,7 +36,7 @@ export default function Operators() {
     }).then((result) => {
       if (result.isConfirmed) {
         dispatch(deleteOperator(id)).then(res => {
-          if (!res.error) Swal.fire('Deleted!', 'operator removed.', 'success');
+          if (!res.error) Swal.fire('Deleted!', 'Operator removed.', 'success');
           else Swal.fire('Error!', res.payload || 'Failed to delete.', 'error');
         });
       }
@@ -57,7 +49,7 @@ export default function Operators() {
 
     dispatch(fetchOperators({
 
-      page: currentPage,
+      page: urlPage,
 
       limit: itemsPerPage,
 
@@ -69,7 +61,7 @@ export default function Operators() {
 
     dispatch,
 
-    currentPage,
+    urlPage,
 
     itemsPerPage,
 
@@ -135,14 +127,14 @@ export default function Operators() {
               placeholder="Search operators..."
               value={search}
               onChange={(e) => {
+                const val = e.target.value;
+                dispatch(setSearchTerm(val));
                 setSearchParams({ page: 1 });
-                setSearch(e.target.value);
               }}
               style={{ borderRadius: 10, fontSize: 13 }}
             />
           </div>
         </div>
-
         <div className="companies-list-mobile">
           {operators.map((b, index) => (
             <div key={b._id} className="operators-mobile-card brands-mobile-card">

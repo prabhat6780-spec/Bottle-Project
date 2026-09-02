@@ -150,9 +150,14 @@ const variantSlice = createSlice({
     page: 1,
     totalPages: 1,
     total: 0,
+    searchTerm: "",
   },
 
-  reducers: {},
+  reducers: {
+    setSearchTerm: (state, action) => {
+      state.searchTerm = action.payload;
+    }
+  },
 
   extraReducers: (builder) => {
 
@@ -315,5 +320,7 @@ const variantSlice = createSlice({
   },
 
 });
+
+export const { setSearchTerm } = variantSlice.actions;
 
 export default variantSlice.reducer;

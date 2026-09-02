@@ -34,18 +34,17 @@ exports.getBrands = async (req, res) => {
 
   try {
 
-    const {
-      page = 1,
-      limit = 10,
-      search = "",
-      pagination = "true"
-    } = req.query;
+    let { page, limit, search = "", pagination = "true", companyId } = req.query;
 
-    const parsedPage =
-      parseInt(page);
+    let parsedPage = 1;
+    if (page && page !== '') {
+      parsedPage = parseInt(page) || 1;
+      res.cookie('brandsPage', parsedPage, { maxAge: 86400000, httpOnly: true });
+    } else if (req.cookies.brandsPage) {
+      parsedPage = parseInt(req.cookies.brandsPage) || 1;
+    }
 
-    const parsedLimit =
-      parseInt(limit);
+    const parsedLimit = parseInt(limit) || 10;
 
     const skip =
       (parsedPage - 1) * parsedLimit;

@@ -40,6 +40,7 @@ export const deletePrintingColor = createAsyncThunk('printingColor/delete', asyn
 const printingColorSlice = createSlice({
   name: 'printingColor',
   initialState: {
+    searchTerm: "",
     items: [],
     loading: false,
     error: null,
@@ -47,6 +48,7 @@ const printingColorSlice = createSlice({
     totalPages: 1,
     total: 0,
   },
+  reducers: { setSearchTerm: (state, action) => { state.searchTerm = action.payload; } },
   extraReducers: (builder) => {
     builder
       .addCase(fetchPrintingColors.pending, (state) => { state.loading = true; })
@@ -79,4 +81,5 @@ const printingColorSlice = createSlice({
   },
 });
 
+export const { setSearchTerm } = printingColorSlice.actions;
 export default printingColorSlice.reducer;
