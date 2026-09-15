@@ -57,9 +57,8 @@ export default function RawMaterials() {
           <p className="page-subtitle">Manage system raw materials</p>
         </div>
         <Can I="create" a="raw-material">
-          <Link to="/raw-materials/add" className="btn btn-primary d-flex align-items-center gap-2">
-            <i className="bi bi-plus-lg" />
-            <span>Add Raw Material</span>
+          <Link to="/raw-materials/add" className="btn-accent companies-header-action">
+            <i className="bi bi-plus-lg me-2" /> Add Raw Material
           </Link>
         </Can>
       </div>

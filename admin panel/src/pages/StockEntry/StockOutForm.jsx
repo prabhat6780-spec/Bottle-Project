@@ -103,9 +103,9 @@ export default function StockOutForm({ onClose, selectedDate, material, editEntr
             <div className="modal-body p-4 pt-4">
               <div className="mb-4 text-center p-3 bg-light rounded-4 border border-light-subtle">
                 <h4 className="fw-bold mb-2 text-dark">{material.rawMaterial.name}</h4>
-                <div className="d-flex align-items-center justify-content-center gap-2">
-                  <span className="text-muted small fw-semibold text-uppercase tracking-wide">Current System Stock</span>
-                  <span className="badge bg-white text-danger border border-danger border-opacity-25 px-3 py-2 fs-6 shadow-sm rounded-pill">
+                <div className="d-flex flex-column flex-sm-row align-items-center justify-content-center gap-2">
+                  <span className="text-muted small fw-semibold text-uppercase tracking-wide text-center">Current System Stock</span>
+                  <span className="badge bg-white text-danger border border-danger border-opacity-25 px-3 py-2 fs-6 shadow-sm rounded-pill text-nowrap">
                     {material.currentStock.toFixed(2)} {material.unit || 'KG'}
                   </span>
                 </div>
@@ -151,9 +151,9 @@ export default function StockOutForm({ onClose, selectedDate, material, editEntr
               </div>
             </div>
             
-            <div className="modal-footer border-top-0 bg-light p-4 pt-3">
-              <button type="button" className="btn btn-light border fw-bold text-secondary rounded-3 px-4 py-2" onClick={onClose}>Cancel</button>
-              <button type="submit" className="btn btn-danger fw-bold rounded-3 px-4 py-2 shadow-sm d-flex align-items-center">
+            <div className="modal-footer border-top-0 bg-light p-4 pt-3 d-flex flex-column flex-sm-row justify-content-end gap-2">
+              <button type="button" className="btn btn-light border fw-bold text-secondary rounded-3 px-4 py-2 w-100 w-sm-auto order-2 order-sm-1" onClick={onClose}>Cancel</button>
+              <button type="submit" className="btn btn-danger fw-bold rounded-3 px-4 py-2 shadow-sm d-flex align-items-center justify-content-center w-100 w-sm-auto order-1 order-sm-2 mb-2 mb-sm-0">
                 <i className="bi bi-check2-circle me-2 fs-5"></i> 
                 Confirm Update
               </button>

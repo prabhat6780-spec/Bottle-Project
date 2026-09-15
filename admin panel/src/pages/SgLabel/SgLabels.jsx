@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { Link, useSearchParams } from 'react-router-dom';
-import {fetchSgLabels, deleteSgLabel, toggleSgLabelStatus} from '../../redux/slices/sgLabelSlice';
+import {fetchSgLabels, deleteSgLabel, hideVariantFromSgLabel, toggleSgLabelStatus, setSearchTerm} from '../../redux/slices/sgLabelSlice';
 import {fetchCompanies} from '../../redux/slices/companySlice';
 import {fetchBrands} from '../../redux/slices/brandSlice';
 import {fetchBottleSpecs} from '../../redux/slices/bottleSpecSlice';
@@ -47,7 +47,7 @@ export default function SgLabels() {
     setSearchParams(newParams);
   };
 
-  const handleDelete = (id) => {
+  const handleDelete = (item) => {
     Swal.fire({
       title: 'Are you sure?',
       text: "You won't be able to revert this!",
@@ -58,12 +58,21 @@ export default function SgLabels() {
       confirmButtonText: 'Yes, delete it!'
     }).then((result) => {
       if (result.isConfirmed) {
-        dispatch(deleteSgLabel(id)).then((res) => {
-          if (!res.error) {
-            Swal.fire('Deleted!', 'Custom SG Label has been deleted.', 'success');
-            dispatch(fetchSgLabels({ page, limit: itemsPerPage, search, companyId, brandId, bottleId }));
-          }
-        });
+        if (item.isCustom) {
+          dispatch(deleteSgLabel(item._id)).then((res) => {
+            if (!res.error) {
+              Swal.fire('Deleted!', 'SG Label has been deleted.', 'success');
+              dispatch(fetchSgLabels({ page, limit: itemsPerPage, search, companyId, brandId, bottleId }));
+            }
+          });
+        } else {
+          dispatch(hideVariantFromSgLabel(item._id)).then((res) => {
+            if (!res.error) {
+              Swal.fire('Deleted!', 'SG Label has been deleted.', 'success');
+              dispatch(fetchSgLabels({ page, limit: itemsPerPage, search, companyId, brandId, bottleId }));
+            }
+          });
+        }
       }
     });
   };
@@ -249,90 +258,88 @@ export default function SgLabels() {
             <div key={item._id} className="companies-mobile-card brands-mobile-card border mb-3 rounded-3 p-3 bg-white shadow-sm">
               <div className="d-flex align-items-start gap-3 w-100 min-w-0">
                 <div className="flex-grow-1 min-w-0">
-                  <div className="d-flex align-items-start gap-2 mb-1">
-                    <span className="text-muted small fw-bold mt-1">{String((currentPage - 1) * itemsPerPage + index + 1).padStart(2, '0')}</span>
-                    <span className="fw-semibold" style={{ wordBreak: 'break-word', whiteSpace: 'normal' }}>{item.customBottleName || item.bottleSpecId?.bottleName || 'N/A'}</span>
+                  <div className="d-flex align-items-center gap-2 mb-1 flex-wrap">
+                    <span className="text-muted small fw-bold">#{String((currentPage - 1) * itemsPerPage + index + 1).padStart(2, '0')}</span>
+                    <span className="fw-semibold text-truncate">{item.customBottleName || item.bottleSpecId?.bottleName || 'N/A'}</span>
                   </div>
-                  <div className="small text-muted mt-1 fw-bold">
-                    Brand: {item.bottleSpecId?.brandId?.name || 'N/A'}
-                  </div>
-                  <div className="small text-muted mt-1 fw-bold">
-                    Variant: {item.variantName || 'N/A'}
-                  </div>
+                  
                   <div className="small text-muted mt-1">
-                    Coating Shade: {item.coatingShade || 'N/A'}
+                    {item.customBrandName || item.bottleSpecId?.brandId?.name || 'N/A'} · {item.variantName || 'N/A'}
                   </div>
-                  <div className="small text-muted mt-1">
-                    Text Color: {item.detectedTextColor || 'N/A'}
+                  
+                  {item.coatingShade ? (
+                    <span className="badge bg-soft-warning text-warning-accent px-2 py-1 small mt-1">{item.coatingShade}</span>
+                  ) : null}
+
+                  <div className="d-flex flex-wrap gap-1 mt-2">
+                    {item.isCustom ? (
+                      <span 
+                        className={`badge-status badge-${item.status !== false ? 'active' : 'inactive'} d-inline-block`}
+                        onClick={() => dispatch(toggleSgLabelStatus(item._id))}
+                        style={{ cursor: 'pointer', fontSize: '10px' }}
+                      >
+                        {item.status !== false ? 'ACTIVE' : 'INACTIVE'}
+                      </span>
+                    ) : (
+                      <span 
+                        className={`badge-status badge-${item.status !== false ? 'active' : 'inactive'} d-inline-block opacity-75`}
+                        style={{ fontSize: '10px' }}
+                      >
+                        {item.status !== false ? 'ACTIVE' : 'INACTIVE'}
+                      </span>
+                    )}
+                    <span className="badge bg-light text-dark border" style={{ fontSize: '10px' }}>{item.detectedTextColor || 'Not Detected'}</span>
                   </div>
-                </div>
-                <div className="d-flex flex-column align-items-end gap-2">
-                  <span className={`badge ${item.isCustom ? 'bg-primary' : 'bg-secondary'} rounded-pill`}>
-                    {item.isCustom ? 'Custom Override' : 'Master Variant'}
-                  </span>
-                  {item.isCustom ? (
-                    <span 
-                      className={`badge-status badge-${item.status !== false ? 'active' : 'inactive'} mt-2 d-inline-block`}
-                      onClick={() => dispatch(toggleSgLabelStatus(item._id))}
-                      style={{ cursor: 'pointer' }}
-                      title="Click to toggle status"
-                    >
-                      {item.status !== false ? 'ACTIVE' : 'INACTIVE'}
-                    </span>
-                  ) : (
-                    <span 
-                      className={`badge-status badge-${item.status !== false ? 'active' : 'inactive'} mt-2 d-inline-block opacity-75`}
-                      title="Master Variant status is managed in Variants page"
-                    >
-                      {item.status !== false ? 'ACTIVE' : 'INACTIVE'}
-                    </span>
-                  )}
                 </div>
               </div>
-              <div className="d-flex justify-content-between align-items-center mt-3 pt-3 border-top">
-                <div className="d-flex gap-2">
-                  <Dropdown>
-                    <Dropdown.Toggle variant="outline-secondary" size="sm" className="border-0 rounded-3 shadow-none p-2">
-                      <i className="bi bi-printer fs-6"></i>
-                    </Dropdown.Toggle>
-                    <Dropdown.Menu>
-                      <Dropdown.Item onClick={() => handlePrint(item, 'Printing', 'print')}>Print as Printing</Dropdown.Item>
-                      <Dropdown.Item onClick={() => handlePrint(item, 'Coating', 'print')}>Print as Coating</Dropdown.Item>
-                    </Dropdown.Menu>
-                  </Dropdown>
+              <div className="companies-mobile-actions brands-mobile-actions mt-3 pt-3 border-top">
+                <Dropdown className="flex-grow-1">
+                  <Dropdown.Toggle variant="outline-secondary" size="sm" className="w-100 border-0 rounded-3 shadow-none p-2 companies-mobile-action-btn">
+                    <i className="bi bi-printer fs-6"></i>
+                  </Dropdown.Toggle>
+                  <Dropdown.Menu>
+                    <Dropdown.Item onClick={() => handlePrint(item, 'Printing', 'print')}>Print as Printing</Dropdown.Item>
+                    <Dropdown.Item onClick={() => handlePrint(item, 'Coating', 'print')}>Print as Coating</Dropdown.Item>
+                  </Dropdown.Menu>
+                </Dropdown>
 
-                  <Dropdown>
-                    <Dropdown.Toggle variant="outline-success" size="sm" className="border-0 rounded-3 shadow-none p-2">
-                      <i className="bi bi-download fs-6"></i>
-                    </Dropdown.Toggle>
-                    <Dropdown.Menu>
-                      <Dropdown.Item onClick={() => handlePrint(item, 'Printing', 'download')}>Download as Printing</Dropdown.Item>
-                      <Dropdown.Item onClick={() => handlePrint(item, 'Coating', 'download')}>Download as Coating</Dropdown.Item>
-                    </Dropdown.Menu>
-                  </Dropdown>
-                </div>
-                <div className="d-flex gap-2">
-                  {item.isCustom ? (
-                    <>
-                      <Can I="edit" a="sg-label">
-                        <Link to={`/sg-labels/edit/${item._id}`} className="btn btn-sm btn-outline-primary border-0 rounded-3 shadow-none p-2" title="Edit">
-                          <i className="bi bi-pencil-square fs-6"></i>
-                        </Link>
-                      </Can>
-                      <Can I="delete" a="sg-label">
-                        <button type="button" onClick={() => handleDelete(item._id)} className="btn btn-sm btn-outline-danger border-0 rounded-3 shadow-none p-2" title="Delete">
-                          <i className="bi bi-trash fs-6" />
-                        </button>
-                      </Can>
-                    </>
-                  ) : (
-                    <Can I="create" a="sg-label">
-                      <Link to={`/sg-labels/add?bottleId=${item.bottleSpecId?._id}&variantId=${item._id}&coatingShade=${encodeURIComponent(item.coatingShade || '')}&textColor=${encodeURIComponent(item.detectedTextColor || '')}`} className="btn btn-sm btn-outline-primary border-0 rounded-3 shadow-none p-2" title="Create Custom Override">
+                <Dropdown className="flex-grow-1">
+                  <Dropdown.Toggle variant="outline-success" size="sm" className="w-100 border-0 rounded-3 shadow-none p-2 companies-mobile-action-btn">
+                    <i className="bi bi-download fs-6"></i>
+                  </Dropdown.Toggle>
+                  <Dropdown.Menu>
+                    <Dropdown.Item onClick={() => handlePrint(item, 'Printing', 'download')}>Download as Printing</Dropdown.Item>
+                    <Dropdown.Item onClick={() => handlePrint(item, 'Coating', 'download')}>Download as Coating</Dropdown.Item>
+                  </Dropdown.Menu>
+                </Dropdown>
+
+                {item.isCustom ? (
+                  <>
+                    <Can I="edit" a="sg-label">
+                      <Link to={`/sg-labels/edit/${item._id}`} className="btn btn-sm btn-outline-primary border-0 rounded-3 shadow-none p-2 companies-mobile-action-btn flex-grow-1" title="Edit">
                         <i className="bi bi-pencil-square fs-6"></i>
                       </Link>
                     </Can>
-                  )}
-                </div>
+                    <Can I="delete" a="sg-label">
+                      <button type="button" onClick={() => handleDelete(item)} className="btn btn-sm btn-outline-danger border-0 rounded-3 shadow-none p-2 companies-mobile-action-btn flex-grow-1" title="Delete">
+                        <i className="bi bi-trash fs-6" />
+                      </button>
+                    </Can>
+                  </>
+                ) : (
+                  <>
+                    <Can I="create" a="sg-label">
+                      <Link to={`/sg-labels/edit/${item._id}?isVariant=true&bottleId=${item.bottleSpecId?._id}&variantId=${item._id}&coatingShade=${encodeURIComponent(item.coatingShade || '')}&textColor=${encodeURIComponent(item.detectedTextColor || '')}`} className="btn btn-sm btn-outline-primary border-0 rounded-3 shadow-none p-2 companies-mobile-action-btn flex-grow-1" title="Edit">
+                        <i className="bi bi-pencil-square fs-6"></i>
+                      </Link>
+                    </Can>
+                    <Can I="delete" a="sg-label">
+                      <button type="button" onClick={() => handleDelete(item)} className="btn btn-sm btn-outline-danger border-0 rounded-3 shadow-none p-2 companies-mobile-action-btn flex-grow-1" title="Delete">
+                        <i className="bi bi-trash fs-6" />
+                      </button>
+                    </Can>
+                  </>
+                )}
               </div>
             </div>
           ))) : (
@@ -374,7 +381,7 @@ export default function SgLabels() {
                       </span>
                     </td>
                     <td className="py-3 text-center fw-600 text-dark" style={{ fontSize: 13 }}>
-                      {item.bottleSpecId?.brandId?.name || 'N/A'}
+                      {item.customBrandName || item.bottleSpecId?.brandId?.name || 'N/A'}
                     </td>
                     <td className="py-3 text-center fw-600 text-dark" style={{ fontSize: 13 }}>
                       {item.customBottleName || item.bottleSpecId?.bottleName || 'N/A'}
@@ -386,7 +393,7 @@ export default function SgLabels() {
                       {item.variantName || 'N/A'}
                     </td>
                     <td className="py-3 text-center">
-                      <span className="badge bg-light text-dark border small">{item.detectedTextColor || 'N/A'}</span>
+                      <span className="badge bg-light text-dark border small text-wrap text-break" style={{ lineHeight: '1.4' }}>{item.detectedTextColor || 'N/A'}</span>
                     </td>
                     <td className="py-3 text-center">
                       <span 
@@ -431,17 +438,24 @@ export default function SgLabels() {
                               </Link>
                             </Can>
                             <Can I="delete" a="sg-label">
-                              <button type="button" onClick={() => handleDelete(item._id)} className="btn btn-sm btn-outline-danger border-0 rounded-3 shadow-none p-2" title="Delete">
+                              <button type="button" onClick={() => handleDelete(item)} className="btn btn-sm btn-outline-danger border-0 rounded-3 shadow-none p-2" title="Delete">
                                 <i className="bi bi-trash fs-6" />
                               </button>
                             </Can>
                           </>
                         ) : (
-                          <Can I="create" a="sg-label">
-                            <Link to={`/sg-labels/add?bottleId=${item.bottleSpecId?._id}&variantId=${item._id}&coatingShade=${encodeURIComponent(item.coatingShade || '')}&textColor=${encodeURIComponent(item.detectedTextColor || '')}`} className="btn btn-sm btn-outline-primary border-0 rounded-3 shadow-none p-2" title="Create Custom Override">
-                              <i className="bi bi-pencil-square fs-6"></i>
-                            </Link>
-                          </Can>
+                          <>
+                            <Can I="create" a="sg-label">
+                              <Link to={`/sg-labels/edit/${item._id}?isVariant=true&bottleId=${item.bottleSpecId?._id}&variantId=${item._id}&coatingShade=${encodeURIComponent(item.coatingShade || '')}&textColor=${encodeURIComponent(item.detectedTextColor || '')}`} className="btn btn-sm btn-outline-primary border-0 rounded-3 shadow-none p-2" title="Edit">
+                                <i className="bi bi-pencil-square fs-6"></i>
+                              </Link>
+                            </Can>
+                            <Can I="delete" a="sg-label">
+                              <button type="button" onClick={() => handleDelete(item)} className="btn btn-sm btn-outline-danger border-0 rounded-3 shadow-none p-2" title="Delete">
+                                <i className="bi bi-trash fs-6" />
+                              </button>
+                            </Can>
+                          </>
                         )}
                       </div>
                     </td>

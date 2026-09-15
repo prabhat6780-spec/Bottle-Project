@@ -73,6 +73,19 @@ export const toggleSgLabelStatus = createAsyncThunk(
   }
 );
 
+export const hideVariantFromSgLabel = createAsyncThunk(
+  'sgLabels/hideVariant',
+  async (id, { rejectWithValue }) => {
+    try {
+      await API.put(`/sg-label/${id}/hide`);
+      return id;
+    } catch (error) {
+      return rejectWithValue(error.response?.data?.message || 'Failed to hide variant');
+    }
+  }
+);
+
+
 const sgLabelSlice = createSlice({
   name: 'sgLabels',
   initialState: {
@@ -131,6 +144,9 @@ const sgLabelSlice = createSlice({
         if (index !== -1) {
           state.sgLabels[index].status = !state.sgLabels[index].status;
         }
+      })
+      .addCase(hideVariantFromSgLabel.fulfilled, (state, action) => {
+        state.sgLabels = state.sgLabels.filter((label) => label._id !== action.payload);
       });
   }
 });

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import { useNavigate, useParams, Link } from 'react-router-dom';
+import { useNavigate, useParams, Link, useSearchParams } from 'react-router-dom';
 import { fetchSgLabelById, updateSgLabel, createSgLabel, clearCurrentSgLabel } from '../../redux/slices/sgLabelSlice';
 import { fetchBottleSpecs } from '../../redux/slices/bottleSpecSlice';
 import { fetchVariants } from '../../redux/slices/variantSlice';
@@ -25,8 +25,10 @@ const TEXT_COLORS = [
 
 export default function EditSgLabel() {
   const { id } = useParams();
+  const [searchParams] = useSearchParams();
   const dispatch = useDispatch();
   const navigate = useNavigate();
+  const isVariant = searchParams.get('isVariant') === 'true';
 
   const [formData, setFormData] = useState({
     bottleId: '',
@@ -61,15 +63,20 @@ export default function EditSgLabel() {
         setShades(res.data.data);
       }
     }).catch(err => console.error(err));
-    dispatch(fetchSgLabelById(id)).then(() => setInitialLoading(false));
+    
+    if (isVariant) {
+      setInitialLoading(false);
+    } else {
+      dispatch(fetchSgLabelById(id)).then(() => setInitialLoading(false));
+    }
 
     return () => {
       dispatch(clearCurrentSgLabel());
     };
-  }, [dispatch, id]);
+  }, [dispatch, id, isVariant]);
 
   useEffect(() => {
-    if (currentSgLabel) {
+    if (currentSgLabel && !isVariant) {
       setFormData({
         bottleId: currentSgLabel.bottleId?._id || '',
         variantId: currentSgLabel.variantId?._id || '',
@@ -80,8 +87,28 @@ export default function EditSgLabel() {
         detectedTextColor: currentSgLabel.detectedTextColor || '',
         status: currentSgLabel.status !== false ? 'active' : 'inactive'
       });
+    } else if (isVariant && bottleSpecs.length > 0 && variants.length > 0) {
+      const initBottleId = searchParams.get('bottleId');
+      const initVariantId = searchParams.get('variantId');
+      const initCoatingShade = searchParams.get('coatingShade');
+      const initTextColor = searchParams.get('textColor');
+      
+      const bottle = bottleSpecs.find(b => b._id === initBottleId);
+      const variant = variants.find(v => v._id === initVariantId);
+      if (bottle && variant) {
+        setFormData(prev => ({
+          ...prev,
+          bottleId: initBottleId,
+          variantId: initVariantId,
+          customBottleName: bottle.bottleName,
+          customBrandName: bottle.brandId?.name || '',
+          customVariantName: variant.variantName,
+          coatingShade: initCoatingShade || '',
+          detectedTextColor: initTextColor || ''
+        }));
+      }
     }
-  }, [currentSgLabel]);
+  }, [currentSgLabel, isVariant, bottleSpecs, variants, searchParams]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -94,8 +121,12 @@ export default function EditSgLabel() {
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    if (!formData.bottleId || !formData.coatingShade || !formData.variantId) {
-      return Swal.fire('Validation Error', 'Please fill in all required fields.', 'error');
+    if (!formData.customBottleName || !formData.coatingShade || !formData.customVariantName) {
+      const missing = [];
+      if (!formData.customBottleName) missing.push('Bottle Name');
+      if (!formData.coatingShade) missing.push('Coating Shade');
+      if (!formData.customVariantName) missing.push('Variant Name');
+      return Swal.fire('Validation Error', `Please fill in all required fields. Missing: ${missing.join(', ')}`, 'error');
     }
 
     Swal.fire({
@@ -113,7 +144,12 @@ export default function EditSgLabel() {
       if (result.isConfirmed) {
         // Update Existing
         setLoading(true);
-        const res = await dispatch(updateSgLabel({ id, data: formData }));
+        let res;
+        if (isVariant) {
+          res = await dispatch(createSgLabel({ ...formData, hideVariant: true }));
+        } else {
+          res = await dispatch(updateSgLabel({ id, data: formData }));
+        }
         setLoading(false);
 
         if (!res.error) {
@@ -125,7 +161,12 @@ export default function EditSgLabel() {
       } else if (result.isDenied) {
         // Save as New
         setLoading(true);
-        const res = await dispatch(createSgLabel(formData));
+        let res;
+        if (isVariant) {
+          res = await dispatch(createSgLabel({ ...formData, hideVariant: false }));
+        } else {
+          res = await dispatch(createSgLabel(formData));
+        }
         setLoading(false);
 
         if (!res.error) {
@@ -183,7 +224,7 @@ export default function EditSgLabel() {
                           const val = e.target.value;
                           const matched = availableSpecs.find(s => `${s.bottleName}` === val);
                           if (matched) {
-                            setFormData({ ...formData, bottleId: matched._id, customBottleName: val, customBrandName: matched.brandId?.name || formData.customBrandName, variantId: '', customVariantName: '' });
+                            setFormData({ ...formData, bottleId: matched._id, customBottleName: val, customBrandName: matched.brandId?.name || formData.customBrandName });
                           } else {
                             setFormData({ ...formData, customBottleName: val });
                           }
@@ -201,20 +242,20 @@ export default function EditSgLabel() {
                           {availableSpecs
                             .filter(s => `${s.bottleName}`.toLowerCase().includes((formData.customBottleName || '').toLowerCase()))
                             .map(s => (
-                            <div 
-                              key={s._id} 
-                              className="p-2 px-3 dropdown-item"
-                              style={{ cursor: 'pointer', fontSize: '14px' }}
-                              onMouseDown={(e) => {
-                                e.preventDefault();
-                                const val = `${s.bottleName}`;
-                                setFormData({ ...formData, bottleId: s._id, customBottleName: val, customBrandName: s.brandId?.name || formData.customBrandName, variantId: '', customVariantName: '' });
-                                setBottleMenuOpen(false);
-                              }}
-                            >
-                              {s.bottleName} {s.code ? `(${s.code})` : ''}
-                            </div>
-                          ))}
+                              <div
+                                key={s._id}
+                                className="p-2 px-3 dropdown-item"
+                                style={{ cursor: 'pointer', fontSize: '14px' }}
+                                onMouseDown={(e) => {
+                                  e.preventDefault();
+                                  const val = `${s.bottleName}`;
+                                  setFormData({ ...formData, bottleId: s._id, customBottleName: val, customBrandName: s.brandId?.name || formData.customBrandName });
+                                  setBottleMenuOpen(false);
+                                }}
+                              >
+                                {s.bottleName} {s.code ? `(${s.code})` : ''}
+                              </div>
+                            ))}
                           {availableSpecs.filter(s => `${s.bottleName}`.toLowerCase().includes((formData.customBottleName || '').toLowerCase())).length === 0 && (
                             <div className="p-2 px-3 text-muted" style={{ fontSize: '14px' }}>No matches</div>
                           )}
@@ -248,19 +289,19 @@ export default function EditSgLabel() {
                           {brands
                             .filter(b => b.status && b.name.toLowerCase().includes((formData.customBrandName || '').toLowerCase()))
                             .map(b => (
-                            <div 
-                              key={b._id} 
-                              className="p-2 px-3 dropdown-item"
-                              style={{ cursor: 'pointer', fontSize: '14px' }}
-                              onMouseDown={(e) => {
-                                e.preventDefault();
-                                setFormData({ ...formData, customBrandName: b.name });
-                                setBrandMenuOpen(false);
-                              }}
-                            >
-                              {b.name}
-                            </div>
-                          ))}
+                              <div
+                                key={b._id}
+                                className="p-2 px-3 dropdown-item"
+                                style={{ cursor: 'pointer', fontSize: '14px' }}
+                                onMouseDown={(e) => {
+                                  e.preventDefault();
+                                  setFormData({ ...formData, customBrandName: b.name });
+                                  setBrandMenuOpen(false);
+                                }}
+                              >
+                                {b.name}
+                              </div>
+                            ))}
                           {brands.filter(b => b.status && b.name.toLowerCase().includes((formData.customBrandName || '').toLowerCase())).length === 0 && (
                             <div className="p-2 px-3 text-muted" style={{ fontSize: '14px' }}>No matches</div>
                           )}
@@ -283,9 +324,9 @@ export default function EditSgLabel() {
                           const val = e.target.value;
                           const matched = variants.find(v => v.variantName === val);
                           if (matched) {
-                            setFormData({ 
-                              ...formData, 
-                              variantId: matched._id, 
+                            setFormData({
+                              ...formData,
+                              variantId: matched._id,
                               customVariantName: val,
                               coatingShade: matched?.coatingShade || formData.coatingShade,
                               detectedTextColor: matched?.detectedTextColor || ''
@@ -297,36 +338,35 @@ export default function EditSgLabel() {
                         onFocus={() => setVariantMenuOpen(true)}
                         onBlur={() => setTimeout(() => setVariantMenuOpen(false), 200)}
                         placeholder="-- Select or type Variant --"
-                        disabled={!formData.bottleId}
                         style={{ borderRadius: '12px', border: '1px solid #dee2e6', padding: '8px 15px', paddingRight: '35px' }}
                       />
                       <div className="position-absolute" style={{ right: '15px', top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none', color: '#a0a5ab', fontSize: '10px' }}>
                         ▼
                       </div>
-                      {variantMenuOpen && !(!formData.bottleId) && (
+                      {variantMenuOpen && (
                         <div className="position-absolute w-100 shadow-sm bg-white border" style={{ zIndex: 1000, maxHeight: '200px', overflowY: 'auto', borderRadius: '12px', marginTop: '5px' }}>
                           {filteredVariants
                             .filter(v => v.variantName.toLowerCase().includes((formData.customVariantName || '').toLowerCase()))
                             .map(v => (
-                            <div 
-                              key={v._id} 
-                              className="p-2 px-3 dropdown-item"
-                              style={{ cursor: 'pointer', fontSize: '14px' }}
-                              onMouseDown={(e) => {
-                                e.preventDefault();
-                                setFormData({ 
-                                  ...formData, 
-                                  variantId: v._id,
-                                  customVariantName: v.variantName,
-                                  coatingShade: v.coatingShade || formData.coatingShade,
-                                  detectedTextColor: v.detectedTextColor || ''
-                                });
-                                setVariantMenuOpen(false);
-                              }}
-                            >
-                              {v.variantName}
-                            </div>
-                          ))}
+                              <div
+                                key={v._id}
+                                className="p-2 px-3 dropdown-item"
+                                style={{ cursor: 'pointer', fontSize: '14px' }}
+                                onMouseDown={(e) => {
+                                  e.preventDefault();
+                                  setFormData({
+                                    ...formData,
+                                    variantId: v._id,
+                                    customVariantName: v.variantName,
+                                    coatingShade: v.coatingShade || formData.coatingShade,
+                                    detectedTextColor: v.detectedTextColor || ''
+                                  });
+                                  setVariantMenuOpen(false);
+                                }}
+                              >
+                                {v.variantName}
+                              </div>
+                            ))}
                           {filteredVariants.filter(v => v.variantName.toLowerCase().includes((formData.customVariantName || '').toLowerCase())).length === 0 && (
                             <div className="p-2 px-3 text-muted" style={{ fontSize: '14px' }}>No matches</div>
                           )}
@@ -359,19 +399,19 @@ export default function EditSgLabel() {
                           {shades
                             .filter(s => s && s.toLowerCase().includes((formData.coatingShade || '').toLowerCase()))
                             .map(s => (
-                            <div 
-                              key={s} 
-                              className="p-2 px-3 dropdown-item"
-                              style={{ cursor: 'pointer', fontSize: '14px' }}
-                              onMouseDown={(e) => {
-                                e.preventDefault();
-                                setFormData({ ...formData, coatingShade: s });
-                                setShadeMenuOpen(false);
-                              }}
-                            >
-                              {s}
-                            </div>
-                          ))}
+                              <div
+                                key={s}
+                                className="p-2 px-3 dropdown-item"
+                                style={{ cursor: 'pointer', fontSize: '14px' }}
+                                onMouseDown={(e) => {
+                                  e.preventDefault();
+                                  setFormData({ ...formData, coatingShade: s });
+                                  setShadeMenuOpen(false);
+                                }}
+                              >
+                                {s}
+                              </div>
+                            ))}
                           {shades.filter(s => s && s.toLowerCase().includes((formData.coatingShade || '').toLowerCase())).length === 0 && (
                             <div className="p-2 px-3 text-muted" style={{ fontSize: '14px' }}>No matches</div>
                           )}
@@ -404,19 +444,19 @@ export default function EditSgLabel() {
                           {TEXT_COLORS
                             .filter(c => c.toLowerCase().includes((formData.detectedTextColor || '').toLowerCase()))
                             .map(c => (
-                            <div 
-                              key={c} 
-                              className="p-2 px-3 dropdown-item"
-                              style={{ cursor: 'pointer', fontSize: '14px' }}
-                              onMouseDown={(e) => {
-                                e.preventDefault();
-                                setFormData({ ...formData, detectedTextColor: c });
-                                setTextColorMenuOpen(false);
-                              }}
-                            >
-                              {c}
-                            </div>
-                          ))}
+                              <div
+                                key={c}
+                                className="p-2 px-3 dropdown-item"
+                                style={{ cursor: 'pointer', fontSize: '14px' }}
+                                onMouseDown={(e) => {
+                                  e.preventDefault();
+                                  setFormData({ ...formData, detectedTextColor: c });
+                                  setTextColorMenuOpen(false);
+                                }}
+                              >
+                                {c}
+                              </div>
+                            ))}
                           {TEXT_COLORS.filter(c => c.toLowerCase().includes((formData.detectedTextColor || '').toLowerCase())).length === 0 && (
                             <div className="p-2 px-3 text-muted" style={{ fontSize: '14px' }}>No matches</div>
                           )}

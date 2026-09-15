@@ -117,29 +117,29 @@ export default function ViewFormula() {
               </div>
 
               {/* Recipe Table Layout */}
-              <div className="mt-5 d-flex justify-content-center">
+              <div className="mt-5">
                 {currentFormula.columns && currentFormula.columns.length > 0 ? (
                   (() => {
                     const columnsCount = currentFormula.columns.length;
                     const maxRows = Math.max(...currentFormula.columns.map(c => c.rawMaterials?.length || 0));
                     
                     return (
-                      <div className="table-responsive w-100 d-flex justify-content-center">
-                        <table className="table text-center align-middle" style={{ width: 'auto', border: '2px solid #000', borderCollapse: 'collapse' }}>
+                      <div className="table-responsive w-100">
+                        <table className="table text-center align-middle mx-auto" style={{ width: 'auto', border: '2px solid #000', borderCollapse: 'collapse' }}>
                           <thead>
                             <tr>
-                              <th colSpan={columnsCount * 2} className="py-2" style={{ fontSize: '22px', fontWeight: '800', border: '2px solid #000', backgroundColor: '#e9ece0', color: '#000' }}>
+                              <th colSpan={columnsCount * 2} className="py-2 px-2" style={{ fontSize: 'clamp(16px, 4vw, 22px)', fontWeight: '800', border: '2px solid #000', backgroundColor: '#e9ece0', color: '#000' }}>
                                 {currentFormula.bottleId?.bottleName?.toUpperCase() || 'N/A'}
                               </th>
                             </tr>
                             <tr>
-                              <th colSpan={columnsCount * 2} className="py-2" style={{ fontSize: '18px', fontWeight: '700', border: '2px solid #000', backgroundColor: '#fff', color: '#000' }}>
+                              <th colSpan={columnsCount * 2} className="py-2 px-2" style={{ fontSize: 'clamp(14px, 3vw, 18px)', fontWeight: '700', border: '2px solid #000', backgroundColor: '#fff', color: '#000' }}>
                                 {currentFormula.variantId?.variantName?.toUpperCase() || 'N/A'}
                               </th>
                             </tr>
                             <tr>
                               {currentFormula.columns.map((col, colIdx) => (
-                                <th key={colIdx} colSpan="2" className="py-2" style={{ fontSize: '18px', fontWeight: '700', border: '2px solid #000', backgroundColor: '#fff', color: '#000' }}>
+                                <th key={colIdx} colSpan="2" className="py-2 px-2" style={{ fontSize: 'clamp(14px, 3vw, 16px)', fontWeight: '700', border: '2px solid #000', backgroundColor: '#fff', color: '#000', minWidth: '160px' }}>
                                   {col.columnName ? col.columnName.toUpperCase() : (currentFormula.variantId?.coatingShade?.toUpperCase() || 'N/A')}
                                 </th>
                               ))}
@@ -153,10 +153,10 @@ export default function ViewFormula() {
                                     const rm = col.rawMaterials && col.rawMaterials[rowIndex] ? col.rawMaterials[rowIndex] : null;
                                     return (
                                       <React.Fragment key={colIdx}>
-                                        <td className="py-2 fw-bold" style={{ width: '150px', border: '2px solid #000', fontSize: '16px', color: '#000' }}>
+                                        <td className="py-2 fw-bold px-2 text-center" style={{ width: `${65 / columnsCount}%`, border: '2px solid #000', fontSize: 'clamp(12px, 2.5vw, 15px)', color: '#000' }}>
                                           {rm?.rawMaterialId?.name?.toUpperCase() || ''}
                                         </td>
-                                        <td className="py-2 fw-bold text-start ps-3" style={{ width: '150px', border: '2px solid #000', fontSize: '16px', color: '#000' }}>
+                                        <td className="py-2 fw-bold px-2 text-center" style={{ width: `${35 / columnsCount}%`, border: '2px solid #000', fontSize: 'clamp(12px, 2.5vw, 15px)', color: '#000' }}>
                                           {rm?.quantity?.toUpperCase() || ''}
                                         </td>
                                       </React.Fragment>

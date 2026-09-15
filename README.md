@@ -1,5 +1,19 @@
 # Bottle-Project
 
+## Running the Application
+
+To start the Backend server, run the following command from the `Backend` directory:
+```bash
+cd Backend
+npx nodemon server.js
+```
+
+To start the Admin Panel (frontend), run the following command from the `admin panel` directory:
+```bash
+cd "admin panel"
+npm run dev
+```
+
 ## SG Label Seeder
 
 To sync all existing Variants into the SG Label module automatically, run the following command from the `backend` directory:

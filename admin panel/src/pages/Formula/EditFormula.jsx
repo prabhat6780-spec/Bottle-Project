@@ -402,7 +402,7 @@ export default function EditFormula() {
                   <>
                     <hr className="my-5" />
 
-                <div className="d-flex align-items-center justify-content-between mb-4">
+                <div className="d-flex flex-column flex-sm-row align-items-start align-items-sm-center justify-content-between gap-3 mb-4">
                   <div>
                     <h5 className="mb-0 fw-bold">
                       {formData.variantId && variants.find(v => v._id === formData.variantId)?.coatingShade 
@@ -411,7 +411,7 @@ export default function EditFormula() {
                     </h5>
                   </div>
                   <div className="d-flex gap-2">
-                    <button type="button" onClick={handleAddColumn} className="btn btn-sm btn-outline-primary fw-600 rounded-3">
+                    <button type="button" onClick={handleAddColumn} className="btn btn-sm btn-outline-primary fw-600 rounded-3 text-nowrap">
                       <i className="bi bi-plus-lg me-1"></i> Add Column
                     </button>
                   </div>
@@ -440,8 +440,8 @@ export default function EditFormula() {
                       return (
                         <div className={formData.columns.length === 1 ? "col-12" : "col-12 col-md-6"} key={boxIndex}>
                           <div className="border rounded-3 p-3 bg-white h-100">
-                            <div className="d-flex justify-content-between align-items-center mb-3">
-                              <div className="d-flex align-items-center flex-grow-1" style={{ maxWidth: '300px' }}>
+                            <div className="d-flex flex-column flex-sm-row justify-content-between align-items-start align-items-sm-center gap-3 mb-3 w-100">
+                              <div className="d-flex align-items-center flex-grow-1 w-100" style={{ maxWidth: '100%' }}>
                                 <div className="position-relative w-100">
                                   <input
                                     type="text"
@@ -481,11 +481,12 @@ export default function EditFormula() {
                                   )}
                                 </div>
                               </div>
-                              <button type="button" onClick={() => handleAddRow(boxIndex)} className="btn btn-sm btn-outline-primary fw-600 rounded-3">
+                              <button type="button" onClick={() => handleAddRow(boxIndex)} className="btn btn-sm btn-outline-primary fw-600 rounded-3 text-nowrap">
                                 <i className="bi bi-plus-lg me-1"></i> Add Row
                               </button>
                             </div>
-                            <table className="table table-borderless align-middle mb-0">
+                            <div className="table-responsive" style={{ paddingBottom: '120px' }}>
+                              <table className="table table-borderless align-middle mb-0" style={{ minWidth: '400px' }}>
                               <thead className="bg-light">
                                 <tr>
                                   <th className="small text-uppercase fw-600 text-muted rounded-start" style={{ width: '50%' }}>Raw Material</th>
@@ -524,6 +525,7 @@ export default function EditFormula() {
                               </tbody>
                             </table>
                           </div>
+                        </div>
                         </div>
                       );
                     })}

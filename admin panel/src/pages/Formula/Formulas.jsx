@@ -92,6 +92,65 @@ export default function Formulas() {
           </div>
         </div>
 
+        <div className="companies-list-mobile">
+          {loading && formulas.length === 0 && (
+            <div className="text-center py-5">
+              <div className="spinner-border text-primary" role="status">
+                <span className="visually-hidden">Loading...</span>
+              </div>
+            </div>
+          )}
+          {formulas.map((f, index) => (
+            <div key={f._id} className="companies-mobile-card brands-mobile-card">
+              <div className="d-flex align-items-start gap-3 w-100 min-w-0">
+                {f.variantId?.image ? (
+                  <img src={`${V_URL}${f.variantId.image.startsWith('/') ? '' : '/'}${f.variantId.image}`} alt="Variant" style={{ width: 50, height: 50, objectFit: 'cover', borderRadius: 8, border: '1px solid #eee' }} onError={(e) => { e.target.onerror = null; e.target.src = 'data:image/svg+xml;charset=UTF-8,%3Csvg%20width%3D%2240%22%20height%3D%2240%22%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%3E%3Crect%20width%3D%2240%22%20height%3D%2240%22%20fill%3D%22%23f8f9fa%22%2F%3E%3Ctext%20x%3D%2250%25%22%20y%3D%2250%25%22%20dominant-baseline%3D%22middle%22%20text-anchor%3D%22middle%22%20font-family%3D%22sans-serif%22%20font-size%3D%2212px%22%20fill%3D%22%236c757d%22%3ENA%3C%2Ftext%3E%3C%2Fsvg%3E'; }} />
+                ) : (
+                  <div style={{ width: 50, height: 50, borderRadius: 8, background: '#f8fafc', border: '1px dashed #cbd5e1', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <i className="bi bi-image text-muted fs-5" />
+                  </div>
+                )}
+                <div className="flex-grow-1 min-w-0">
+                  <div className="d-flex align-items-center gap-2 mb-1 flex-wrap">
+                    <span className="text-muted small fw-bold">#{String((currentPage - 1) * itemsPerPage + index + 1).padStart(2, '0')}</span>
+                    <span className="fw-semibold text-truncate">{f.bottleId?.bottleName || 'N/A'}</span>
+                    <span className="badge bg-light text-dark border fw-normal small">{f.columns?.reduce((acc, col) => acc + (col.rawMaterials?.length || 0), 0) || 0} items</span>
+                  </div>
+                  <div className="small text-muted">{f.companyId?.name || 'N/A'} · <span className="text-accent">{f.brandId?.name || 'N/A'}</span></div>
+                  <div className="d-flex flex-wrap gap-1 mt-2">
+                    <span className="badge bg-soft-info text-dark" style={{ fontSize: 10 }}>{f.variantId?.variantName || f.variantId || 'NO_DATA'}</span>
+                    <span className="badge bg-light text-dark border" style={{ fontSize: 10 }}>{f.variantId?.coatingShade || 'NO_SHADE'}</span>
+                    <span className="badge bg-soft-secondary text-dark" style={{ fontSize: 10 }}>{f.coatingTypeId?.name || f.coatingTypeId || 'NO_TYPE'}</span>
+                  </div>
+                  <span className={`badge-status badge-${f.status !== false ? 'active' : 'inactive'} mt-2 d-inline-block`}>
+                    {f.status !== false ? 'ACTIVE' : 'INACTIVE'}
+                  </span>
+                </div>
+              </div>
+              <div className="companies-mobile-actions brands-mobile-actions mt-3">
+                <Can I="read" a="formula">
+                  <Link to={`/formulas/view/${f._id}`} className="btn btn-sm btn-outline-info border-0 rounded-3 shadow-none companies-mobile-action-btn" title="View">
+                    <i className="bi bi-eye fs-6" />
+                  </Link>
+                </Can>
+                <Can I="edit" a="formula">
+                  <Link to={`/formulas/edit/${f._id}`} className="btn btn-sm btn-outline-primary border-0 rounded-3 shadow-none companies-mobile-action-btn" title="Edit">
+                    <i className="bi bi-pencil-square fs-6" />
+                  </Link>
+                </Can>
+                <Can I="delete" a="formula">
+                  <button type="button" onClick={() => handleDelete(f._id)} className="btn btn-sm btn-outline-danger border-0 rounded-3 shadow-none companies-mobile-action-btn" title="Delete">
+                    <i className="bi bi-trash fs-6" />
+                  </button>
+                </Can>
+              </div>
+            </div>
+          ))}
+          {formulas.length === 0 && !loading && (
+            <div className="companies-mobile-empty">No formulas found</div>
+          )}
+        </div>
+
         <div className="companies-list-desktop" style={{ overflowX: 'auto' }}>
           <table className="data-table">
             <thead>
@@ -148,7 +207,7 @@ export default function Formulas() {
                     </td>
                     <td className="py-3 text-center">
                       <div className="d-flex flex-wrap gap-1 justify-content-center">
-                        <span className="badge bg-soft-info text-dark px-2 py-1" style={{ fontSize: 12 }}>
+                        <span className="badge bg-soft-info text-dark px-2 py-1 text-wrap" style={{ fontSize: 12, lineHeight: '1.4' }}>
                           {f.variantId?.variantName || f.variantId || 'NO_DATA'}
                         </span>
                       </div>
@@ -156,7 +215,7 @@ export default function Formulas() {
                     <td className="py-3 text-center fw-600">
                       <div className="d-flex flex-wrap gap-1 justify-content-center">
                         {f.bottleId ? (
-                          <span className="badge bg-light text-dark border px-2 py-1" style={{ fontSize: 11 }}>
+                          <span className="badge bg-light text-dark border px-2 py-1 text-wrap" style={{ fontSize: 11, lineHeight: '1.4' }}>
                             {f.bottleId.bottleName}
                           </span>
                         ) : 'N/A'}
@@ -168,12 +227,12 @@ export default function Formulas() {
                       </span>
                     </td>
                     <td className="py-3 text-center">
-                      <span className="badge bg-light text-dark border px-2 py-1" style={{ fontSize: 12 }}>
+                      <span className="badge bg-light text-dark border px-2 py-1 text-wrap" style={{ fontSize: 12, lineHeight: '1.4' }}>
                         {f.variantId?.coatingShade || 'NO_SHADE'}
                       </span>
                     </td>
                     <td className="py-3 text-center">
-                      <span className="badge bg-soft-secondary text-dark px-2 py-1" style={{ fontSize: 12 }}>
+                      <span className="badge bg-soft-secondary text-dark px-2 py-1 text-wrap" style={{ fontSize: 12, lineHeight: '1.4' }}>
                         {f.coatingTypeId?.name || f.coatingTypeId || 'NO_TYPE'}
                       </span>
                     </td>

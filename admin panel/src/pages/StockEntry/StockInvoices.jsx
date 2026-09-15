@@ -21,6 +21,61 @@ export default function StockInvoices() {
     dispatch(fetchStockInvoices({ page: currentPage, limit: itemsPerPage, search }));
   }, [dispatch, currentPage, itemsPerPage, search]);
 
+  const handlePrintSheet = () => {
+    let rowsHTML = '';
+    
+    invoices.forEach((invoice, index) => {
+      rowsHTML += `
+        <tr>
+          <td style="border: 1px solid #000; padding: 10px;">${index + 1}</td>
+          <td style="border: 1px solid #000; padding: 10px; font-weight: bold;">${new Date(invoice.date).toLocaleDateString('en-GB')}</td>
+          <td style="border: 1px solid #000; padding: 10px; font-weight: bold; color: #0d6efd;">${invoice.invoiceNumber}</td>
+          <td style="border: 1px solid #000; padding: 10px;">${invoice.supplierName}</td>
+          <td style="border: 1px solid #000; padding: 10px; text-align: center;">${invoice.items?.length || 0} items</td>
+        </tr>
+      `;
+    });
+
+    const displayDate = new Date().toLocaleDateString('en-GB');
+
+    const htmlContent = `
+      <div style="font-family: Arial, sans-serif; padding: 20px; color: #111;">
+        <div style="display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 5px; border-bottom: 2px solid #000; padding-bottom: 10px;">
+          <div style="font-size: 22px; font-weight: bold; text-transform: uppercase; letter-spacing: 1px; color: #000;">STOCK INVOICES REPORT</div>
+          <div style="font-size: 20px; font-weight: bold; color: #000;">${displayDate}</div>
+        </div>
+        <table style="width: 100%; border-collapse: collapse; border: 2px solid #000; margin-top: 15px;">
+          <thead>
+            <tr>
+              <th style="width: 5%; border: 1px solid #000; padding: 12px; font-weight: bold; text-align: left; font-size: 14px; background-color: #f8f9fa;">SR.</th>
+              <th style="width: 20%; border: 1px solid #000; padding: 12px; font-weight: bold; text-align: left; font-size: 14px; background-color: #f8f9fa;">DATE</th>
+              <th style="width: 25%; border: 1px solid #000; padding: 12px; font-weight: bold; text-align: left; font-size: 14px; background-color: #f8f9fa;">INVOICE NO</th>
+              <th style="width: 35%; border: 1px solid #000; padding: 12px; font-weight: bold; text-align: left; font-size: 14px; background-color: #f8f9fa;">SUPPLIER</th>
+              <th style="width: 15%; border: 1px solid #000; padding: 12px; font-weight: bold; text-align: center; font-size: 14px; background-color: #f8f9fa;">ITEMS</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${rowsHTML}
+          </tbody>
+        </table>
+      </div>
+    `;
+
+    const container = document.createElement('div');
+    container.innerHTML = htmlContent;
+
+    const opt = {
+      margin:       0.5,
+      filename:     `Stock_Invoices_${displayDate.replace(/\//g, '-')}.pdf`,
+      image:        { type: 'jpeg', quality: 0.98 },
+      html2canvas:  { scale: 2 },
+      jsPDF:        { unit: 'in', format: 'a4', orientation: 'portrait' },
+      pagebreak:    { avoid: 'tr' }
+    };
+
+    window.html2pdf().set(opt).from(container).save();
+  };
+
   const handleDeleteInvoice = (id, invoiceNumber) => {
     Swal.fire({
       title: 'Delete Invoice?',
@@ -60,28 +115,31 @@ export default function StockInvoices() {
       </div>
 
       <div className="dash-card p-0">
-        <div className="dash-card-header d-flex align-items-center justify-content-between px-4 pt-3 border-bottom bg-white companies-dash-toolbar">
-          <ul className="nav nav-tabs border-0 gap-4" style={{ marginBottom: '-1px' }}>
+        <div className="dash-card-header d-flex flex-column flex-md-row align-items-start align-items-md-center justify-content-between px-4 pt-3 border-bottom bg-white companies-dash-toolbar gap-3">
+          <ul className="nav nav-tabs border-0 flex-row flex-nowrap w-100 overflow-auto gap-4 pb-1" style={{ marginBottom: '-1px', WebkitOverflowScrolling: 'touch', whiteSpace: 'nowrap' }}>
             <Can I="read" a="stock_entry">
-              <li className="nav-item">
-                <Link to="/stock-summary" className="nav-link bg-transparent border-0 px-0 pb-3 fw-bold text-muted">
+              <li className="nav-item flex-shrink-0">
+                <Link to="/stock-summary" className="nav-link bg-transparent border-0 px-0 pb-3 fw-bold text-muted text-nowrap">
                   <i className="bi bi-box-seam me-2"></i> Stock Summary
                 </Link>
               </li>
-              <li className="nav-item">
-                <Link to="/stock-invoices" className="nav-link bg-transparent border-0 px-0 pb-3 fw-bold active border-bottom border-primary border-3 text-primary">
+              <li className="nav-item flex-shrink-0">
+                <Link to="/stock-invoices" className="nav-link bg-transparent border-0 px-0 pb-3 fw-bold active border-bottom border-primary border-3 text-primary text-nowrap">
                   <i className="bi bi-receipt-cutoff me-2"></i> Invoices
                 </Link>
               </li>
             </Can>
             <Can I="ledger" a="stock_entry">
-              <li className="nav-item">
-                <Link to="/stock-history" className="nav-link bg-transparent border-0 px-0 pb-3 fw-bold text-muted">
+              <li className="nav-item flex-shrink-0">
+                <Link to="/stock-history" className="nav-link bg-transparent border-0 px-0 pb-3 fw-bold text-muted text-nowrap">
                   <i className="bi bi-clock-history me-2"></i> Material History
                 </Link>
               </li>
             </Can>
           </ul>
+          <button onClick={handlePrintSheet} className="btn btn-sm btn-outline-danger d-flex align-items-center fw-bold shadow-sm bg-white mb-2 text-nowrap mt-2 mt-md-0" disabled={invoices.length === 0}>
+            <i className="bi bi-file-earmark-pdf-fill me-2 fs-6"></i> Export PDF
+          </button>
         </div>
 
         {/* Pagination Toolbar */}
@@ -111,6 +169,54 @@ export default function StockInvoices() {
               style={{ borderRadius: 10, fontSize: 13 }}
             />
           </div>
+        </div>
+
+        <div className="companies-list-mobile">
+          {loading ? (
+            <div className="text-center py-5 text-muted">Loading...</div>
+          ) : invoices.map(invoice => (
+            <div key={invoice._id} className="companies-mobile-card brands-mobile-card">
+              <div className="d-flex align-items-start gap-3 w-100 min-w-0">
+                <div className="flex-grow-1 min-w-0">
+                  <div className="d-flex align-items-center justify-content-between mb-2">
+                    <span className="fw-bold text-primary fs-6">{invoice.invoiceNumber}</span>
+                    <span className="text-dark small fw-bold">{new Date(invoice.date).toLocaleDateString()}</span>
+                  </div>
+                  <div className="text-muted small mb-2">{invoice.supplierName}</div>
+                  <div className="d-flex align-items-center justify-content-between mb-3">
+                    <span className="badge bg-light text-dark border px-2 py-1">{invoice.items.length} items</span>
+                    <div className="d-flex flex-column text-end">
+                      <span className="text-muted" style={{ fontSize: '11px' }}>Added on {new Date(invoice.createdAt).toLocaleDateString()}</span>
+                    </div>
+                  </div>
+                  
+                  <div className="companies-mobile-actions brands-mobile-actions d-flex gap-2">
+                    {invoice.invoiceFileUrl && (
+                      <a href={`${V_URL}${invoice.invoiceFileUrl}`} target="_blank" rel="noreferrer" className="btn btn-sm btn-outline-success border-0 rounded-3 shadow-none companies-mobile-action-btn flex-grow-1" title="View File">
+                        <i className="bi bi-file-earmark-pdf me-1" /> File
+                      </a>
+                    )}
+                    <Link to={`/stock-entries/view/${invoice._id}`} state={{ from: '/stock-invoices' }} className="btn btn-sm btn-outline-info border-0 rounded-3 shadow-none companies-mobile-action-btn flex-grow-1" title="View Details">
+                      <i className="bi bi-eye fs-6" />
+                    </Link>
+                    <Can I="edit" a="stock_entry">
+                      <Link to={`/stock-entries/edit/${invoice._id}`} state={{ from: '/stock-invoices' }} className="btn btn-sm btn-outline-primary border-0 rounded-3 shadow-none companies-mobile-action-btn flex-grow-1" title="Edit">
+                        <i className="bi bi-pencil-square fs-6" />
+                      </Link>
+                    </Can>
+                    <Can I="delete" a="stock_entry">
+                      <button type="button" onClick={() => handleDeleteInvoice(invoice._id, invoice.invoiceNumber)} className="btn btn-sm btn-outline-danger border-0 rounded-3 shadow-none companies-mobile-action-btn flex-grow-1" title="Delete">
+                        <i className="bi bi-trash fs-6" />
+                      </button>
+                    </Can>
+                  </div>
+                </div>
+              </div>
+            </div>
+          ))}
+          {invoices.length === 0 && !loading && (
+            <div className="companies-mobile-empty">No invoices found.</div>
+          )}
         </div>
 
         <div className="companies-list-desktop table-responsive">

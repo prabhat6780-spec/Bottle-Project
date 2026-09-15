@@ -37,6 +37,10 @@ const variantSchema = new mongoose.Schema({
   isDeleted: {
     type: Boolean,
     default: false
+  },
+  isHiddenInSgLabel: {
+    type: Boolean,
+    default: false
   }
 
 }, { timestamps: true });

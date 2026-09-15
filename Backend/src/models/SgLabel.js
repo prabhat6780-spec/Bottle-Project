@@ -4,7 +4,7 @@ const sgLabelSchema = new mongoose.Schema({
   bottleId: {
     type: mongoose.Schema.Types.ObjectId,
     ref: "BottleSpec",
-    required: true
+    default: null
   },
   coatingShade: {
     type: String,
@@ -13,7 +13,7 @@ const sgLabelSchema = new mongoose.Schema({
   variantId: {
     type: mongoose.Schema.Types.ObjectId,
     ref: "Variant",
-    required: true
+    default: null
   },
   detectedTextColor: {
     type: String,

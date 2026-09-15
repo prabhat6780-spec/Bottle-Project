@@ -103,11 +103,19 @@ exports.getSummary = async (req, res) => {
     let startOfDay, endDate;
     
     if (date) {
-      endDate = new Date(date);
-      endDate.setHours(23, 59, 59, 999);
-      
-      startOfDay = new Date(endDate);
-      startOfDay.setHours(0, 0, 0, 0);
+      if (date.length === 4) {
+        startOfDay = new Date(`${date}-01-01T00:00:00.000Z`);
+        endDate = new Date(`${date}-12-31T23:59:59.999Z`);
+      } else if (date.length === 7) {
+        const [y, m] = date.split('-');
+        startOfDay = new Date(`${date}-01T00:00:00.000Z`);
+        endDate = new Date(y, m, 0, 23, 59, 59, 999);
+      } else {
+        endDate = new Date(date);
+        endDate.setHours(23, 59, 59, 999);
+        startOfDay = new Date(endDate);
+        startOfDay.setHours(0, 0, 0, 0);
+      }
     } else {
       // Lifetime mode
       endDate = new Date();

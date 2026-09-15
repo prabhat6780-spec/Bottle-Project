@@ -136,11 +136,17 @@ export default function AddStockIn() {
       newItems[index][field] = value;
     }
     
-    // Auto-calculate amount if quantity or rate changes
+    // Auto-calculate dynamically based on which field was changed
     if (field === 'quantity' || field === 'rate' || field === 'rawMaterialId') {
       const q = evaluateMath(newItems[index].quantity);
       const r = Number(newItems[index].rate) || 0;
-      newItems[index].amount = q * r;
+      newItems[index].amount = Number((q * r).toFixed(2));
+    } else if (field === 'amount') {
+      const amt = Number(value) || 0;
+      const q = evaluateMath(newItems[index].quantity);
+      if (q > 0) {
+        newItems[index].rate = Number((amt / q).toFixed(2));
+      }
     }
 
     setItems(newItems);
@@ -263,7 +269,7 @@ export default function AddStockIn() {
           
           {mode === 'camera' ? (
             <div className="dash-card mb-4 overflow-hidden border-0 shadow-lg" style={{ borderRadius: 24 }}>
-              <div className="dash-card-body p-5 text-center">
+              <div className="dash-card-body p-3 p-md-5 text-center">
                 {!cameraSource && !image ? (
                   <div className="py-5">
                     <h3 className="fw-bold mb-4">How would you like to provide the invoice?</h3>
@@ -283,8 +289,9 @@ export default function AddStockIn() {
                       <div
                         className="upload-placeholder mx-auto mb-4 d-flex flex-column align-items-center justify-content-center"
                         style={{
-                          width: 240,
-                          height: 240,
+                          maxWidth: 240,
+                          width: '100%',
+                          aspectRatio: '1 / 1',
                           borderRadius: 30,
                           border: '3px dashed #ddd',
                           background: image ? 'transparent' : '#fcfcfc',
@@ -332,9 +339,9 @@ export default function AddStockIn() {
                 )}
 
                 {(image || cameraSource) && (
-                  <div className="d-flex justify-content-center gap-3 mt-4">
+                  <div className="d-flex flex-column flex-sm-row justify-content-center align-items-center gap-3 mt-4">
                     <button
-                      className="btn-accent px-5 py-3 rounded-4 shadow-sm d-flex align-items-center gap-2"
+                      className="btn-accent px-5 py-3 rounded-4 shadow-sm d-flex align-items-center gap-2 w-100 w-sm-auto justify-content-center"
                       onClick={handleMatch}
                       disabled={!image || visionLoading}
                     >
@@ -349,7 +356,7 @@ export default function AddStockIn() {
                         </>
                       )}
                     </button>
-                    <button className="btn-ghost px-5 py-3 rounded-4" onClick={() => { setImage(null); setCameraSource(null); }} disabled={visionLoading}>
+                    <button className="btn-ghost px-5 py-3 rounded-4 w-100 w-sm-auto" onClick={() => { setImage(null); setCameraSource(null); }} disabled={visionLoading}>
                       {image ? 'Change Invoice' : 'Cancel'}
                     </button>
                   </div>
@@ -383,13 +390,13 @@ export default function AddStockIn() {
                   <table className="table table-bordered align-middle">
                     <thead className="table-light">
                       <tr>
-                        <th className="small text-muted text-center" style={{width: '5%'}}>Sr.</th>
-                        <th className="small text-muted" style={{width: '35%'}}>Description of Goods / Raw Material</th>
-                        <th className="small text-muted" style={{width: '12%'}}>Quantity</th>
-                        {canSeeRate && <th className="small text-muted" style={{width: '12%'}}>Rate</th>}
-                        <th className="small text-muted" style={{width: '10%'}}>Per</th>
-                        {canSeeRate && <th className="small text-muted text-end" style={{width: '16%'}}>Amount</th>}
-                        <th className="small text-muted text-center" style={{width: '10%'}}>Action</th>
+                        <th className="small text-muted text-center" style={{width: '5%', minWidth: '50px'}}>Sr.</th>
+                        <th className="small text-muted" style={{width: '35%', minWidth: '250px'}}>Description of Goods / Raw Material</th>
+                        <th className="small text-muted" style={{width: '12%', minWidth: '120px'}}>Quantity</th>
+                        {canSeeRate && <th className="small text-muted" style={{width: '12%', minWidth: '100px'}}>Rate</th>}
+                        <th className="small text-muted" style={{width: '10%', minWidth: '80px'}}>Per</th>
+                        {canSeeRate && <th className="small text-muted text-end" style={{width: '16%', minWidth: '120px'}}>Amount</th>}
+                        <th className="small text-muted text-center" style={{width: '10%', minWidth: '80px'}}>Action</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -443,7 +450,7 @@ export default function AddStockIn() {
                           </td>
                           {canSeeRate && (
                             <td>
-                              <input type="number" className="form-control form-control-sm shadow-none text-end bg-light fw-bold" value={item.amount || 0} readOnly disabled />
+                              <input type="number" className="form-control form-control-sm shadow-none text-end bg-light fw-bold" value={item.amount || ''} onChange={e => handleItemChange(index, 'amount', e.target.value)} min="0" step="0.01" placeholder="0.00" />
                             </td>
                           )}
                           <td className="text-center">
@@ -463,13 +470,13 @@ export default function AddStockIn() {
 
                 <div className="card bg-light border-0 mb-4">
                   <div className="card-body px-4 py-3">
-                    <div className="d-flex justify-content-between align-items-center border-bottom pb-2 mb-2">
-                      <span className="fw-500 text-muted">Total Quantity / Items:</span>
-                      <span className="fw-bold">{totalQuantity.toFixed(3)} (across {validItemsCount} valid items)</span>
+                    <div className="d-flex flex-column flex-sm-row justify-content-between align-items-start align-items-sm-center border-bottom pb-2 mb-2 gap-1">
+                      <span className="fw-500 text-muted mb-1 mb-sm-0">Total Quantity / Items:</span>
+                      <span className="fw-bold fs-6">{totalQuantity.toFixed(3)} <span className="text-muted fw-normal fs-7">(across {validItemsCount} valid items)</span></span>
                     </div>
-                    <div className="d-flex justify-content-between align-items-center">
-                      <span className="fw-bold fs-5">Total Invoice Amount:</span>
-                      <span className="fw-bold fs-5 text-primary">₹ {totalAmount.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                    <div className="d-flex flex-column flex-sm-row justify-content-between align-items-start align-items-sm-center gap-1 pt-1">
+                      <span className="fw-bold fs-5 mb-1 mb-sm-0">Total Invoice Amount:</span>
+                      <span className="fw-bold fs-4 text-primary">₹ {totalAmount.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                     </div>
                   </div>
                 </div>

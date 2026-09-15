@@ -14,6 +14,10 @@ import { fetchBrands } from '../../redux/slices/brandSlice';
 import { fetchBottleSpecs } from '../../redux/slices/bottleSpecSlice';
 import { fetchCoatingProductions } from '../../redux/slices/coatingProductionSlice';
 import { fetchCoatingSpecs } from '../../redux/slices/coatingSpecSlice';
+import { fetchFormulas } from '../../redux/slices/formulaSlice';
+import { fetchStockSummary } from '../../redux/slices/stockEntrySlice';
+import { fetchSgLabels } from '../../redux/slices/sgLabelSlice';
+import { fetchTemplates as fetchSgLabelTwoTemplates } from '../../redux/slices/sgLabelTwoSlice';
 
 const ACCENT = '#00aeef';
 const ACCENT_SOFT = 'rgba(0, 174, 239, 0.12)';
@@ -64,6 +68,10 @@ export default function Dashboard() {
   const { bottleSpecs } = useSelector((state) => state.bottleSpecs);
   const { coatingProductions } = useSelector((state) => state.coatingProductions);
   const { coatingSpecs } = useSelector((state) => state.coatingSpecs);
+  const { formulas } = useSelector((state) => state.formulas);
+  const { summary: stockSummary } = useSelector((state) => state.stockEntries);
+  const { sgLabels } = useSelector((state) => state.sgLabels);
+  const { templates: sgLabelTwoTemplates } = useSelector((state) => state.sgLabelTwo);
 
   const displayName = user?.name || 'Admin';
 
@@ -83,6 +91,14 @@ export default function Dashboard() {
   );
   const [printingFilterYear, setPrintingFilterYear] = useState(String(new Date().getFullYear()));
 
+  // Stock Entry filter states
+  const [stockFilterType, setStockFilterType] = useState('date');
+  const [stockFilterDate, setStockFilterDate] = useState(toIsoDate(new Date()));
+  const [stockFilterMonth, setStockFilterMonth] = useState(
+    `${new Date().getFullYear()}-${String(new Date().getMonth() + 1).padStart(2, '0')}`
+  );
+  const [stockFilterYear, setStockFilterYear] = useState(String(new Date().getFullYear()));
+
   useEffect(() => {
     dispatch(fetchProductions({ pagination: 'false' }));
     dispatch(fetchVariants({ pagination: 'false' }));
@@ -92,7 +108,17 @@ export default function Dashboard() {
     dispatch(fetchBottleSpecs({ pagination: 'false' }));
     dispatch(fetchCoatingProductions({ pagination: 'false' }));
     dispatch(fetchCoatingSpecs({ pagination: 'false' }));
+    dispatch(fetchFormulas({ pagination: 'false' }));
+    dispatch(fetchSgLabels({ pagination: 'false' }));
+    dispatch(fetchSgLabelTwoTemplates());
   }, [dispatch]);
+
+  useEffect(() => {
+    let dateParam = stockFilterDate;
+    if (stockFilterType === 'month') dateParam = stockFilterMonth;
+    if (stockFilterType === 'year') dateParam = stockFilterYear;
+    dispatch(fetchStockSummary({ limit: 1000, date: dateParam }));
+  }, [dispatch, stockFilterType, stockFilterDate, stockFilterMonth, stockFilterYear]);
 
   const todayIso = toIsoDate(new Date());
 
@@ -140,6 +166,62 @@ export default function Dashboard() {
   }, [coatingProductions, coatingSpecs]);
 
   // Filtered coating metrics (Row 2)
+  // Formula metrics
+  const formulaMetrics = useMemo(() => {
+    const total = (formulas || []).length;
+    const active = (formulas || []).filter(f => f.status).length;
+    const inactive = total - active;
+    return { total, active, inactive };
+  }, [formulas]);
+
+  // Stock Entry metrics
+  const stockMetrics = useMemo(() => {
+    const materialsCount = (stockSummary || []).length;
+    let inByUnit = {};
+    let outByUnit = {};
+    
+    (stockSummary || []).forEach(item => {
+      const u = (item.unit || 'KG').toUpperCase();
+      const inVal = Number(item.totalIn) || 0;
+      const outVal = Number(item.totalOut) || 0;
+      
+      if (inVal > 0) inByUnit[u] = (inByUnit[u] || 0) + inVal;
+      if (outVal > 0) outByUnit[u] = (outByUnit[u] || 0) + outVal;
+    });
+
+    const formatUnits = (unitMap) => {
+      const entries = Object.entries(unitMap);
+      if (entries.length === 0) return '0';
+      return entries.map(([u, val]) => `${val.toLocaleString()} ${u}`).join(' + ');
+    };
+
+    const totalInStr = formatUnits(inByUnit);
+    const totalOutStr = formatUnits(outByUnit);
+    
+    let label = '';
+    if (stockFilterType === 'date') label = new Date(stockFilterDate).toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' });
+    else if (stockFilterType === 'month') label = new Date(stockFilterMonth + '-01').toLocaleString('default', { month: 'long', year: 'numeric' });
+    else label = `Year ${stockFilterYear}`;
+    
+    return { materialsCount, totalInStr, totalOutStr, label };
+  }, [stockSummary, stockFilterType, stockFilterDate, stockFilterMonth, stockFilterYear]);
+
+  // SG Label metrics
+  const sgLabelMetrics = useMemo(() => {
+    const total = (sgLabels || []).length;
+    const customCount = (sgLabels || []).filter(item => item.isCustom).length;
+    const autoCount = total - customCount;
+    return { total, customCount, autoCount };
+  }, [sgLabels]);
+
+  // SG Label 2 metrics
+  const sgLabelTwoMetrics = useMemo(() => {
+    const total = (sgLabelTwoTemplates || []).length;
+    const active = (sgLabelTwoTemplates || []).filter(item => item.status !== false).length;
+    const inactive = total - active;
+    return { total, active, inactive };
+  }, [sgLabelTwoTemplates]);
+
   const coatingFiltered = useMemo(() => {
     let coated = 0, actual = 0, rejection = 0, boxes = 0, entries = 0;
     let label = '';
@@ -591,6 +673,255 @@ export default function Dashboard() {
                         : `Year ${coatingFilterYear} Rejection %`}
                   </div>
                   <div className="h4 mb-0 fw-bold">{coatingFiltered.rejectionPercentage}%</div>
+                </div>
+              </div>
+            </div>
+          </div>
+          {/* ── Formula Overview ── */}
+          <div className="page-header d-flex align-items-center justify-content-between flex-wrap gap-3 mt-5 mb-3">
+            <div>
+              <h2 className="page-title" style={{ fontSize: 22 }}>
+                <i className="bi bi-diagram-3-fill me-2" style={{ color: '#00aeef' }} />
+                Formula Overview
+              </h2>
+              <p className="page-subtitle mb-0">Total and active formula specifications.</p>
+            </div>
+          </div>
+
+          <div className="row g-3 mb-4">
+            <div className="col-12 col-sm-4 fade-in-up" style={{ animationDelay: '0s' }}>
+              <div className="stat-card blue">
+                <div className="stat-icon blue">
+                  <i className="bi bi-list-ol" />
+                </div>
+                <div className="stat-value">{formulaMetrics.total.toLocaleString()}</div>
+                <div className="stat-label">Total Formulas</div>
+                <div className="stat-change up" style={{ color: 'var(--text-muted)' }}>
+                  All-time formulas
+                </div>
+              </div>
+            </div>
+            <div className="col-12 col-sm-4 fade-in-up" style={{ animationDelay: '0.05s' }}>
+              <div className="stat-card green">
+                <div className="stat-icon green">
+                  <i className="bi bi-check-circle-fill" />
+                </div>
+                <div className="stat-value">{formulaMetrics.active.toLocaleString()}</div>
+                <div className="stat-label">Active Formulas</div>
+                <div className="stat-change up" style={{ color: 'var(--text-muted)' }}>
+                  Currently active
+                </div>
+              </div>
+            </div>
+            <div className="col-12 col-sm-4 fade-in-up" style={{ animationDelay: '0.1s' }}>
+              <div className="stat-card orange">
+                <div className="stat-icon orange">
+                  <i className="bi bi-x-circle-fill" />
+                </div>
+                <div className="stat-value">{formulaMetrics.inactive.toLocaleString()}</div>
+                <div className="stat-label">Inactive Formulas</div>
+                <div className="stat-change down" style={{ color: 'var(--text-muted)' }}>
+                  Currently disabled
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* ── Stock Entry Overview ── */}
+          <div className="dash-card mb-4 mt-5">
+            <div className="dash-card-header d-flex align-items-center justify-content-between flex-wrap gap-2">
+              <span className="dash-card-title">
+                <i className="bi bi-box-seam me-2" style={{ color: '#8e44ad' }} />
+                Stock Entry Overview — {stockMetrics.label}
+              </span>
+              <div className="d-flex align-items-center gap-2 flex-wrap">
+                {/* Filter type tabs */}
+                {[
+                  { key: 'date', label: 'Date', icon: 'bi-calendar-day' },
+                  { key: 'month', label: 'Month', icon: 'bi-calendar-month' },
+                  { key: 'year', label: 'Year', icon: 'bi-calendar-range' },
+                ].map(f => (
+                  <button
+                    key={f.key}
+                    onClick={() => setStockFilterType(f.key)}
+                    className={`btn btn-sm ${stockFilterType === f.key ? 'btn-primary' : 'btn-light border'}`}
+                    style={{ borderRadius: 8, fontSize: 12, fontWeight: 600, padding: '5px 14px' }}
+                  >
+                    <i className={`bi ${f.icon} me-1`} />{f.label}
+                  </button>
+                ))}
+
+                {/* Date/Month/Year input */}
+                {stockFilterType === 'date' && (
+                  <input
+                    type="date"
+                    value={stockFilterDate}
+                    onChange={e => setStockFilterDate(e.target.value)}
+                    className="form-control form-control-sm"
+                    style={{ width: 160, borderRadius: 8, fontSize: 12, fontWeight: 600 }}
+                  />
+                )}
+                {stockFilterType === 'month' && (
+                  <input
+                    type="month"
+                    value={stockFilterMonth}
+                    onChange={e => setStockFilterMonth(e.target.value)}
+                    className="form-control form-control-sm"
+                    style={{ width: 160, borderRadius: 8, fontSize: 12, fontWeight: 600 }}
+                  />
+                )}
+                {stockFilterType === 'year' && (
+                  <select
+                    value={stockFilterYear}
+                    onChange={e => setStockFilterYear(e.target.value)}
+                    className="form-select form-select-sm"
+                    style={{ width: 110, borderRadius: 8, fontSize: 12, fontWeight: 600 }}
+                  >
+                    {Array.from({ length: 10 }, (_, i) => new Date().getFullYear() - i).map(y => (
+                      <option key={y} value={String(y)}>{y}</option>
+                    ))}
+                  </select>
+                )}
+              </div>
+            </div>
+            
+            <div className="dash-card-body">
+              <div className="row g-3">
+                <div className="col-12 col-sm-4 fade-in-up" style={{ animationDelay: '0s' }}>
+                  <div className="stat-card purple">
+                    <div className="stat-icon purple">
+                      <i className="bi bi-layers-fill" />
+                    </div>
+                    <div className="stat-value">{stockMetrics.materialsCount.toLocaleString()}</div>
+                    <div className="stat-label">Raw Materials</div>
+                    <div className="stat-change up" style={{ color: 'var(--text-muted)' }}>
+                      Total tracked materials
+                    </div>
+                  </div>
+                </div>
+                <div className="col-12 col-sm-4 fade-in-up" style={{ animationDelay: '0.05s' }}>
+                  <div className="stat-card green">
+                    <div className="stat-icon green">
+                      <i className="bi bi-box-arrow-in-down" />
+                    </div>
+                    <div className="stat-value" style={{ fontSize: '1.25rem' }}>{stockMetrics.totalInStr}</div>
+                    <div className="stat-label">Stock IN</div>
+                    <div className="stat-change up" style={{ color: 'var(--text-muted)' }}>
+                      {stockMetrics.label}
+                    </div>
+                  </div>
+                </div>
+                <div className="col-12 col-sm-4 fade-in-up" style={{ animationDelay: '0.1s' }}>
+                  <div className="stat-card orange">
+                    <div className="stat-icon orange">
+                      <i className="bi bi-box-arrow-up" />
+                    </div>
+                    <div className="stat-value" style={{ fontSize: '1.25rem' }}>{stockMetrics.totalOutStr}</div>
+                    <div className="stat-label">Stock OUT</div>
+                    <div className="stat-change down" style={{ color: 'var(--text-muted)' }}>
+                      {stockMetrics.label}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* ── SG Label Overview ── */}
+          <div className="page-header d-flex align-items-center justify-content-between flex-wrap gap-3 mt-5 mb-3">
+            <div>
+              <h2 className="page-title" style={{ fontSize: 22 }}>
+                <i className="bi bi-tag-fill me-2" style={{ color: '#2ecc71' }} />
+                SG Label Overview
+              </h2>
+              <p className="page-subtitle mb-0">Summary of all SG labels.</p>
+            </div>
+          </div>
+
+          <div className="row g-3 mb-4">
+            <div className="col-12 col-sm-4 fade-in-up" style={{ animationDelay: '0s' }}>
+              <div className="stat-card green">
+                <div className="stat-icon green">
+                  <i className="bi bi-tags-fill" />
+                </div>
+                <div className="stat-value">{sgLabelMetrics.total.toLocaleString()}</div>
+                <div className="stat-label">Total SG Labels</div>
+                <div className="stat-change up" style={{ color: 'var(--text-muted)' }}>
+                  All-time entries
+                </div>
+              </div>
+            </div>
+            <div className="col-12 col-sm-4 fade-in-up" style={{ animationDelay: '0.05s' }}>
+              <div className="stat-card blue">
+                <div className="stat-icon blue">
+                  <i className="bi bi-pencil-fill" />
+                </div>
+                <div className="stat-value">{sgLabelMetrics.customCount.toLocaleString()}</div>
+                <div className="stat-label">Custom Labels</div>
+                <div className="stat-change up" style={{ color: 'var(--text-muted)' }}>
+                  Manually added
+                </div>
+              </div>
+            </div>
+            <div className="col-12 col-sm-4 fade-in-up" style={{ animationDelay: '0.1s' }}>
+              <div className="stat-card purple">
+                <div className="stat-icon purple">
+                  <i className="bi bi-arrow-repeat" />
+                </div>
+                <div className="stat-value">{sgLabelMetrics.autoCount.toLocaleString()}</div>
+                <div className="stat-label">Variant Imports</div>
+                <div className="stat-change up" style={{ color: 'var(--text-muted)' }}>
+                  Auto-synced
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* ── SG Label 2 Overview ── */}
+          <div className="page-header d-flex align-items-center justify-content-between flex-wrap gap-3 mt-5 mb-3">
+            <div>
+              <h2 className="page-title" style={{ fontSize: 22 }}>
+                <i className="bi bi-tags me-2" style={{ color: '#f39c12' }} />
+                SG Label 2 Overview
+              </h2>
+              <p className="page-subtitle mb-0">Summary of SG label 2 templates.</p>
+            </div>
+          </div>
+
+          <div className="row g-3 mb-4">
+            <div className="col-12 col-sm-4 fade-in-up" style={{ animationDelay: '0s' }}>
+              <div className="stat-card orange">
+                <div className="stat-icon orange">
+                  <i className="bi bi-collection-fill" />
+                </div>
+                <div className="stat-value">{sgLabelTwoMetrics.total.toLocaleString()}</div>
+                <div className="stat-label">Total Templates</div>
+                <div className="stat-change up" style={{ color: 'var(--text-muted)' }}>
+                  All templates
+                </div>
+              </div>
+            </div>
+            <div className="col-12 col-sm-4 fade-in-up" style={{ animationDelay: '0.05s' }}>
+              <div className="stat-card green">
+                <div className="stat-icon green">
+                  <i className="bi bi-check-circle-fill" />
+                </div>
+                <div className="stat-value">{sgLabelTwoMetrics.active.toLocaleString()}</div>
+                <div className="stat-label">Active Templates</div>
+                <div className="stat-change up" style={{ color: 'var(--text-muted)' }}>
+                  Currently active
+                </div>
+              </div>
+            </div>
+            <div className="col-12 col-sm-4 fade-in-up" style={{ animationDelay: '0.1s' }}>
+              <div className="stat-card red">
+                <div className="stat-icon red">
+                  <i className="bi bi-x-circle-fill" />
+                </div>
+                <div className="stat-value">{sgLabelTwoMetrics.inactive.toLocaleString()}</div>
+                <div className="stat-label">Inactive Templates</div>
+                <div className="stat-change down" style={{ color: 'var(--text-muted)' }}>
+                  Currently disabled
                 </div>
               </div>
             </div>

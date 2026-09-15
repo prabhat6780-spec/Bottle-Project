@@ -4,6 +4,7 @@ import bottleSpecReducer from './slices/bottleSpecSlice';
 import brandReducer from './slices/brandSlice';
 import coatingProductionReducer from './slices/coatingProductionSlice';
 import coatingSpecReducer from './slices/coatingSpecSlice';
+import coatingColorReducer from './slices/coatingColorSlice';
 import coatingTypeReducer from './slices/coatingTypeSlice';
 import companyReducer from './slices/companySlice';
 import authReducer from './slices/loginSlice';
@@ -18,6 +19,7 @@ import visionReducer from './slices/visionSlice';
 import formulaReducer from './slices/formulaSlice';
 import rawMaterialReducer from './slices/rawMaterialSlice';
 import sgLabelReducer from './slices/sgLabelSlice';
+import sgLabelTwoReducer from './slices/sgLabelTwoSlice';
 
 import operatorReducer from './slices/operatorSlice';
 import shiftReducer from './slices/shiftSlice';
@@ -32,6 +34,7 @@ export const store = configureStore({
     brands: brandReducer,
     coatingProductions: coatingProductionReducer,
     coatingSpecs: coatingSpecReducer,
+    coatingColor: coatingColorReducer,
     coatingType: coatingTypeReducer,
     companies: companyReducer,
     permissions: permissionReducer,
@@ -45,6 +48,7 @@ export const store = configureStore({
     formulas: formulaReducer,
     rawMaterials: rawMaterialReducer,
     sgLabels: sgLabelReducer,
+    sgLabelTwo: sgLabelTwoReducer,
     stockEntries: stockEntryReducer,
   },
 });

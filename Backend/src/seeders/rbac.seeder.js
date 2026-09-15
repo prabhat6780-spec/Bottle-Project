@@ -23,6 +23,7 @@ const seedRBAC = async () => {
       "create-operator", "edit-operator", "delete-operator", "sidebar-operator", "read-operator",
       "create-shift", "edit-shift", "delete-shift", "sidebar-shift", "read-shift",
       "create-sg-label", "edit-sg-label", "delete-sg-label", "sidebar-sg-label", "read-sg-label",
+      "create-sg-label-2", "edit-sg-label-2", "delete-sg-label-2", "sidebar-sg-label-2", "read-sg-label-2",
       "create-formula", "edit-formula", "delete-formula", "sidebar-formula", "read-formula",
       "create-stock_entry", "edit-stock_entry", "delete-stock_entry", "sidebar-stock_entry", "read-stock_entry", "rate-stock_entry", "ledger-stock_entry", "stockout-stock_entry",
       "use-vision", "manage-all",
@@ -66,6 +67,7 @@ const seedRBAC = async () => {
           "create-coatingproduction", "edit-coatingproduction", "sidebar-coatingproduction", "read-coatingproduction", "read-coatingproductiondetail",
           "create-coatingspec", "edit-coatingspec", "sidebar-coatingspec", "read-coatingspec",
           "create-sg-label", "edit-sg-label", "delete-sg-label", "sidebar-sg-label", "read-sg-label",
+          "create-sg-label-2", "edit-sg-label-2", "delete-sg-label-2", "sidebar-sg-label-2", "read-sg-label-2",
           "create-stock_entry", "edit-stock_entry", "delete-stock_entry", "sidebar-stock_entry", "read-stock_entry", "rate-stock_entry", "ledger-stock_entry", "stockout-stock_entry"
         ]
       },
@@ -96,11 +98,14 @@ const seedRBAC = async () => {
         rolePermissions = dbPermissions.filter(p => roleData.permissionNames.includes(p.name)).map(p => p._id);
       }
 
-      await Role.findOneAndUpdate(
-        { name: roleData.name },
-        { name: roleData.name, permissions: rolePermissions },
-        { upsert: true, returnDocument: 'after' }
-      );
+      const existingRole = await Role.findOne({ name: roleData.name });
+      if (!existingRole) {
+        await Role.create({ name: roleData.name, permissions: rolePermissions });
+        console.log(`Created default role: ${roleData.name}`);
+      } else if (roleData.name === "Admin") {
+        existingRole.permissions = rolePermissions;
+        await existingRole.save();
+      }
     }
 
     // 3. Migrate existing users

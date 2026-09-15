@@ -6,6 +6,30 @@ import StockOutForm from './StockOutForm';
 import html2pdf from 'html2pdf.js';
 import { Can } from '../../context/AbilityContext';
 
+const MATERIAL_ORDER = [
+  "CLEAR GLOSS",
+  "ECO COAT GLOSS",
+  "FAST DILUENT",
+  "SLOW DILUENT",
+  "DILUENT MEDIUM",
+  "MATT PAST",
+  "BLACK PAST",
+  "WHITE GLOSS",
+  "BLACK GLOSS",
+  "BLACK MATT",
+  "ORANGE DYE",
+  "ROYAL BLUE DYE",
+  "GREEN DYE",
+  "BLUE DYE",
+  "VIOLET DYE",
+  "RED DYE",
+  "YELLOW DYE",
+  "PINK DYE",
+  "BLACK DYE",
+  "BROWN DYE",
+  "SPARKLE SILVER LACQUER"
+];
+
 export default function StockSummary() {
   const dispatch = useDispatch();
   const navigate = useNavigate();
@@ -14,6 +38,24 @@ export default function StockSummary() {
   const { summary, loading, searchTerm } = useSelector((state) => state.stockEntries);
   const search = searchTerm || '';
   
+  const sortedSummary = React.useMemo(() => {
+    return [...summary].sort((a, b) => {
+      const aName = a.rawMaterial?.name?.toUpperCase().trim() || "";
+      const bName = b.rawMaterial?.name?.toUpperCase().trim() || "";
+      
+      const indexA = MATERIAL_ORDER.indexOf(aName);
+      const indexB = MATERIAL_ORDER.indexOf(bName);
+
+      if (indexA !== -1 && indexB !== -1) {
+        return indexA - indexB;
+      }
+      if (indexA !== -1) return -1;
+      if (indexB !== -1) return 1;
+      
+      return aName.localeCompare(bName);
+    });
+  }, [summary]);
+
   // Modals state
   const [showOutForm, setShowOutForm] = useState(false);
   const [selectedMaterial, setSelectedMaterial] = useState(null);
@@ -39,7 +81,7 @@ export default function StockSummary() {
   const handlePrintSheet = () => {
     let rowsHTML = '';
     
-    summary.forEach((item, index) => {
+    sortedSummary.forEach((item, index) => {
       rowsHTML += `
         <tr>
           <td style="border: 1px solid #000; text-align: center; font-weight: bold; padding: 10px;">${index + 1}</td>
@@ -91,12 +133,12 @@ export default function StockSummary() {
 
   return (
     <div className="page-content">
-      <div className="page-header d-flex flex-wrap justify-content-between align-items-center gap-3 companies-page-header">
-        <div>
+      <div className="page-header d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center gap-3 companies-page-header">
+        <div className="flex-grow-1">
           <h1 className="page-title">Stock Summary</h1>
           <p className="page-subtitle">Overview of all raw material stock balances</p>
         </div>
-        <div className="d-flex align-items-center gap-3">
+        <div className="d-flex flex-wrap justify-content-start justify-content-md-end align-items-center gap-3 ms-md-auto">
           <div className="d-flex align-items-center gap-2">
             <label className="fw-bold text-muted mb-0 text-nowrap">Balance Date:</label>
             <input 
@@ -107,7 +149,7 @@ export default function StockSummary() {
             />
           </div>
           <Can I="create" a="stock_entry">
-            <Link to="/stock-entries/add" state={{ from: '/stock-summary' }} className="btn-accent companies-header-action d-flex align-items-center text-nowrap">
+            <Link to="/stock-entries/add" state={{ from: '/stock-summary' }} className="btn-accent companies-header-action d-flex align-items-center text-nowrap justify-content-center">
               <i className="bi bi-plus-lg me-2"></i> New Stock IN
             </Link>
           </Can>
@@ -115,29 +157,29 @@ export default function StockSummary() {
       </div>
 
       <div className="dash-card p-0">
-        <div className="dash-card-header d-flex align-items-center justify-content-between px-4 pt-3 border-bottom bg-white companies-dash-toolbar">
-          <ul className="nav nav-tabs border-0 gap-4" style={{ marginBottom: '-1px' }}>
+        <div className="dash-card-header d-flex flex-column flex-md-row align-items-start align-items-md-center justify-content-between px-4 pt-3 border-bottom bg-white companies-dash-toolbar gap-3">
+          <ul className="nav nav-tabs border-0 flex-row flex-nowrap w-100 overflow-auto gap-4 pb-1" style={{ marginBottom: '-1px', WebkitOverflowScrolling: 'touch', whiteSpace: 'nowrap' }}>
             <Can I="read" a="stock_entry">
-              <li className="nav-item">
-                <Link to="/stock-summary" className="nav-link bg-transparent border-0 px-0 pb-3 fw-bold active border-bottom border-primary border-3 text-primary">
+              <li className="nav-item flex-shrink-0">
+                <Link to="/stock-summary" className="nav-link bg-transparent border-0 px-0 pb-3 fw-bold active border-bottom border-primary border-3 text-primary text-nowrap">
                   <i className="bi bi-box-seam me-2"></i> Stock Summary
                 </Link>
               </li>
-              <li className="nav-item">
-                <Link to="/stock-invoices" className="nav-link bg-transparent border-0 px-0 pb-3 fw-bold text-muted">
+              <li className="nav-item flex-shrink-0">
+                <Link to="/stock-invoices" className="nav-link bg-transparent border-0 px-0 pb-3 fw-bold text-muted text-nowrap">
                   <i className="bi bi-receipt-cutoff me-2"></i> Invoices
                 </Link>
               </li>
             </Can>
             <Can I="ledger" a="stock_entry">
-              <li className="nav-item">
-                <Link to="/stock-history" className="nav-link bg-transparent border-0 px-0 pb-3 fw-bold text-muted">
+              <li className="nav-item flex-shrink-0">
+                <Link to="/stock-history" className="nav-link bg-transparent border-0 px-0 pb-3 fw-bold text-muted text-nowrap">
                   <i className="bi bi-clock-history me-2"></i> Material History
                 </Link>
               </li>
             </Can>
           </ul>
-          <button onClick={handlePrintSheet} className="btn btn-sm btn-outline-danger d-flex align-items-center fw-bold shadow-sm bg-white mb-2">
+          <button onClick={handlePrintSheet} className="btn btn-sm btn-outline-danger d-flex align-items-center fw-bold shadow-sm bg-white mb-2 text-nowrap mt-2 mt-md-0">
             <i className="bi bi-file-earmark-pdf-fill me-2 fs-6"></i> Export PDF
           </button>
         </div>
@@ -157,6 +199,59 @@ export default function StockSummary() {
           </div>
         </div>
 
+        <div className="companies-list-mobile">
+          {loading && sortedSummary.length === 0 && (
+            <div className="text-center py-5 text-muted">Loading...</div>
+          )}
+          {sortedSummary.map((item, index) => (
+            <div key={item.rawMaterial._id} className="companies-mobile-card brands-mobile-card">
+              <div className="d-flex align-items-start gap-3 w-100 min-w-0">
+                <div className="flex-grow-1 min-w-0">
+                  <div className="d-flex align-items-center gap-2 mb-2 flex-wrap">
+                    <span className="text-muted small fw-bold">#{String(index + 1).padStart(2, '0')}</span>
+                    <span className="fw-bold text-dark text-truncate fs-6">{item.rawMaterial.name}</span>
+                  </div>
+                  
+                  <div className="row g-2 mb-3">
+                    <div className="col-6">
+                      <div className="text-muted small fw-600 mb-1">OPENING</div>
+                      <span className="badge bg-light text-secondary border px-2 py-1 fs-7">{item.openingStock.toFixed(2)} {item.unit}</span>
+                    </div>
+                    <div className="col-6">
+                      <div className="text-muted small fw-600 mb-1">IN</div>
+                      <span className="badge bg-success bg-opacity-10 text-success border border-success border-opacity-25 px-2 py-1 fs-7">+{item.totalIn.toFixed(2)} {item.unit}</span>
+                    </div>
+                    <div className="col-6">
+                      <div className="text-muted small fw-600 mb-1">OUT</div>
+                      <span className="badge bg-danger bg-opacity-10 text-danger border border-danger border-opacity-25 px-2 py-1 fs-7">-{item.totalOut.toFixed(2)} {item.unit}</span>
+                    </div>
+                    <div className="col-6">
+                      <div className="text-primary small fw-bold mb-1">CURRENT</div>
+                      <span className="badge bg-primary bg-opacity-10 text-primary border border-primary border-opacity-25 px-2 py-1 fs-7">{item.currentStock.toFixed(2)} {item.unit}</span>
+                    </div>
+                  </div>
+                  
+                  <div className="companies-mobile-actions brands-mobile-actions d-flex gap-2">
+                    <Can I="ledger" a="stock_entry">
+                      <button onClick={() => handleViewHistory(item)} className="btn btn-sm btn-outline-info border-0 rounded-3 shadow-none companies-mobile-action-btn flex-grow-1" title="View Ledger">
+                        <i className="bi bi-clock-history me-1" /> Ledger
+                      </button>
+                    </Can>
+                    <Can I="stockout" a="stock_entry">
+                      <button onClick={() => handleOpenOut(item)} className="btn btn-sm btn-outline-danger border-0 rounded-3 shadow-none companies-mobile-action-btn flex-grow-1" title="Stock OUT">
+                        <i className="bi bi-box-arrow-up me-1" /> Stock OUT
+                      </button>
+                    </Can>
+                  </div>
+                </div>
+              </div>
+            </div>
+          ))}
+          {sortedSummary.length === 0 && !loading && (
+            <div className="companies-mobile-empty">No stock records found</div>
+          )}
+        </div>
+
         <div className="companies-list-desktop table-responsive">
           <table className="data-table">
             <thead>
@@ -171,9 +266,9 @@ export default function StockSummary() {
               </tr>
             </thead>
             <tbody>
-              {loading && summary.length === 0 ? (
+              {loading && sortedSummary.length === 0 ? (
                 <tr><td colSpan="7" className="text-center py-5">Loading...</td></tr>
-              ) : summary.map((item, index) => (
+              ) : sortedSummary.map((item, index) => (
                 <tr key={item.rawMaterial._id}>
                   <td className="ps-4 text-muted fw-bold">{index + 1}</td>
                   <td className="fw-bold text-dark">{item.rawMaterial.name}</td>
@@ -205,7 +300,7 @@ export default function StockSummary() {
                   </td>
                 </tr>
               ))}
-              {summary.length === 0 && !loading && (
+              {sortedSummary.length === 0 && !loading && (
                 <tr><td colSpan="7" className="text-center py-5 text-muted">No materials found.</td></tr>
               )}
             </tbody>

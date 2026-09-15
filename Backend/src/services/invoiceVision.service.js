@@ -40,8 +40,10 @@ function extractFinancialsNearText(textChunk) {
   let found = false;
 
   if (numbers.length >= 3) {
-    // Check contiguous triplets first (safest against cross-contamination)
-    for (let i = 0; i < numbers.length - 2; i++) {
+    // Check contiguous triplets first, starting from the END of the line
+    // Financials (Qty, Rate, Amount) are almost always the right-most columns in a table.
+    // This avoids false positives from item descriptions like "4 5 x 20"
+    for (let i = numbers.length - 3; i >= 0; i--) {
       const a = numbers[i];
       const b = numbers[i + 1];
       const c = numbers[i + 2];
@@ -251,18 +253,45 @@ function parseInvoiceData(ocrResult, rawMaterials) {
     if (dateMatch) invoiceDate = dateMatch[1];
   }
 
-  if (!supplierName) {
-    for (let i = 0; i < Math.min(10, rowStrings.length); i++) {
-      const line = rowStrings[i];
-      if (line.toLowerCase().includes("invoice") || line.toLowerCase().includes("gstin") || line.toLowerCase().includes("tax") || line.toLowerCase().includes("date")) {
-        continue;
-      }
-      if (line.length > 5 && !line.match(/^\d+$/)) {
-        supplierName = line.trim();
-        break;
+    if (!supplierName) {
+      for (let i = 0; i < Math.min(20, rowStrings.length); i++) {
+        const line = rowStrings[i];
+        const lowerLine = line.toLowerCase();
+        
+        if (lowerLine.includes("irn") || lowerLine.includes("ack no") || lowerLine.includes("ack date") || lowerLine.includes("e-invoice")) {
+          continue;
+        }
+        if (!line.includes(' ') && line.length > 15) continue;
+        if (line.match(/^[a-f0-9-]+$/i)) continue;
+
+        const companyMatch = line.match(/^(.*?)(pvt\.?\s*ltd\.?|limited|ltd\.?|industries|enterprises|corporation|llc|inc\.?)\b/i);
+        if (companyMatch) {
+          supplierName = companyMatch[0].replace(/^m\/s\.?\s*/i, '').trim();
+          break;
+        }
       }
     }
-  }
+
+    if (!supplierName) {
+      for (let i = 0; i < Math.min(15, rowStrings.length); i++) {
+        const line = rowStrings[i];
+        const lowerLine = line.toLowerCase();
+        if (
+          lowerLine.includes("invoice") || 
+          lowerLine.includes("gstin") || 
+          lowerLine.includes("tax") || 
+          lowerLine.includes("date") ||
+          lowerLine.includes("irn") ||
+          lowerLine.includes("ack")
+        ) {
+          continue;
+        }
+        if (line.length > 5 && !line.match(/^\d+$/) && line.includes(' ')) {
+          supplierName = line.trim();
+          break;
+        }
+      }
+    }
 
   // --- Line items ---
   const unmatchedItems = [];
@@ -281,6 +310,13 @@ function parseInvoiceData(ocrResult, rawMaterials) {
       if (foundNames.has(material.name)) continue;
 
       const normalizedMaterialName = material.name.toLowerCase().replace(/[-_]/g, ' ').replace(/[^\w\s]/g, '').replace(/\s+/g, ' ').trim();
+      const materialWords = normalizedMaterialName.split(' ').filter(Boolean);
+      const allWordsPresent = materialWords.length > 0 && materialWords.every(w => {
+        // Need to ensure we match whole words to prevent "ink" matching inside "pink", though includes is okay for now.
+        // Let's just do a simple boundary check if possible, or stick to includes if it's simpler
+        const regex = new RegExp(`\\b${w}\\b`, 'i');
+        return regex.test(normalizedLine);
+      });
 
       const similarity = stringSimilarity.compareTwoStrings(
         normalizedLine,
@@ -289,7 +325,8 @@ function parseInvoiceData(ocrResult, rawMaterials) {
 
       const isMatch =
         similarity > 0.6 ||
-        normalizedLine.includes(normalizedMaterialName);
+        normalizedLine.includes(normalizedMaterialName) ||
+        allWordsPresent;
 
       if (isMatch) {
         matched = true;
@@ -312,6 +349,23 @@ function parseInvoiceData(ocrResult, rawMaterials) {
     }
 
     if (!matched) {
+      const lowerLine = line.toLowerCase();
+      // Skip common invoice headers, footers, and addresses to avoid false positive warnings
+      const skipKeywords = [
+        "ack date", "ack no", "plot no", "midc", "phase", "pin-", "pin code", 
+        "udyam", "gstin", "uin", "block no", "dist ", "mobno", "mob no", "mob.no", "mob.",
+        "igst", "cgst", "sgst", "total", "at.po", "at po", "atpost", "vavli", "dombivli", "gujarat",
+        "invoice no", "dated", "delivery note", "buyer", "dispatch", 
+        "destination", "terms of", "vehicle no", "amount", "hsn", "sac",
+        "description of goods", "m/s", "pvt ltd", "ltd.", "sub total", "ccipl",
+        "rounding", "bank", "ifsc", "account no", "branch", "rupees", "tax",
+        "supplier", "consignee", "state name", "code :"
+      ];
+      
+      if (skipKeywords.some(kw => lowerLine.includes(kw))) {
+        continue;
+      }
+
       // Could this line be an item that is missing from DB?
       // An item line usually has at least a quantity and a rate or amount.
       const financials = extractFinancialsNearText(line);

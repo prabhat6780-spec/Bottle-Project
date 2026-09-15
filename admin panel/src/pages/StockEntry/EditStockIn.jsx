@@ -104,11 +104,17 @@ export default function EditStockIn() {
       newItems[index][field] = value;
     }
     
-    // Auto-calculate amount if quantity or rate changes
+    // Auto-calculate dynamically based on which field was changed
     if (field === 'quantity' || field === 'rate' || field === 'rawMaterialId') {
       const q = Number(newItems[index].quantity) || 0;
       const r = Number(newItems[index].rate) || 0;
-      newItems[index].amount = q * r;
+      newItems[index].amount = Number((q * r).toFixed(2));
+    } else if (field === 'amount') {
+      const amt = Number(value) || 0;
+      const q = Number(newItems[index].quantity) || 0;
+      if (q > 0) {
+        newItems[index].rate = Number((amt / q).toFixed(2));
+      }
     }
 
     setItems(newItems);
@@ -247,13 +253,13 @@ export default function EditStockIn() {
                   <table className="table table-bordered align-middle">
                     <thead className="table-light">
                       <tr>
-                        <th className="small text-muted text-center" style={{width: '5%'}}>Sr.</th>
-                        <th className="small text-muted" style={{width: '35%'}}>Description of Goods / Raw Material</th>
-                        <th className="small text-muted" style={{width: '12%'}}>Quantity</th>
-                        {canSeeRate && <th className="small text-muted" style={{width: '12%'}}>Rate</th>}
-                        <th className="small text-muted" style={{width: '10%'}}>Per</th>
-                        {canSeeRate && <th className="small text-muted text-end" style={{width: '16%'}}>Amount</th>}
-                        <th className="small text-muted text-center" style={{width: '10%'}}>Action</th>
+                        <th className="small text-muted text-center" style={{width: '5%', minWidth: '50px'}}>Sr.</th>
+                        <th className="small text-muted" style={{width: '35%', minWidth: '250px'}}>Description of Goods / Raw Material</th>
+                        <th className="small text-muted" style={{width: '12%', minWidth: '120px'}}>Quantity</th>
+                        {canSeeRate && <th className="small text-muted" style={{width: '12%', minWidth: '100px'}}>Rate</th>}
+                        <th className="small text-muted" style={{width: '10%', minWidth: '80px'}}>Per</th>
+                        {canSeeRate && <th className="small text-muted text-end" style={{width: '16%', minWidth: '120px'}}>Amount</th>}
+                        <th className="small text-muted text-center" style={{width: '10%', minWidth: '80px'}}>Action</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -307,7 +313,7 @@ export default function EditStockIn() {
                           </td>
                           {canSeeRate && (
                             <td>
-                              <input type="number" className="form-control form-control-sm shadow-none text-end bg-light fw-bold" value={item.amount || 0} readOnly disabled />
+                              <input type="number" className="form-control form-control-sm shadow-none text-end bg-light fw-bold" value={item.amount || ''} onChange={e => handleItemChange(index, 'amount', e.target.value)} min="0" step="0.01" placeholder="0.00" />
                             </td>
                           )}
                           <td className="text-center">
@@ -327,13 +333,13 @@ export default function EditStockIn() {
 
                 <div className="card bg-light border-0 mb-4">
                   <div className="card-body px-4 py-3">
-                    <div className="d-flex justify-content-between align-items-center border-bottom pb-2 mb-2">
-                      <span className="fw-500 text-muted">Total Quantity / Items:</span>
-                      <span className="fw-bold">{totalQuantity.toFixed(3)} (across {validItemsCount} valid items)</span>
+                    <div className="d-flex flex-column flex-sm-row justify-content-between align-items-start align-items-sm-center border-bottom pb-2 mb-2 gap-1">
+                      <span className="fw-500 text-muted mb-1 mb-sm-0">Total Quantity / Items:</span>
+                      <span className="fw-bold fs-6">{totalQuantity.toFixed(3)} <span className="text-muted fw-normal fs-7">(across {validItemsCount} valid items)</span></span>
                     </div>
-                    <div className="d-flex justify-content-between align-items-center">
-                      <span className="fw-bold fs-5">Total Invoice Amount:</span>
-                      <span className="fw-bold fs-5 text-primary">₹ {totalAmount.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                    <div className="d-flex flex-column flex-sm-row justify-content-between align-items-start align-items-sm-center gap-1 pt-1">
+                      <span className="fw-bold fs-5 mb-1 mb-sm-0">Total Invoice Amount:</span>
+                      <span className="fw-bold fs-4 text-primary">₹ {totalAmount.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                     </div>
                   </div>
                 </div>

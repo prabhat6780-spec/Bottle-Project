@@ -40,6 +40,10 @@ import ViewFormula from './pages/Formula/ViewFormula';
 import SgLabels from './pages/SgLabel/SgLabels';
 import AddSgLabel from './pages/SgLabel/AddSgLabel';
 import EditSgLabel from './pages/SgLabel/EditSgLabel';
+import SgLabelTwoList from './pages/SgLabelTwo/SgLabelTwoList';
+import AddSgLabelTwo from './pages/SgLabelTwo/AddSgLabelTwo';
+import EditSgLabelTwo from './pages/SgLabelTwo/EditSgLabelTwo';
+import ViewSgLabelTwo from './pages/SgLabelTwo/ViewSgLabelTwo';
 import RawMaterials from './pages/RawMaterial/RawMaterials';
 import AddRawMaterial from './pages/RawMaterial/AddRawMaterial';
 import EditRawMaterial from './pages/RawMaterial/EditRawMaterial';
@@ -142,6 +146,10 @@ export default function App() {
               <Route path="/sg-labels" element={<SgLabels />} />
               <Route path="/sg-labels/add" element={<AddSgLabel />} />
               <Route path="/sg-labels/edit/:id" element={<EditSgLabel />} />
+              <Route path="/sg-labels-2" element={<SgLabelTwoList />} />
+              <Route path="/sg-labels-2/add" element={<AddSgLabelTwo />} />
+              <Route path="/sg-labels-2/edit/:id" element={<EditSgLabelTwo />} />
+              <Route path="/sg-labels-2/view/:id" element={<ViewSgLabelTwo />} />
               <Route path="/raw-materials" element={<RawMaterials />} />
               <Route path="/raw-materials/add" element={<AddRawMaterial />} />
               <Route path="/raw-materials/edit/:id" element={<EditRawMaterial />} />

@@ -33,7 +33,7 @@ exports.generateSgLabelPdf = async (req, res) => {
     }
     const detectedTextColor = type === 'Coating' ? '' : (labelData.detectedTextColor || '');
     const coatingShade = labelData.coatingShade || '';
-    const brandNameStr = includeBrand ? (labelData.bottleSpecId?.brandId?.name || labelData.brandId?.name || labelData.brandName || '') : '';
+    const brandNameStr = includeBrand ? (labelData.customBrandName || labelData.bottleSpecId?.brandId?.name || labelData.brandId?.name || labelData.brandName || '') : '';
     
     const leftSide = [bottleNameStr, coatingShade].filter(Boolean).join('-');
     const rightSide = [
@@ -168,7 +168,7 @@ exports.getSgLabels = async (req, res) => {
   try {
     const { page = 1, limit = 10, pagination = "true", search = "", companyId = "", brandId = "", bottleId = "", variantId = "" } = req.query;
 
-    const query = { isDeleted: { $ne: true } };
+    const query = { isDeleted: { $ne: true }, isHiddenInSgLabel: { $ne: true } };
 
     if (variantId) {
       query._id = variantId;
@@ -333,6 +333,9 @@ exports.createSgLabel = async (req, res) => {
     if (typeof req.body.status === 'string') {
       req.body.status = req.body.status === 'active';
     }
+    if (!req.body.bottleId) req.body.bottleId = null;
+    if (!req.body.variantId) req.body.variantId = null;
+    
     const { bottleId, variantId, coatingShade } = req.body;
     
     const existingLabel = await SgLabel.findOne({
@@ -354,6 +357,11 @@ exports.createSgLabel = async (req, res) => {
 
     const newSgLabel = new SgLabel(req.body);
     await newSgLabel.save();
+    
+    if (newSgLabel.variantId && req.body.hideVariant !== false) {
+      await Variant.findByIdAndUpdate(newSgLabel.variantId, { isHiddenInSgLabel: true });
+    }
+
     res.status(201).json({ success: true, message: "SG Label created successfully", data: newSgLabel });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
@@ -365,6 +373,9 @@ exports.updateSgLabel = async (req, res) => {
     if (typeof req.body.status === 'string') {
       req.body.status = req.body.status === 'active';
     }
+    if (!req.body.bottleId) req.body.bottleId = null;
+    if (!req.body.variantId) req.body.variantId = null;
+    
     const { bottleId, variantId, coatingShade } = req.body;
     
     const existingLabel = await SgLabel.findOne({
@@ -401,6 +412,9 @@ exports.deleteSgLabel = async (req, res) => {
     if (!deletedSgLabel) {
       return res.status(404).json({ success: false, message: "SG Label not found" });
     }
+    if (deletedSgLabel.variantId) {
+      await Variant.findByIdAndUpdate(deletedSgLabel.variantId, { isHiddenInSgLabel: true });
+    }
     res.json({ success: true, message: "SG Label deleted successfully" });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
@@ -416,6 +430,15 @@ exports.toggleStatus = async (req, res) => {
     sgLabel.status = !sgLabel.status;
     await sgLabel.save();
     res.json({ success: true, message: `SG Label marked as ${sgLabel.status ? 'Active' : 'Inactive'}` });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+exports.hideVariantFromSgLabel = async (req, res) => {
+  try {
+    await Variant.findByIdAndUpdate(req.params.id, { isHiddenInSgLabel: true });
+    res.json({ success: true, message: "Variant hidden from SG Labels" });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
   }

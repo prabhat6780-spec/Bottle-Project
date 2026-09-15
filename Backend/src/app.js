@@ -50,6 +50,7 @@ app.use("/api/shift", require("./routes/shift.routes"));
 app.use("/api/formula", require("./routes/formula.routes"));
 app.use("/api/raw-material", require("./routes/rawMaterial.routes"));
 app.use("/api/sg-label", require("./routes/sgLabel.routes"));
+app.use("/api/sg-label-2", require("./routes/sgLabelTwoRoutes"));
 app.use("/api/stock-entry", require("./routes/stockEntry.routes"));
 app.use("/api/invoice-vision", require("./routes/invoiceVision.routes"));
 

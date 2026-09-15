@@ -99,8 +99,12 @@ export default function AddSgLabel() {
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    if (!formData.bottleId || !formData.coatingShade || !formData.variantId) {
-      return Swal.fire('Validation Error', 'Please fill in all required fields.', 'error');
+    if (!formData.customBottleName || !formData.coatingShade || !formData.customVariantName) {
+      const missing = [];
+      if (!formData.customBottleName) missing.push('Bottle Name');
+      if (!formData.coatingShade) missing.push('Coating Shade');
+      if (!formData.customVariantName) missing.push('Variant Name');
+      return Swal.fire('Validation Error', `Please fill in all required fields. Missing: ${missing.join(', ')}`, 'error');
     }
 
     setLoading(true);
@@ -159,7 +163,7 @@ export default function AddSgLabel() {
                           const val = e.target.value;
                           const matched = availableSpecs.find(s => `${s.bottleName}` === val);
                           if (matched) {
-                            setFormData({ ...formData, bottleId: matched._id, customBottleName: val, customBrandName: matched.brandId?.name || formData.customBrandName, variantId: '', customVariantName: '' });
+                            setFormData({ ...formData, bottleId: matched._id, customBottleName: val, customBrandName: matched.brandId?.name || formData.customBrandName });
                           } else {
                             setFormData({ ...formData, customBottleName: val });
                           }
@@ -184,7 +188,7 @@ export default function AddSgLabel() {
                               onMouseDown={(e) => {
                                 e.preventDefault();
                                 const val = `${s.bottleName}`;
-                                setFormData({ ...formData, bottleId: s._id, customBottleName: val, customBrandName: s.brandId?.name || formData.customBrandName, variantId: '', customVariantName: '' });
+                                setFormData({ ...formData, bottleId: s._id, customBottleName: val, customBrandName: s.brandId?.name || formData.customBrandName });
                                 setBottleMenuOpen(false);
                               }}
                             >
@@ -273,13 +277,12 @@ export default function AddSgLabel() {
                         onFocus={() => setVariantMenuOpen(true)}
                         onBlur={() => setTimeout(() => setVariantMenuOpen(false), 200)}
                         placeholder="-- Select or type Variant --"
-                        disabled={!formData.bottleId}
                         style={{ borderRadius: '12px', border: '1px solid #dee2e6', padding: '8px 15px', paddingRight: '35px' }}
                       />
                       <div className="position-absolute" style={{ right: '15px', top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none', color: '#a0a5ab', fontSize: '10px' }}>
                         ▼
                       </div>
-                      {variantMenuOpen && !(!formData.bottleId) && (
+                      {variantMenuOpen && (
                         <div className="position-absolute w-100 shadow-sm bg-white border" style={{ zIndex: 1000, maxHeight: '200px', overflowY: 'auto', borderRadius: '12px', marginTop: '5px' }}>
                           {filteredVariants
                             .filter(v => v.variantName.toLowerCase().includes((formData.customVariantName || '').toLowerCase()))

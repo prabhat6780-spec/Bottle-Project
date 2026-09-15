@@ -40,7 +40,16 @@ const navItems = [
       },
       { to: '/formulas', icon: 'bi-funnel-fill', label: 'Formula', action: 'sidebar', subject: 'formula' },
       { to: '/stock-summary', icon: 'bi-box-seam', label: 'Stock Entry', action: 'sidebar', subject: 'stock_entry' },
-      { to: '/sg-labels', icon: 'bi-tags-fill', label: 'SG Label', action: 'sidebar', subject: 'sg-label' },
+      {
+        icon: 'bi-tags-fill',
+        label: 'SG Labels',
+        action: 'sidebar',
+        subject: 'sg-label',
+        subLinks: [
+          { to: '/sg-labels', label: 'SG Label', icon: 'bi-tag-fill', action: 'read', subject: 'sg-label' },
+          { to: '/sg-labels-2', label: 'SG Label 2', icon: 'bi-sticky-fill', action: 'read', subject: 'sg-label-2' }
+        ]
+      },
 
     ],
   },
@@ -90,9 +99,12 @@ export default function Sidebar({ collapsed, onClose }) {
       {/* Nav */}
       <nav className="sidebar-nav">
         {navItems.map((section) => {
-          const visibleLinks = section.links.filter(link =>
-            ability.can(link.action || 'read', link.subject || 'all')
-          );
+            const visibleLinks = section.links.filter(link => {
+              if (link.subLinks) {
+                return link.subLinks.some(sub => ability.can(sub.action || 'read', sub.subject || link.subject)) || ability.can(link.action || 'read', link.subject || 'all');
+              }
+              return ability.can(link.action || 'read', link.subject || 'all');
+            });
 
           if (visibleLinks.length === 0) return null;
 
@@ -116,16 +128,17 @@ export default function Sidebar({ collapsed, onClose }) {
                       {isExpanded && (
                         <div className="nav-sub-menu ps-4 pb-2">
                           {link.subLinks.map(sub => (
-                            <NavLink
-                              key={sub.to}
-                              to={sub.to}
-                              onClick={onClose}
-                              className={({ isActive }) => `nav-item nav-sub-item ${isActive ? 'active' : ''}`}
-                              style={{ padding: '0.5rem 1rem', marginTop: '0.2rem' }}
-                            >
-                              {sub.icon && <i className={`bi ${sub.icon} nav-icon me-2`} />}
-                              <span className="nav-label">{sub.label}</span>
-                            </NavLink>
+                            <Can key={sub.to} I={sub.action || 'read'} a={sub.subject || link.subject}>
+                              <NavLink
+                                to={sub.to}
+                                onClick={onClose}
+                                className={({ isActive }) => `nav-item nav-sub-item ${isActive ? 'active' : ''}`}
+                                style={{ padding: '0.5rem 1rem', marginTop: '0.2rem' }}
+                              >
+                                {sub.icon && <i className={`bi ${sub.icon} nav-icon me-2`} />}
+                                <span className="nav-label">{sub.label}</span>
+                              </NavLink>
+                            </Can>
                           ))}
                         </div>
                       )}

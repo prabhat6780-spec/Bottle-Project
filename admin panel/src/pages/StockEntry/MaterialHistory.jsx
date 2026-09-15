@@ -96,6 +96,70 @@ export default function MaterialHistory() {
     });
   };
 
+  const handlePrintSheet = () => {
+    let rowsHTML = '';
+    const isSpecificMaterial = selectedMaterial && selectedMaterial.rawMaterial._id !== 'all';
+    
+    history.forEach((record, index) => {
+      const isIN = record.type === 'IN';
+      const reference = isIN ? record.invoiceNumber : (record.remarks || 'Stock OUT');
+      
+      rowsHTML += `
+        <tr>
+          <td style="border: 1px solid #000; padding: 8px;">${index + 1}</td>
+          <td style="border: 1px solid #000; padding: 8px;">${new Date(record.createdAt || record.date).toLocaleDateString('en-GB')}</td>
+          ${!isSpecificMaterial ? `<td style="border: 1px solid #000; padding: 8px; font-weight: bold;">${record.materialName}</td>` : ''}
+          <td style="border: 1px solid #000; padding: 8px; font-weight: bold; color: ${isIN ? 'green' : 'red'};">${record.type}</td>
+          <td style="border: 1px solid #000; padding: 8px;">${reference}</td>
+          <td style="border: 1px solid #000; padding: 8px; text-align: center; font-weight: bold;">${isIN ? '+' : '-'}${record.quantity.toFixed(2)} ${record.unit || 'KG'}</td>
+          ${isSpecificMaterial ? `<td style="border: 1px solid #000; padding: 8px; text-align: center; font-weight: bold;">${record.balance.toFixed(2)} ${record.unit || 'KG'}</td>` : ''}
+        </tr>
+      `;
+    });
+
+    const displayDate = new Date().toLocaleDateString('en-GB');
+    const materialTitle = isSpecificMaterial ? selectedMaterial.rawMaterial.name : 'ALL MATERIALS';
+
+    const htmlContent = `
+      <div style="font-family: Arial, sans-serif; padding: 20px; color: #111;">
+        <div style="display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 5px; border-bottom: 2px solid #000; padding-bottom: 10px;">
+          <div style="font-size: 20px; font-weight: bold; text-transform: uppercase; letter-spacing: 1px; color: #000;">STOCK HISTORY - ${materialTitle}</div>
+          <div style="font-size: 16px; font-weight: bold; color: #000;">${displayDate}</div>
+        </div>
+        <table style="width: 100%; border-collapse: collapse; border: 2px solid #000; margin-top: 15px; font-size: 12px;">
+          <thead>
+            <tr>
+              <th style="width: 5%; border: 1px solid #000; padding: 8px; font-weight: bold; text-align: left; background-color: #f8f9fa;">SR.</th>
+              <th style="width: 15%; border: 1px solid #000; padding: 8px; font-weight: bold; text-align: left; background-color: #f8f9fa;">DATE</th>
+              ${!isSpecificMaterial ? `<th style="width: 25%; border: 1px solid #000; padding: 8px; font-weight: bold; text-align: left; background-color: #f8f9fa;">MATERIAL</th>` : ''}
+              <th style="width: 10%; border: 1px solid #000; padding: 8px; font-weight: bold; text-align: left; background-color: #f8f9fa;">TYPE</th>
+              <th style="width: 20%; border: 1px solid #000; padding: 8px; font-weight: bold; text-align: left; background-color: #f8f9fa;">REFERENCE</th>
+              <th style="width: 15%; border: 1px solid #000; padding: 8px; font-weight: bold; text-align: center; background-color: #f8f9fa;">QTY</th>
+              ${isSpecificMaterial ? `<th style="width: 15%; border: 1px solid #000; padding: 8px; font-weight: bold; text-align: center; background-color: #f8f9fa;">BALANCE</th>` : ''}
+            </tr>
+          </thead>
+          <tbody>
+            ${rowsHTML}
+          </tbody>
+        </table>
+      </div>
+    `;
+
+    const container = document.createElement('div');
+    container.innerHTML = htmlContent;
+
+    const opt = {
+      margin:       0.5,
+      filename:     `Material_History_${displayDate.replace(/\//g, '-')}.pdf`,
+      image:        { type: 'jpeg', quality: 0.98 },
+      html2canvas:  { scale: 2 },
+      jsPDF:        { unit: 'in', format: 'a4', orientation: 'portrait' },
+      pagebreak:    { avoid: 'tr' }
+    };
+
+    window.html2pdf().set(opt).from(container).save();
+  };
+
   const customSelectStyles = {
     control: (provided, state) => ({
       ...provided,
@@ -125,35 +189,38 @@ export default function MaterialHistory() {
       </div>
 
       <div className="dash-card p-0">
-        <div className="dash-card-header d-flex align-items-center justify-content-between px-4 pt-3 border-bottom bg-white companies-dash-toolbar">
-          <ul className="nav nav-tabs border-0 gap-4" style={{ marginBottom: '-1px' }}>
+        <div className="dash-card-header d-flex flex-column flex-md-row align-items-start align-items-md-center justify-content-between px-4 pt-3 border-bottom bg-white companies-dash-toolbar gap-3">
+          <ul className="nav nav-tabs border-0 flex-row flex-nowrap w-100 overflow-auto gap-4 pb-1" style={{ marginBottom: '-1px', WebkitOverflowScrolling: 'touch', whiteSpace: 'nowrap' }}>
             <Can I="read" a="stock_entry">
-              <li className="nav-item">
-                <Link to="/stock-summary" className="nav-link bg-transparent border-0 px-0 pb-3 fw-bold text-muted">
+              <li className="nav-item flex-shrink-0">
+                <Link to="/stock-summary" className="nav-link bg-transparent border-0 px-0 pb-3 fw-bold text-muted text-nowrap">
                   <i className="bi bi-box-seam me-2"></i> Stock Summary
                 </Link>
               </li>
-              <li className="nav-item">
-                <Link to="/stock-invoices" className="nav-link bg-transparent border-0 px-0 pb-3 fw-bold text-muted">
+              <li className="nav-item flex-shrink-0">
+                <Link to="/stock-invoices" className="nav-link bg-transparent border-0 px-0 pb-3 fw-bold text-muted text-nowrap">
                   <i className="bi bi-receipt-cutoff me-2"></i> Invoices
                 </Link>
               </li>
             </Can>
             <Can I="ledger" a="stock_entry">
-              <li className="nav-item">
-                <Link to="/stock-history" className="nav-link bg-transparent border-0 px-0 pb-3 fw-bold active border-bottom border-primary border-3 text-primary">
+              <li className="nav-item flex-shrink-0">
+                <Link to="/stock-history" className="nav-link bg-transparent border-0 px-0 pb-3 fw-bold active border-bottom border-primary border-3 text-primary text-nowrap">
                   <i className="bi bi-clock-history me-2"></i> Material History
                 </Link>
               </li>
             </Can>
           </ul>
+          <button onClick={handlePrintSheet} className="btn btn-sm btn-outline-danger d-flex align-items-center fw-bold shadow-sm bg-white mb-2 text-nowrap mt-2 mt-md-0" disabled={history.length === 0}>
+            <i className="bi bi-file-earmark-pdf-fill me-2 fs-6"></i> Export PDF
+          </button>
         </div>
         
         {/* Pagination Toolbar */}
         <div className="d-flex flex-wrap align-items-center justify-content-between p-3 border-bottom bg-white companies-dash-toolbar">
-          <div className="d-flex align-items-center gap-3 mb-2 mb-md-0">
+          <div className="d-flex flex-column flex-sm-row align-items-start align-items-sm-center gap-2 gap-sm-3 mb-2 mb-md-0 w-100 w-md-auto flex-grow-1">
             <span className="text-muted fw-bold small text-nowrap">Select Material:</span>
-            <div style={{ width: 250 }}>
+            <div className="flex-grow-1" style={{ width: '100%', maxWidth: '300px' }}>
               <Select
                 styles={customSelectStyles}
                 classNamePrefix="react-select"
@@ -222,6 +289,75 @@ export default function MaterialHistory() {
           </div>
         </div>
         
+        <div className="companies-list-mobile">
+          {loading ? (
+            <div className="text-center py-5 text-muted">Loading...</div>
+          ) : history.map((record, idx) => (
+            <div key={record._id || idx} className="companies-mobile-card brands-mobile-card">
+              <div className="d-flex align-items-start gap-3 w-100 min-w-0">
+                <div className="flex-grow-1 min-w-0">
+                  <div className="d-flex align-items-center justify-content-between mb-2">
+                    <span className="fw-bold text-dark text-truncate fs-6 pe-2">{record.materialName}</span>
+                    <span className="text-dark small fw-bold text-nowrap">{new Date(record.createdAt || record.date).toLocaleDateString()}</span>
+                  </div>
+                  
+                  <div className="d-flex align-items-center justify-content-between mb-3">
+                    <div className="d-flex align-items-center gap-2">
+                      {record.type === 'IN' 
+                        ? <span className="badge bg-success bg-opacity-10 text-success border border-success border-opacity-25 px-2 py-1">IN</span>
+                        : <span className="badge bg-danger bg-opacity-10 text-danger border border-danger border-opacity-25 px-2 py-1">OUT</span>}
+                      {record.type === 'IN' ? (
+                        <span className="text-muted small fw-500">{record.invoiceNumber}</span>
+                      ) : (
+                        <span className="text-muted small fw-500">{record.remarks || 'Stock OUT'}</span>
+                      )}
+                    </div>
+                    <span className={`badge ${record.type === 'IN' ? 'bg-success bg-opacity-10 text-success border-success' : 'bg-danger bg-opacity-10 text-danger border-danger'} border border-opacity-25 px-2 py-1 fs-7`}>
+                      {record.type === 'IN' ? '+' : '-'}{record.quantity.toFixed(2)} {record.unit || 'KG'}
+                    </span>
+                  </div>
+
+                  {selectedMaterial && selectedMaterial.rawMaterial._id !== 'all' && (
+                    <div className="d-flex align-items-center justify-content-between mb-3 border-top pt-2 mt-2">
+                      <span className="text-muted small fw-600">BALANCE</span>
+                      <span className="fw-bold text-primary fs-6">{record.balance.toFixed(2)} {record.unit || 'KG'}</span>
+                    </div>
+                  )}
+                  
+                  <div className="companies-mobile-actions brands-mobile-actions d-flex gap-2">
+                    {record.type === 'IN' ? (
+                      <Can I="edit" a="stock_entry">
+                        <Link to={`/stock-entries/edit/${record._id.split('_')[0]}`} state={{ from: '/stock-history', editItemId: record._id.split('_')[1] }} className="btn btn-sm btn-outline-primary border-0 rounded-3 shadow-none companies-mobile-action-btn flex-grow-1" title="Edit IN">
+                          <i className="bi bi-pencil-square me-1" /> Edit
+                        </Link>
+                      </Can>
+                    ) : (
+                      <Can I="edit" a="stock_entry">
+                        <button onClick={() => {
+                          const mat = selectedMaterial.rawMaterial._id === 'all' 
+                            ? summary.find(s => s.rawMaterial._id === record._id.split('_')[1])
+                            : selectedMaterial;
+                          if(mat) handleEditOut(record, mat);
+                        }} className="btn btn-sm btn-outline-primary border-0 rounded-3 shadow-none companies-mobile-action-btn flex-grow-1" title="Edit OUT">
+                          <i className="bi bi-pencil-square me-1" /> Edit
+                        </button>
+                      </Can>
+                    )}
+                    <Can I="delete" a="stock_entry">
+                      <button onClick={() => handleDeleteInvoice(record._id.split('_')[0], record.invoiceNumber || 'OUT')} className="btn btn-sm btn-outline-danger border-0 rounded-3 shadow-none companies-mobile-action-btn flex-grow-1" title="Delete">
+                        <i className="bi bi-trash fs-6" />
+                      </button>
+                    </Can>
+                  </div>
+                </div>
+              </div>
+            </div>
+          ))}
+          {history.length === 0 && !loading && (
+            <div className="companies-mobile-empty">No history records found.</div>
+          )}
+        </div>
+
         {selectedMaterial ? (
           <div className="companies-list-desktop table-responsive">
             <table className="data-table">
