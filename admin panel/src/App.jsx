@@ -24,6 +24,9 @@ import EditOperator from './pages/Operator/EditOperator';
 import Shifts from './pages/Shift/Shifts';
 import AddShift from './pages/Shift/AddShift';
 import EditShift from './pages/Shift/EditShift';
+import Units from './pages/units/Units';
+import AddUnit from './pages/units/AddUnit';
+import EditUnit from './pages/units/EditUnit';
 import BottleSpecs from './pages/BottleSpec/BottleSpecs';
 import AddBottleSpec from './pages/BottleSpec/AddBottleSpec';
 import EditBottleSpec from './pages/BottleSpec/EditBottleSpec';
@@ -131,6 +134,9 @@ export default function App() {
               <Route path="/shifts" element={<Shifts />} />
               <Route path="/shifts/add" element={<AddShift />} />
               <Route path="/shifts/edit/:id" element={<EditShift />} />
+              <Route path="/units" element={<Units />} />
+              <Route path="/units/add" element={<AddUnit />} />
+              <Route path="/units/edit/:id" element={<EditUnit />} />
               <Route path="/bottle-specs" element={<BottleSpecs />} />
               <Route path="/bottle-specs/add" element={<AddBottleSpec />} />
               <Route path="/bottle-specs/edit/:id" element={<EditBottleSpec />} />

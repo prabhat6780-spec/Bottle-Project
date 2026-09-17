@@ -1,6 +1,6 @@
 const fs = require("fs");
 const RawMaterial = require("../models/RawMaterial");
-const { parseInvoiceData, callGoogleVisionFull, extractPdfWords } = require("../services/invoiceVision.service");
+const { parseInvoiceData, callGoogleVisionFull, callGoogleVisionForPdf, extractPdfWords } = require("../services/invoiceVision.service");
 
 exports.parseInvoice = async (req, res) => {
   try {
@@ -18,7 +18,13 @@ exports.parseInvoice = async (req, res) => {
       // Position-aware extraction — reconstructs true visual rows instead
       // of relying on pdf-parse's raw content-stream text order.
       const words = await extractPdfWords(fileBuffer);
-      ocrResult = { type: 'pdf', data: words };
+      if (words && words.length > 0) {
+        ocrResult = { type: 'pdf', data: words };
+      } else {
+        // Fallback to Google Vision for scanned PDFs
+        const visionResult = await callGoogleVisionForPdf(filePath);
+        ocrResult = { type: 'vision', data: visionResult };
+      }
     } else {
       // Google Vision full response (with bounding boxes)
       const visionResult = await callGoogleVisionFull(fileBuffer);

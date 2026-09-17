@@ -24,6 +24,7 @@ import sgLabelTwoReducer from './slices/sgLabelTwoSlice';
 import operatorReducer from './slices/operatorSlice';
 import shiftReducer from './slices/shiftSlice';
 import stockEntryReducer from './slices/stockEntrySlice';
+import unitReducer from './slices/unitSlice';
 
 export const store = configureStore({
   reducer: {
@@ -50,5 +51,6 @@ export const store = configureStore({
     sgLabels: sgLabelReducer,
     sgLabelTwo: sgLabelTwoReducer,
     stockEntries: stockEntryReducer,
+    units: unitReducer,
   },
 });

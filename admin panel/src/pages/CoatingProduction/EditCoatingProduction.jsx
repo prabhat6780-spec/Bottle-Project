@@ -7,10 +7,12 @@ import { fetchCoatingSpecs } from '../../redux/slices/coatingSpecSlice';
 import { fetchCoatingProductions, updateCoatingProduction } from '../../redux/slices/coatingProductionSlice';
 import { fetchOperators, createOperator } from '../../redux/slices/operatorSlice';
 import { fetchShifts } from '../../redux/slices/shiftSlice';
+import { fetchUnits } from '../../redux/slices/unitSlice';
 import Swal from 'sweetalert2';
 import SearchableSelect from '../../components/SearchableSelect';
 import CreatableSelect from 'react-select/creatable';
 import { V_URL } from '../../../Baseurl.js';
+import { getUnitNumberByName } from '../../utils/unitMapper';
 
 const getIsAdmin = (user) => {
   const roleName = typeof user?.role === 'object' ? user?.role?.name : user?.role;
@@ -29,6 +31,7 @@ export default function EditCoatingProduction() {
   const { user: authUser } = useSelector((state) => state.auth);
   const { operators } = useSelector((state) => state.operators);
   const { shifts } = useSelector((state) => state.shifts);
+  const { units } = useSelector((state) => state.units);
 
   const hasDateValidation = (user, permissionName) => {
     if (typeof user?.role === 'object' && Array.isArray(user.role.permissions)) {
@@ -77,6 +80,7 @@ export default function EditCoatingProduction() {
     dispatch(fetchCoatingProductions({ pagination: 'false' }));
     dispatch(fetchOperators({ pagination: 'false' }));
     dispatch(fetchShifts({ pagination: 'false' }));
+    dispatch(fetchUnits({ limit: 1000 }));
   }, [dispatch]);
 
   useEffect(() => {
@@ -149,7 +153,7 @@ export default function EditCoatingProduction() {
   const validateField = (name, value) => {
     let msg = '';
     const fieldNames = {
-      brandId: 'Brand', coatingSpecId: 'Coating Spec', coatingShade: 'Coating Shade',
+      unit: 'Unit', brandId: 'Brand', coatingSpecId: 'Coating Spec', coatingShade: 'Coating Shade',
       date: 'Production Date', operatorId: 'Operator Name', shift: 'Shift',
       actualQuantity: 'Actual Quantity', bottlePerBox: 'Bottles Per Box',
     };
@@ -249,7 +253,8 @@ export default function EditCoatingProduction() {
               <form onSubmit={handleSubmit}>
                 <fieldset disabled={isLocked}>
                   <div className="row g-4">
-                  {/* Company */}
+
+                    {/* Company (Read-only on edit) */}
                     <div className="col-md-6">
                       <label className="form-label fw-600 small text-uppercase text-muted">1. Company <span className="text-danger">*</span></label>
                       <SearchableSelect

@@ -29,8 +29,8 @@ export default function EditFormula() {
   const [formData, setFormData] = useState({
     companyId: '',
     brandId: '',
-    bottleId: '',
-    variantId: '',
+    bottleIds: [],
+    variantIds: [],
     coatingTypeId: '',
     status: 'active',
     columns: [{ columnName: '', rawMaterials: [{ rawMaterialId: '', quantity: '' }] }],
@@ -58,8 +58,8 @@ export default function EditFormula() {
       setFormData({
         companyId: currentFormula.companyId?._id || currentFormula.companyId || '',
         brandId: currentFormula.brandId?._id || currentFormula.brandId || '',
-        bottleId: currentFormula.bottleId?._id || currentFormula.bottleId || '',
-        variantId: currentFormula.variantId?._id || currentFormula.variantId || '',
+        bottleIds: currentFormula.bottleId ? [currentFormula.bottleId?._id || currentFormula.bottleId] : [],
+        variantIds: currentFormula.variantId ? [currentFormula.variantId?._id || currentFormula.variantId] : [],
         coatingTypeId: currentFormula.coatingTypeId?._id || currentFormula.coatingTypeId || '',
         columns: currentFormula.columns && currentFormula.columns.length > 0
                  ? currentFormula.columns.map(col => ({
@@ -83,21 +83,20 @@ export default function EditFormula() {
       // Cascading resets
       if (field === 'companyId') {
         newData.brandId = '';
-        newData.bottleId = '';
-        newData.variantId = '';
+        newData.bottleIds = [];
+        newData.variantIds = [];
         newData.coatingTypeId = '';
       } else if (field === 'brandId') {
-        newData.variantId = '';
-        newData.bottleId = '';
+        newData.variantIds = [];
+        newData.bottleIds = [];
         newData.coatingTypeId = '';
-      } else if (field === 'bottleId') {
-        newData.variantId = '';
+      } else if (field === 'bottleIds') {
+        // no resets needed downwards
+      } else if (field === 'variantIds') {
+        newData.bottleIds = [];
         newData.coatingTypeId = '';
-      } else if (field === 'variantId') {
-        newData.bottleId = '';
-        newData.coatingTypeId = '';
-        if (value) {
-          const selectedVariant = variants.find(v => v._id === value);
+        if (value && value.length > 0) {
+          const selectedVariant = variants.find(v => v._id === value[0]);
           if (selectedVariant && selectedVariant.coatingShade) {
             const s = selectedVariant.coatingShade.toUpperCase();
             let mappedName = null;
@@ -181,7 +180,7 @@ export default function EditFormula() {
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    if (!formData.companyId || !formData.brandId || !formData.bottleId || !formData.variantId || !formData.coatingTypeId) {
+    if (!formData.companyId || !formData.brandId || formData.bottleIds.length === 0 || formData.variantIds.length === 0 || !formData.coatingTypeId) {
       return Swal.fire('Validation Error', 'Please select all fields before saving.', 'error');
     }
 
@@ -238,15 +237,9 @@ export default function EditFormula() {
     ? variants.filter(v => v.status && filteredBottlesForBrand.some(b => b._id === (v.bottleSpecId?._id || v.bottleSpecId)))
     : [];
 
-  const sortedVariants = [...allVariantsForBrand].sort((a, b) => {
-    if (formData.variantId && formData.variantId === a._id) return -1;
-    if (formData.variantId && formData.variantId === b._id) return 1;
-    return 0;
-  });
-
   const uniqueVariants = [];
   const seenVariantNames = new Set();
-  sortedVariants.forEach(v => {
+  allVariantsForBrand.forEach(v => {
     const key = `${v.variantName}-${v.variantSize}-${v.coatingShade}`;
     if (!seenVariantNames.has(key)) {
       seenVariantNames.add(key);
@@ -255,12 +248,12 @@ export default function EditFormula() {
   });
   const filteredVariants = uniqueVariants;
 
-  const filteredBottles = formData.variantId
+  const filteredBottles = formData.variantIds && formData.variantIds.length > 0
     ? filteredBottlesForBrand.filter(b => 
         variants.some(v => 
           v.status && 
           (v.bottleSpecId?._id === b._id || v.bottleSpecId === b._id) && 
-          formData.variantId === v._id
+          formData.variantIds.includes(v._id)
         )
       )
     : [];
@@ -327,12 +320,28 @@ export default function EditFormula() {
                     <label className="form-label fw-600 small text-uppercase text-muted">
                       Select Variant <span className="text-danger">*</span>
                     </label>
-                    <SearchableSelect
+                    <Select
+                      isMulti
                       options={filteredVariants.map(v => ({ value: v._id, label: `${v.variantName} ${v.coatingShade ? `- ${v.coatingShade}` : ''}${v.variantSize ? ` - ${v.variantSize}` : ''}`.trim() }))}
-                      value={formData.variantId}
-                      onChange={(val) => handleSelectChange('variantId', val)}
-                      placeholder="-- Choose Variant --"
-                      disabled={!formData.brandId}
+                      value={filteredVariants.filter(v => formData.variantIds.includes(v._id)).map(v => ({ value: v._id, label: `${v.variantName} ${v.coatingShade ? `- ${v.coatingShade}` : ''}${v.variantSize ? ` - ${v.variantSize}` : ''}`.trim() }))}
+                      onChange={(selectedOptions) => {
+                        const ids = selectedOptions ? selectedOptions.map(opt => opt.value) : [];
+                        handleSelectChange('variantIds', ids);
+                      }}
+                      placeholder="-- Choose Variants --"
+                      isDisabled={!formData.brandId}
+                      styles={{
+                        control: (base, state) => ({
+                          ...base,
+                          borderRadius: '12px',
+                          borderColor: state.isFocused ? '#86b7fe' : '#dee2e6',
+                          boxShadow: state.isFocused ? '0 0 0 0.25rem rgba(13, 110, 253, 0.25)' : 'none',
+                          padding: '2px',
+                          '&:hover': {
+                            borderColor: state.isFocused ? '#86b7fe' : '#dee2e6'
+                          }
+                        })
+                      }}
                     />
                   </div>
 
@@ -341,12 +350,28 @@ export default function EditFormula() {
                     <label className="form-label fw-600 small text-uppercase text-muted">
                       Bottle Names <span className="text-danger">*</span>
                     </label>
-                    <SearchableSelect
+                    <Select
+                      isMulti
                       options={filteredBottles.map(s => ({ value: s._id, label: s.bottleName }))}
-                      value={formData.bottleId}
-                      onChange={(val) => handleSelectChange('bottleId', val)}
-                      placeholder="-- Choose Bottle --"
-                      disabled={!formData.variantId}
+                      value={filteredBottles.filter(s => formData.bottleIds.includes(s._id)).map(s => ({ value: s._id, label: s.bottleName }))}
+                      onChange={(selectedOptions) => {
+                        const ids = selectedOptions ? selectedOptions.map(opt => opt.value) : [];
+                        handleSelectChange('bottleIds', ids);
+                      }}
+                      placeholder="-- Choose Bottle Names --"
+                      isDisabled={formData.variantIds.length === 0}
+                      styles={{
+                        control: (base, state) => ({
+                          ...base,
+                          borderRadius: '12px',
+                          borderColor: state.isFocused ? '#86b7fe' : '#dee2e6',
+                          boxShadow: state.isFocused ? '0 0 0 0.25rem rgba(13, 110, 253, 0.25)' : 'none',
+                          padding: '2px',
+                          '&:hover': {
+                            borderColor: state.isFocused ? '#86b7fe' : '#dee2e6'
+                          }
+                        })
+                      }}
                     />
                   </div>
 
@@ -359,7 +384,7 @@ export default function EditFormula() {
                       type="text"
                       className="form-control custom-input-field"
                       style={{ borderRadius: 12, backgroundColor: '#f8f9fa' }}
-                      value={formData.variantId ? variants.find(v => v._id === formData.variantId)?.coatingShade || 'N/A' : 'N/A'}
+                      value={formData.variantIds.length > 0 ? variants.find(v => v._id === formData.variantIds[0])?.coatingShade || 'N/A' : 'N/A'}
                       disabled
                     />
                   </div>
@@ -375,7 +400,7 @@ export default function EditFormula() {
                       value={formData.coatingTypeId}
                       onChange={(val) => handleSelectChange('coatingTypeId', val)}
                       placeholder="-- Choose Coating Type --"
-                      disabled={!formData.variantId}
+                      disabled={formData.variantIds.length === 0}
                     />
                   </div>
 
@@ -398,15 +423,15 @@ export default function EditFormula() {
 
                 </div>
 
-                {formData.companyId && formData.brandId && formData.bottleId && formData.variantId && formData.coatingTypeId && (
+                {formData.companyId && formData.brandId && formData.bottleIds.length > 0 && formData.variantIds.length > 0 && formData.coatingTypeId && (
                   <>
                     <hr className="my-5" />
 
                 <div className="d-flex flex-column flex-sm-row align-items-start align-items-sm-center justify-content-between gap-3 mb-4">
                   <div>
                     <h5 className="mb-0 fw-bold">
-                      {formData.variantId && variants.find(v => v._id === formData.variantId)?.coatingShade 
-                        ? variants.find(v => v._id === formData.variantId)?.coatingShade
+                      {formData.variantIds.length > 0 && variants.find(v => v._id === formData.variantIds[0])?.coatingShade 
+                        ? variants.find(v => v._id === formData.variantIds[0])?.coatingShade
                         : 'Raw Materials'}
                     </h5>
                   </div>
@@ -424,18 +449,20 @@ export default function EditFormula() {
                 ) : (
                   <div className="row g-3">
                     {formData.columns.map((box, boxIndex) => {
-                      // Get selected variant details
-                      const selectedVariantObj = variants.find(v => v._id === formData.variantId);
+                      // Get selected variants details
+                      const selectedVariantObjs = variants.filter(v => formData.variantIds.includes(v._id));
                       
                       // Combine coating shades into unique options
                       let columnOptions = [];
-                      if (selectedVariantObj && selectedVariantObj.coatingShade) {
-                        const parts = selectedVariantObj.coatingShade.split(/[\+\/&,]/);
-                        parts.forEach(part => {
-                          const trimmedPart = part.trim();
-                          if (trimmedPart && !columnOptions.includes(trimmedPart)) columnOptions.push(trimmedPart);
-                        });
-                      }
+                      selectedVariantObjs.forEach(v => {
+                        if (v.coatingShade) {
+                          const parts = v.coatingShade.split(/[\+\/&,]/);
+                          parts.forEach(part => {
+                            const trimmedPart = part.trim();
+                            if (trimmedPart && !columnOptions.includes(trimmedPart)) columnOptions.push(trimmedPart);
+                          });
+                        }
+                      });
 
                       return (
                         <div className={formData.columns.length === 1 ? "col-12" : "col-12 col-md-6"} key={boxIndex}>

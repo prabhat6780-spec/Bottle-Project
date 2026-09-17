@@ -9,6 +9,8 @@ import {fetchBrands} from '../../redux/slices/brandSlice.js';
 import {fetchCoatingSpecs} from '../../redux/slices/coatingSpecSlice.js';
 import {fetchCompanies} from '../../redux/slices/companySlice.js';
 import {fetchShifts} from '../../redux/slices/shiftSlice.js';
+import {fetchUnits} from '../../redux/slices/unitSlice.js';
+import {getUnitNumberByName} from '../../utils/unitMapper.js';
 import Swal from 'sweetalert2';
 import * as XLSX from 'xlsx';
 import { V_URL } from '../../../Baseurl.js';
@@ -60,6 +62,7 @@ export default function CoatingProductions() {
   const { companies } = useSelector((state) => state.companies);
   const { coatingSpecs } = useSelector((state) => state.coatingSpecs);
   const { shifts } = useSelector((state) => state.shifts || { shifts: [] });
+  const { units } = useSelector((state) => state.units || { units: [] });
 
   const search = searchTerm || "";
   const [startDate, setStartDate] = useState('');
@@ -77,8 +80,13 @@ export default function CoatingProductions() {
     setSelectedUnit(unit || '');
   }, [unit]);
 
-  // Units are fixed 1-4 per the model enum
-  const allUnits = [1, 2, 3, 4];
+  const allUnits = useMemo(() => {
+    return (units || [])
+      .filter(u => u.status !== false && !u.isDeleted)
+      .map(u => getUnitNumberByName(u.name))
+      .filter(num => num !== null)
+      .sort((a, b) => a - b);
+  }, [units]);
 
   const urlPage = searchParams.get('page') || '';
   const currentPage = Number(urlPage) || page || 1;
@@ -108,6 +116,7 @@ export default function CoatingProductions() {
     dispatch(fetchCoatingSpecs({ pagination: 'false' }));
     dispatch(fetchCompanies({ pagination: 'false' }));
     dispatch(fetchShifts({ pagination: 'false' }));
+    dispatch(fetchUnits({ limit: 1000 }));
   }, [dispatch]);
 
   const handleDelete = (id) => {

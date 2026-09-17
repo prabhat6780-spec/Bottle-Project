@@ -1,4 +1,6 @@
-const stringSimilarity = require("string-similarity");
+const fs = require('fs');
+const path = require('path');
+const stringSimilarity = require('string-similarity');
 const axios = require("axios");
 const pdfParse = require("pdf-parse");
 
@@ -35,6 +37,27 @@ function extractFinancialsNearText(textChunk) {
   const unitRegex = /(?:^|\s|\d)(kgs?|g|l|ml|pcs?|pieces?|ltrs?|gms?|boxes|nos?|bags?|tons?|mt|sets?|pairs?|doz)\b/i;
   const unitMatch = cleanChunk.match(unitRegex);
   let detectedUnit = unitMatch ? unitMatch[1].toLowerCase() : "";
+  
+  // Normalize plural and alternate unit names to a standard short form
+  const unitMap = {
+    "kgs": "kg",
+    "gms": "g",
+    "gm": "g",
+    "ltrs": "l",
+    "ltr": "l",
+    "pcs": "pc",
+    "pieces": "pc",
+    "piece": "pc",
+    "nos": "no",
+    "bags": "bag",
+    "tons": "ton",
+    "boxes": "box",
+    "sets": "set",
+    "pairs": "pair"
+  };
+  if (unitMap[detectedUnit]) {
+    detectedUnit = unitMap[detectedUnit];
+  }
 
   let quantity = 0, rate = 0, amount = 0;
   let found = false;
@@ -80,7 +103,8 @@ function extractFinancialsNearText(textChunk) {
     quantity,
     rate,
     amount,
-    per: detectedUnit || ""
+    per: detectedUnit || "",
+    mathMatched: found
   };
 }
 
@@ -105,6 +129,38 @@ async function callGoogleVisionFull(imageBuffer) {
 
   return response.data?.responses?.[0] || {};
 }
+
+const puppeteer = require('puppeteer');
+
+async function callGoogleVisionForPdf(filePath) {
+  let browser;
+  try {
+    browser = await puppeteer.launch({ headless: 'new', args: ['--no-sandbox', '--disable-setuid-sandbox'] });
+    const page = await browser.newPage();
+    
+    // A high resolution viewport for better OCR accuracy
+    await page.setViewport({ width: 1600, height: 2200, deviceScaleFactor: 1.5 });
+    
+    const absPath = path.resolve(filePath).replace(/\\/g, '/');
+    const url = 'file:///' + absPath;
+    
+    await page.goto(url, { waitUntil: 'networkidle0', timeout: 15000 });
+    
+    // Give PDF.js a moment to finish rendering the canvas
+    await new Promise(resolve => setTimeout(resolve, 3000));
+    
+    const imageBuffer = await page.screenshot({ type: 'png', fullPage: false });
+    await browser.close();
+    
+    // Now that we have a crisp image of the PDF page, we can use the regular Vision image endpoint
+    return await callGoogleVisionFull(imageBuffer);
+  } catch (error) {
+    if (browser) await browser.close();
+    console.error("Puppeteer PDF rendering error:", error);
+    throw new Error("Failed to render PDF to image for OCR");
+  }
+}
+
 
 /**
  * NEW: Extracts words with real X/Y positions from a PDF using pdf-parse's
@@ -148,10 +204,13 @@ function normalizeVisionWords(visionResponse) {
   // Skip the first element (the full-block summary annotation)
   return textAnnotations.slice(1).map(w => {
     const v = w.boundingPoly.vertices;
+    const y0 = v[0]?.y || 0;
+    const y2 = v[2]?.y || 0;
     return {
       text: w.description,
-      x: v[0].x,
-      y: (v[0].y + v[2].y) / 2
+      x: v[0]?.x || 0,
+      y: (y0 + y2) / 2,
+      height: Math.abs(y2 - y0)
     };
   });
 }
@@ -172,6 +231,8 @@ function groupWordsIntoRows(words, tolerance) {
     let matchedRow = rows.find(r => Math.abs(r.y - w.y) < tolerance);
     if (matchedRow) {
       matchedRow.words.push(w);
+      // Update the row's Y to be the average Y of its words. This helps follow the slope of a skewed document.
+      matchedRow.y = matchedRow.words.reduce((sum, word) => sum + word.y, 0) / matchedRow.words.length;
     } else {
       rows.push({ y: w.y, words: [w] });
     }
@@ -183,31 +244,31 @@ function groupWordsIntoRows(words, tolerance) {
   return rows; // [{ y, words: [{text, x, y}, ...] }, ...]
 }
 
-/**
- * Finds a value positioned just below a label word, staying within the
- * label's column (i.e. before the next column's label starts). This
- * handles two-row label/value header blocks like:
- *   Row N:   "Invoice No.   Dated"
- *   Row N+1: "384           11-Aug-26"
- * which a flat line-by-line regex can't distinguish (it can't tell that
- * "Dated" on row N is the NEXT column header, not the value).
- */
-function findLabelValue(rows, labelRegex, boundaryRegex) {
+function findLabelValue(rows, labelRegex, primaryKeyword, rightBoundaryRegex = null) {
   for (let i = 0; i < rows.length; i++) {
-    const labelWord = rows[i].words.find(w => labelRegex.test(w.text.trim()));
+    const rowString = rows[i].words.map(w => w.text).join(' ').toLowerCase();
+    if (!labelRegex.test(rowString)) continue;
+
+    // Find the actual word object that triggered the match so we know the X coordinate
+    const labelWord = rows[i].words.find(w => w.text.toLowerCase().includes(primaryKeyword.toLowerCase()));
     if (!labelWord) continue;
 
-    const boundaryWord = boundaryRegex
-      ? rows[i].words.find(w => boundaryRegex.test(w.text.trim()))
-      : null;
-    const rightBound = boundaryWord ? boundaryWord.x : Infinity;
+    let rightBound = Infinity;
+    if (rightBoundaryRegex) {
+      const boundaryWord = rows[i].words.find(w => rightBoundaryRegex.test(w.text.toLowerCase()));
+      if (boundaryWord && boundaryWord.x > labelWord.x) {
+        rightBound = boundaryWord.x;
+      }
+    }
 
-    // Look at the next couple of rows for a word aligned under the label
+    // Look at the next couple of rows for words aligned under the label
     for (let j = i + 1; j < Math.min(i + 3, rows.length); j++) {
-      const candidate = rows[j].words.find(
-        w => w.x >= labelWord.x - 8 && w.x < rightBound - 8
+      const candidateWords = rows[j].words.filter(
+        w => w.x >= labelWord.x - 40 && w.x < rightBound - 5
       );
-      if (candidate) return candidate.text.trim();
+      if (candidateWords.length > 0) {
+        return candidateWords.map(w => w.text).join('').trim();
+      }
     }
   }
   return null;
@@ -221,7 +282,17 @@ function parseInvoiceData(ocrResult, rawMaterials) {
     rows = groupWordsIntoRows(ocrResult.data, 3);
   } else if (ocrResult.type === 'vision') {
     const words = normalizeVisionWords(ocrResult.data);
-    rows = groupWordsIntoRows(words, 15);
+    let tolerance = 15;
+    if (words.length > 0) {
+      // Calculate median height of words to adapt to different image resolutions
+      const heights = words.map(w => w.height).filter(h => typeof h === 'number' && !isNaN(h) && h > 0).sort((a, b) => a - b);
+      if (heights.length > 0) {
+        const medianHeight = heights[Math.floor(heights.length / 2)];
+        // A tight tolerance prevents merging adjacent lines. The running average in groupWordsIntoRows handles the skew.
+        tolerance = Math.max(12, medianHeight * 0.6);
+      }
+    }
+    rows = groupWordsIntoRows(words, tolerance);
   } else if (ocrResult.type === 'text') {
     // Legacy fallback path (plain text, no position data). Kept only in
     // case parseInvoiceData is ever called without position info.
@@ -236,14 +307,14 @@ function parseInvoiceData(ocrResult, rawMaterials) {
   const foundNames = new Set();
 
   // --- Invoice No / Date / Supplier: positional lookup first ---
-  let invoiceNumber = findLabelValue(rows, /invoice\s*no/i, /date/i) || "";
-  let invoiceDate = findLabelValue(rows, /date/i, null) || "";
-  let supplierName = findLabelValue(rows, /bill from/i, null) || "";
+  let invoiceNumber = findLabelValue(rows, /invoice/i, 'invoice', /date|dated/i) || "";
+  let invoiceDate = findLabelValue(rows, /invoice\s*date|dated/i, 'date', null) || "";
+  let supplierName = findLabelValue(rows, /bill from/i, 'bill', null) || "";
 
   // --- Fallbacks for invoices with a different layout ---
   if (!invoiceNumber) {
-    // \binv\b (not inv\s*#?) so this can't match inside the word "INVOICE" itself
-    const invMatch = fullText.match(/(?:invoice\s*(?:no|number)|\binv\b\s*#?)\s*[:.-]?\s*([A-Za-z0-9/-]+)/i);
+    // Look for Invoice No: 123 in a single line. Avoid matching "Dated" or "Date"
+    const invMatch = fullText.match(/(?:invoice\s*(?:no|number)|\binv\b\s*#?)\s*[:.-]?\s*((?!date|dated)[A-Za-z0-9/-]{3,})/i);
     if (invMatch) invoiceNumber = invMatch[1].trim();
   }
 
@@ -352,10 +423,10 @@ function parseInvoiceData(ocrResult, rawMaterials) {
       const lowerLine = line.toLowerCase();
       // Skip common invoice headers, footers, and addresses to avoid false positive warnings
       const skipKeywords = [
-        "ack date", "ack no", "plot no", "midc", "phase", "pin-", "pin code", 
+        "ack date", "ack no", "plot no", "midc", "phase", "pin-", "pin code", "pin",
         "udyam", "gstin", "uin", "block no", "dist ", "mobno", "mob no", "mob.no", "mob.",
         "igst", "cgst", "sgst", "total", "at.po", "at po", "atpost", "vavli", "dombivli", "gujarat",
-        "invoice no", "dated", "delivery note", "buyer", "dispatch", 
+        "invoice no", "dated", "delivery note", "buyer", "dispatch", "pan", "dt", "days", "pdf",
         "destination", "terms of", "vehicle no", "amount", "hsn", "sac",
         "description of goods", "m/s", "pvt ltd", "ltd.", "sub total", "ccipl",
         "rounding", "bank", "ifsc", "account no", "branch", "rupees", "tax",
@@ -367,9 +438,9 @@ function parseInvoiceData(ocrResult, rawMaterials) {
       }
 
       // Could this line be an item that is missing from DB?
-      // An item line usually has at least a quantity and a rate or amount.
+      // An item line MUST have a valid mathematical relation (Qty x Rate = Amount) to avoid flagging random serial numbers or dates.
       const financials = extractFinancialsNearText(line);
-      if (financials.quantity > 0 && (financials.rate > 0 || financials.amount > 0)) {
+      if (financials.mathMatched && financials.quantity > 0 && (financials.rate > 0 || financials.amount > 0)) {
         // Strip out the numbers and units from the line to guess the name
         let nameGuess = line;
         nameGuess = nameGuess.replace(/\b\d+(?:\.\d+)?\b/g, ''); // remove numbers
@@ -399,6 +470,7 @@ function parseInvoiceData(ocrResult, rawMaterials) {
 module.exports = {
   parseInvoiceData,
   callGoogleVisionFull,
+  callGoogleVisionForPdf,
   extractFinancialsNearText,
   extractPdfWords
 };

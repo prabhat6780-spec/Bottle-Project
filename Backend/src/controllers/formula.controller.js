@@ -199,28 +199,70 @@ exports.getFormulaById = async (req, res) => {
 // ✅ UPDATE
 exports.updateFormula = async (req, res) => {
   try {
-    const { companyId, brandId, bottleId, variantId, coatingTypeId, columns, status } = req.body;
+    const { companyId, brandId, bottleIds, variantIds, coatingTypeId, columns, status } = req.body;
 
-    // Check for duplicate combination (excluding the current formula)
-    const exists = await Formula.findOne({
-      bottleId,
-      variantId,
-      _id: { $ne: req.params.id },
-      isDeleted: { $ne: true }
-    }).populate('bottleId', 'bottleName').populate('variantId', 'variantName');
-
-    if (exists) {
-      const bottleName = exists.bottleId ? exists.bottleId.bottleName : 'Unknown Bottle';
-      const variantName = exists.variantId ? exists.variantId.variantName : 'Unknown Variant';
-      return res.status(400).json({ message: `Formula already exists for ${bottleName} - ${variantName}` });
+    if (!companyId || !brandId || !bottleIds || !variantIds || !coatingTypeId) {
+      return res.status(400).json({ message: "Company, Brand, Bottle Names, Variants, and Coating Type are required." });
     }
 
-    const formula = await Formula.findByIdAndUpdate(
-      req.params.id,
-      { companyId, brandId, bottleId, variantId, coatingTypeId, columns, status: status !== false },
-      { new: true }
-    );
-    res.json(formula);
+    const variants = await Variant.find({ _id: { $in: variantIds } })
+      .populate({
+        path: 'bottleSpecId',
+        populate: {
+          path: 'brandId'
+        }
+      });
+
+    let updatedCount = 0;
+    let createdCount = 0;
+
+    for (let variant of variants) {
+      const bottle = variant.bottleSpecId;
+      if (!bottle) continue;
+      const brand = bottle.brandId;
+      if (!brand) continue;
+
+      const companyIdStr = brand.companyId.toString();
+      const brandIdStr = brand._id.toString();
+      const bottleIdStr = bottle._id.toString();
+      const variantIdStr = variant._id.toString();
+
+      if (
+        companyId === companyIdStr &&
+        brandId === brandIdStr &&
+        bottleIds.includes(bottleIdStr)
+      ) {
+        const existingFormula = await Formula.findOne({
+          bottleId: bottleIdStr,
+          variantId: variantIdStr,
+          isDeleted: { $ne: true }
+        });
+
+        if (existingFormula) {
+          existingFormula.companyId = companyIdStr;
+          existingFormula.brandId = brandIdStr;
+          existingFormula.coatingTypeId = coatingTypeId;
+          existingFormula.columns = columns;
+          existingFormula.status = status !== false;
+          await existingFormula.save();
+          updatedCount++;
+        } else {
+          const newFormula = new Formula({
+            companyId: companyIdStr,
+            brandId: brandIdStr,
+            bottleId: bottleIdStr,
+            variantId: variantIdStr,
+            coatingTypeId,
+            status: status !== false,
+            columns
+          });
+          await newFormula.save();
+          createdCount++;
+        }
+      }
+    }
+
+    res.json({ success: true, message: `Successfully updated ${updatedCount} and created ${createdCount} formulas.` });
   } catch (err) {
     res.status(500).json(err.message);
   }

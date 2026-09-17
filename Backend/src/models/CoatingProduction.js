@@ -3,8 +3,7 @@ const mongoose = require("mongoose");
 const coatingProductionSchema = new mongoose.Schema({
   unit: {
     type: Number,
-    required: true,
-    enum: [1, 2, 3, 4]
+    required: true
   },
   brandId: {
     type: mongoose.Schema.Types.ObjectId,

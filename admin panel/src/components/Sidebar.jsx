@@ -1,5 +1,8 @@
 import { NavLink, useLocation } from 'react-router-dom';
-import { useContext, useState, useEffect } from 'react';
+import { useContext, useState, useEffect, useMemo } from 'react';
+import { useDispatch, useSelector } from 'react-redux';
+import { fetchUnits } from '../redux/slices/unitSlice';
+import { getUnitNumberByName } from '../utils/unitMapper';
 import { AbilityContext, Can } from '../context/AbilityContext';
 import logo from '../assets/hero.png';
 
@@ -16,6 +19,7 @@ const navItems = [
       { to: '/users', icon: 'bi-people-fill', label: 'Users', action: 'sidebar', subject: 'user' },
       { to: '/operators', icon: 'bi-person-badge-fill', label: 'Operator Name', action: 'sidebar', subject: 'operator' },
       { to: '/shifts', icon: 'bi-clock-fill', label: 'Shift', action: 'sidebar', subject: 'shift' },
+      { to: '/units', icon: 'bi-hdd-network-fill', label: 'Units', action: 'sidebar', subject: 'unit' },
       { to: '/raw-materials', icon: 'bi-box-seam', label: 'Raw Material', action: 'sidebar', subject: 'raw-material' },
       { to: '/companies', icon: 'bi-building-fill', label: 'Companies', action: 'sidebar', subject: 'company' },
       { to: '/brands', icon: 'bi-award-fill', label: 'Brands', action: 'sidebar', subject: 'brand' },
@@ -66,11 +70,48 @@ export default function Sidebar({ collapsed, onClose }) {
   const ability = useContext(AbilityContext);
   const location = useLocation();
   const [expandedMenus, setExpandedMenus] = useState({});
+  const dispatch = useDispatch();
+  const { units } = useSelector((state) => state.units || { units: [] });
+
+  useEffect(() => {
+    dispatch(fetchUnits({ limit: 1000 }));
+  }, [dispatch]);
+
+  const dynamicNavItems = useMemo(() => {
+    const activeUnits = (units || []).filter(u => u.status !== false && !u.isDeleted);
+    
+    const coatingProductionSubLinks = activeUnits
+      .map(u => {
+        const num = getUnitNumberByName(u.name);
+        if (num === null) return null;
+        return {
+          to: `/coating-productions/unit/${num}`,
+          label: u.name,
+          icon: num <= 9 ? `bi-${num}-circle-fill` : 'bi-circle-fill',
+          num
+        };
+      })
+      .filter(Boolean)
+      .sort((a, b) => a.num - b.num);
+
+    return navItems.map(section => ({
+      ...section,
+      links: section.links.map(link => {
+        if (link.label === 'Coating Production') {
+          return {
+            ...link,
+            subLinks: coatingProductionSubLinks
+          };
+        }
+        return link;
+      })
+    }));
+  }, [units]);
 
   useEffect(() => {
     // Auto-expand menus if a sublink is active
     const newExpanded = { ...expandedMenus };
-    navItems.forEach(section => {
+    dynamicNavItems.forEach(section => {
       section.links.forEach(link => {
         if (link.subLinks && link.subLinks.some(sub => location.pathname.startsWith(sub.to.split('?')[0]))) {
           newExpanded[link.label] = true;
@@ -78,7 +119,7 @@ export default function Sidebar({ collapsed, onClose }) {
       });
     });
     setExpandedMenus(newExpanded);
-  }, [location.pathname]);
+  }, [location.pathname, dynamicNavItems]);
 
   const toggleMenu = (label) => {
     setExpandedMenus(prev => ({ ...prev, [label]: !prev[label] }));
@@ -98,7 +139,7 @@ export default function Sidebar({ collapsed, onClose }) {
 
       {/* Nav */}
       <nav className="sidebar-nav">
-        {navItems.map((section) => {
+        {dynamicNavItems.map((section) => {
             const visibleLinks = section.links.filter(link => {
               if (link.subLinks) {
                 return link.subLinks.some(sub => ability.can(sub.action || 'read', sub.subject || link.subject)) || ability.can(link.action || 'read', link.subject || 'all');

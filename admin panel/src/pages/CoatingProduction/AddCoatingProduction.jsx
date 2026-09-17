@@ -7,10 +7,12 @@ import { fetchCoatingSpecs } from '../../redux/slices/coatingSpecSlice';
 import { createCoatingProduction } from '../../redux/slices/coatingProductionSlice';
 import { fetchOperators, createOperator } from '../../redux/slices/operatorSlice';
 import { fetchShifts } from '../../redux/slices/shiftSlice';
+import { fetchUnits } from '../../redux/slices/unitSlice';
 import Swal from 'sweetalert2';
 import SearchableSelect from '../../components/SearchableSelect';
 import CreatableSelect from 'react-select/creatable';
 import { V_URL } from '../../../Baseurl.js';
+import { getUnitNumberByName } from '../../utils/unitMapper';
 
 const hasDateValidation = (user, permissionName) => {
   if (typeof user?.role === 'object' && Array.isArray(user.role.permissions)) {
@@ -33,6 +35,7 @@ export default function AddCoatingProduction() {
   const { loading: saving } = useSelector((state) => state.coatingProductions);
   const { operators } = useSelector((state) => state.operators);
   const { shifts } = useSelector((state) => state.shifts);
+  const { units } = useSelector((state) => state.units);
 
   const today = new Date();
   const tomorrow = new Date(today);
@@ -70,6 +73,7 @@ export default function AddCoatingProduction() {
     dispatch(fetchCoatingSpecs({ pagination: 'false' }));
     dispatch(fetchOperators({ pagination: 'false' }));
     dispatch(fetchShifts({ pagination: 'false' }));
+    dispatch(fetchUnits({ limit: 1000 }));
   }, [dispatch]);
 
   // Brands filtered by selected company
@@ -107,7 +111,7 @@ export default function AddCoatingProduction() {
 
   const validateField = (name, value) => {
     const fieldNames = {
-      companyId: 'Company', brandId: 'Brand', coatingSpecId: 'Coating Spec', coatingShade: 'Coating Shade',
+      unit: 'Unit', companyId: 'Company', brandId: 'Brand', coatingSpecId: 'Coating Spec', coatingShade: 'Coating Shade',
       date: 'Production Date', operatorId: 'Operator Name', shift: 'Shift',
       actualQuantity: 'Actual Quantity', bottlePerBox: 'Bottle Per Box'
     };

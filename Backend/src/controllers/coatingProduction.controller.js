@@ -1,4 +1,14 @@
 const CoatingProduction = require("../models/CoatingProduction");
+const Unit = require("../models/Unit");
+
+const checkValidUnit = async (unitNumber) => {
+  const unit = await Unit.findOne({ 
+    name: new RegExp(`^Unit\\s+${unitNumber}$`, 'i'), 
+    status: { $ne: false }, 
+    isDeleted: false 
+  });
+  return !!unit;
+};
 
 const hasDateValidationPermission = (user, permissionName) => {
   if (user && user.role && Array.isArray(user.role.permissions)) {
@@ -80,6 +90,11 @@ const addProduction = async (req, res) => {
 
     if (!validateDateConstraint(req.user, date, 'coating-production-date-validation')) {
       return res.status(400).json({ message: "Invalid date. You are only allowed to select Yesterday, Today, or Tomorrow." });
+    }
+
+    const isValidUnit = await checkValidUnit(unit);
+    if (!isValidUnit) {
+      return res.status(400).json({ message: "Invalid or inactive unit" });
     }
 
     // Prevent duplicate entry for same coatingSpec + date + unit + shift
@@ -304,6 +319,13 @@ const updateProduction = async (req, res) => {
 
     if (date && date !== existingProduction.date && !validateDateConstraint(req.user, date, 'coating-production-date-validation')) {
       return res.status(400).json({ message: "Invalid date. You are only allowed to select Yesterday, Today, or Tomorrow." });
+    }
+
+    if (unit && unit !== existingProduction.unit) {
+      const isValidUnit = await checkValidUnit(unit);
+      if (!isValidUnit) {
+        return res.status(400).json({ message: "Invalid or inactive unit" });
+      }
     }
 
     if (unit && coatingSpecId && date && shift) {

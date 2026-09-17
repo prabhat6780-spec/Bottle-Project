@@ -53,6 +53,7 @@ app.use("/api/sg-label", require("./routes/sgLabel.routes"));
 app.use("/api/sg-label-2", require("./routes/sgLabelTwoRoutes"));
 app.use("/api/stock-entry", require("./routes/stockEntry.routes"));
 app.use("/api/invoice-vision", require("./routes/invoiceVision.routes"));
+app.use("/api/unit", require("./routes/unit.routes"));
 
 // Added testing routes for the browser
 app.get("/", (req, res) => {
